@@ -4,7 +4,7 @@ import { generateAttempt } from './services/openRouterService';
 import { generateMidiBlob, stopPlayback } from './utils/midiUtils';
 import InputForm from './components/InputForm';
 import AttemptCard from './components/AttemptCard';
-import { Loader, Trophy, Music } from 'lucide-react';
+import { Loader, Trophy } from 'lucide-react';
 
 const App: React.FC = () => {
   const [status, setStatus] = useState<GenerationStatus>(GenerationStatus.IDLE);
@@ -36,16 +36,16 @@ const App: React.FC = () => {
       try {
         // Add small delay to avoid exact same microsecond timestamp seeds if logic relies on it
         await new Promise(r => setTimeout(r, id * 100));
-        
+
         const composition = await generateAttempt(id, prefs);
         const blob = generateMidiBlob(composition);
-        
-        setAttempts(prev => prev.map(a => 
+
+        setAttempts(prev => prev.map(a =>
           a.id === id ? { ...a, status: 'success', data: composition, midiBlob: blob } : a
         ));
         return { id, data: composition, success: true };
       } catch (err) {
-        setAttempts(prev => prev.map(a => 
+        setAttempts(prev => prev.map(a =>
           a.id === id ? { ...a, status: 'failed', error: 'Failed to generate JSON' } : a
         ));
         return { id, success: false };
@@ -64,41 +64,43 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-slate-200 pb-20">
-      {/* Navbar */}
-      <header className="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-600 p-2 rounded-lg">
-              <Music size={20} className="text-white" />
-            </div>
-            <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-teal-400">
-              AI MIDI Generator
-            </h1>
-          </div>
+    <div className="min-h-screen bg-surface-900 text-text-primary">
+      {/* Minimal Header */}
+      <header className="border-b border-surface-600/50 backdrop-blur-sm bg-surface-900/80 sticky top-0 z-50">
+        <div className="max-w-5xl mx-auto px-6 py-4">
+          <span className="font-mono text-sm font-medium tracking-wide text-text-primary">
+            MIDI GENERATOR
+          </span>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto p-4 md:p-8 space-y-8">
-        
+      <main className="max-w-5xl mx-auto px-6 py-12">
+
         {/* Input Section */}
-        <section className="max-w-2xl mx-auto">
-          <InputForm 
-            onSubmit={handleGenerate} 
-            isGenerating={status === GenerationStatus.GENERATING} 
+        <section className="max-w-xl mx-auto mb-16">
+          <InputForm
+            onSubmit={handleGenerate}
+            isGenerating={status === GenerationStatus.GENERATING}
           />
           {errorMsg && (
-            <div className="mt-4 p-4 bg-red-900/30 border border-red-800 rounded-lg text-red-300 text-sm text-center">
+            <div className="mt-6 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded text-red-400 text-sm font-light">
               {errorMsg}
             </div>
           )}
         </section>
 
-        {/* Grid of Attempts */}
+        {/* Results Grid */}
         {attempts.length > 0 && (
-          <section className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {attempts.map((attempt) => {
-              return (
+          <section>
+            <div className="mb-6 flex items-center gap-3">
+              <div className="h-px flex-1 bg-surface-600/50" />
+              <span className="font-mono text-xs text-text-muted uppercase tracking-widest">
+                Results
+              </span>
+              <div className="h-px flex-1 bg-surface-600/50" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+              {attempts.map((attempt) => (
                 <AttemptCard
                   key={attempt.id}
                   attempt={attempt}
@@ -111,8 +113,8 @@ const App: React.FC = () => {
                     setPlayingId(null);
                   }}
                 />
-              );
-            })}
+              ))}
+            </div>
           </section>
         )}
       </main>

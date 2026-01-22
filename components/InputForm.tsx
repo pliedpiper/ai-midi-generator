@@ -1,7 +1,7 @@
 import React from 'react';
 import { UserPreferences } from '../types';
 import { AVAILABLE_MODELS, DEFAULT_PREFERENCES } from '../constants';
-import { Music, Sliders, Zap } from 'lucide-react';
+import { ChevronDown, Loader2 } from 'lucide-react';
 
 interface Props {
   onSubmit: (prefs: UserPreferences) => void;
@@ -18,147 +18,169 @@ const InputForm: React.FC<Props> = ({ onSubmit, isGenerating }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700">
-      <div className="mb-6">
-        <label className="block text-sm font-medium text-slate-300 mb-2">
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Prompt */}
+      <div>
+        <label className="block font-mono text-xs text-text-muted uppercase tracking-wider mb-3">
           Describe your music
         </label>
         <textarea
-          className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+          className="w-full bg-surface-800 border border-surface-600 rounded px-4 py-3 text-text-primary placeholder-text-muted/50 focus:border-accent focus:ring-0 outline-none transition-colors resize-none font-light"
           rows={3}
           value={prefs.prompt}
           onChange={e => setPrefs({ ...prefs, prompt: e.target.value })}
-          placeholder="e.g. An upbeat 8-bit video game loop with a catchy melody"
+          placeholder="An upbeat 8-bit video game loop with a catchy melody..."
           disabled={isGenerating}
         />
       </div>
 
-      <div className="mb-6">
-        <label className="block text-sm font-medium text-slate-300 mb-2">
+      {/* Model Select */}
+      <div>
+        <label className="block font-mono text-xs text-text-muted uppercase tracking-wider mb-3">
           Model
         </label>
-        <select
-          className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-          value={prefs.model}
-          onChange={e => setPrefs({ ...prefs, model: e.target.value })}
-          disabled={isGenerating}
-        >
-          {AVAILABLE_MODELS.map(model => (
-            <option key={model.id} value={model.id}>
-              {model.name}
-            </option>
-          ))}
-        </select>
+        <div className="relative">
+          <select
+            className="w-full appearance-none bg-surface-800 border border-surface-600 rounded px-4 py-3 text-text-primary focus:border-accent focus:ring-0 outline-none transition-colors cursor-pointer font-light"
+            value={prefs.model}
+            onChange={e => setPrefs({ ...prefs, model: e.target.value })}
+            disabled={isGenerating}
+          >
+            {AVAILABLE_MODELS.map(model => (
+              <option key={model.id} value={model.id}>
+                {model.name}
+              </option>
+            ))}
+          </select>
+          <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+        </div>
       </div>
 
-      <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => setShowAdvanced(!showAdvanced)}>
-        <span className="text-sm font-semibold text-slate-400 flex items-center gap-2">
-          <Sliders size={16} /> Advanced Controls
-        </span>
-        <span className="text-xs text-blue-400 hover:text-blue-300">
-          {showAdvanced ? 'Hide' : 'Show'}
-        </span>
-      </div>
+      {/* Advanced Toggle */}
+      <button
+        type="button"
+        onClick={() => setShowAdvanced(!showAdvanced)}
+        className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors"
+      >
+        <ChevronDown
+          size={14}
+          className={`transform transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
+        />
+        <span className="font-mono text-xs uppercase tracking-wider">Advanced</span>
+      </button>
 
+      {/* Advanced Controls */}
       {showAdvanced && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className="grid grid-cols-2 gap-4 pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Tempo (BPM)</label>
+            <label className="block font-mono text-[10px] text-text-muted uppercase tracking-wider mb-2">
+              Tempo
+            </label>
             <input
               type="number"
-              className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm"
+              className="w-full bg-surface-800 border border-surface-600 rounded px-3 py-2 text-sm text-text-primary focus:border-accent outline-none transition-colors font-light"
               value={prefs.tempo}
               onChange={e => setPrefs({ ...prefs, tempo: parseInt(e.target.value) || 120 })}
               disabled={isGenerating}
             />
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Key</label>
+            <label className="block font-mono text-[10px] text-text-muted uppercase tracking-wider mb-2">
+              Key
+            </label>
             <input
               type="text"
-              className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm"
+              className="w-full bg-surface-800 border border-surface-600 rounded px-3 py-2 text-sm text-text-primary focus:border-accent outline-none transition-colors font-light"
               value={prefs.key}
               onChange={e => setPrefs({ ...prefs, key: e.target.value })}
               disabled={isGenerating}
             />
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Time Sig</label>
+            <label className="block font-mono text-[10px] text-text-muted uppercase tracking-wider mb-2">
+              Time Sig
+            </label>
             <input
               type="text"
-              className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm"
+              className="w-full bg-surface-800 border border-surface-600 rounded px-3 py-2 text-sm text-text-primary focus:border-accent outline-none transition-colors font-light"
               value={prefs.timeSignature}
               onChange={e => setPrefs({ ...prefs, timeSignature: e.target.value })}
               disabled={isGenerating}
             />
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Length (Bars)</label>
+            <label className="block font-mono text-[10px] text-text-muted uppercase tracking-wider mb-2">
+              Bars
+            </label>
             <input
               type="number"
-              className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm"
+              className="w-full bg-surface-800 border border-surface-600 rounded px-3 py-2 text-sm text-text-primary focus:border-accent outline-none transition-colors font-light"
               value={prefs.durationBars}
               onChange={e => setPrefs({ ...prefs, durationBars: parseInt(e.target.value) || 8 })}
               disabled={isGenerating}
             />
           </div>
-          <div className="col-span-2 md:col-span-4">
-            <label className="block text-xs text-slate-400 mb-1">Style Constraints</label>
+          <div className="col-span-2">
+            <label className="block font-mono text-[10px] text-text-muted uppercase tracking-wider mb-2">
+              Constraints
+            </label>
             <input
               type="text"
-              className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm"
+              className="w-full bg-surface-800 border border-surface-600 rounded px-3 py-2 text-sm text-text-primary placeholder-text-muted/50 focus:border-accent outline-none transition-colors font-light"
               value={prefs.constraints}
               onChange={e => setPrefs({ ...prefs, constraints: e.target.value })}
-              placeholder="e.g. No drums, Use arpeggios"
+              placeholder="No drums, use arpeggios..."
               disabled={isGenerating}
             />
           </div>
         </div>
       )}
 
-      <div className="mb-6 bg-slate-900/50 p-4 rounded-lg border border-slate-700/50">
-         <div className="flex justify-between items-center mb-2">
-           <label className="text-sm font-medium text-slate-300">
-              Number of Variations
-           </label>
-           <span className="text-xs font-bold bg-blue-600 px-2 py-0.5 rounded text-white">
-             {prefs.attemptCount}
-           </span>
-         </div>
-         <input 
-            type="range" 
-            min="1" 
-            max="5" 
+      {/* Variations Slider */}
+      <div className="pt-2">
+        <div className="flex justify-between items-baseline mb-4">
+          <label className="font-mono text-xs text-text-muted uppercase tracking-wider">
+            Variations
+          </label>
+          <span className="font-mono text-lg text-accent font-medium">
+            {prefs.attemptCount}
+          </span>
+        </div>
+        <div className="relative">
+          <div className="absolute top-1/2 left-0 right-0 h-1 bg-surface-500 rounded -translate-y-1/2 pointer-events-none" />
+          <input
+            type="range"
+            min="1"
+            max="5"
             step="1"
-            value={prefs.attemptCount} 
+            value={prefs.attemptCount}
             onChange={(e) => setPrefs({...prefs, attemptCount: parseInt(e.target.value)})}
-            className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+            className="relative w-full cursor-pointer bg-transparent"
             disabled={isGenerating}
-         />
-         <div className="flex justify-between text-[10px] text-slate-500 mt-1 px-1">
-            <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
-         </div>
+          />
+        </div>
+        <div className="flex justify-between text-[10px] text-text-muted mt-2 font-mono">
+          <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+        </div>
       </div>
 
+      {/* Submit */}
       <button
         type="submit"
         disabled={isGenerating}
-        className={`w-full flex items-center justify-center gap-2 py-3 px-6 rounded-lg font-bold text-white transition-all
-          ${isGenerating 
-            ? 'bg-slate-600 cursor-not-allowed opacity-50' 
-            : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-lg shadow-blue-900/20 active:scale-[0.98]'
-          }`}
+        className={`w-full py-3.5 rounded font-medium tracking-wide transition-all ${
+          isGenerating
+            ? 'bg-surface-700 text-text-muted cursor-not-allowed'
+            : 'bg-accent text-surface-900 hover:bg-accent-hover active:scale-[0.99]'
+        }`}
       >
         {isGenerating ? (
-          <>
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-            Composing...
-          </>
+          <span className="flex items-center justify-center gap-2">
+            <Loader2 size={18} className="animate-spin" />
+            Generating...
+          </span>
         ) : (
-          <>
-            <Zap size={20} />
-            Generate (x{prefs.attemptCount})
-          </>
+          `Generate ${prefs.attemptCount > 1 ? `(${prefs.attemptCount})` : ''}`
         )}
       </button>
     </form>
