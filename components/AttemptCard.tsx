@@ -55,7 +55,6 @@ const AttemptCard: React.FC<Props> = ({ attempt, isPlaying, onPlay, onStop }) =>
                         <div>Key: <span className="text-slate-300">{attempt.data.key}</span></div>
                         <div>Tempo: <span className="text-slate-300">{attempt.data.tempo} BPM</span></div>
                         <div>Time: <span className="text-slate-300">{attempt.data.timeSignature.join('/')}</span></div>
-                        <div>Tracks: <span className="text-slate-300">{attempt.data.tracks.length}</span></div>
                     </div>
                 </div>
             </div>

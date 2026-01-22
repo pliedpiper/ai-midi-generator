@@ -45,7 +45,7 @@ export const createMidiObject = (composition: MidiComposition): Midi => {
 export const generateMidiBlob = (composition: MidiComposition): Blob => {
   const midi = createMidiObject(composition);
   const arrayBuffer = midi.toArray();
-  return new Blob([arrayBuffer], { type: 'audio/midi' });
+  return new Blob([arrayBuffer as BlobPart], { type: 'audio/midi' });
 };
 
 // Playback engine
