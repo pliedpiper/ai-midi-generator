@@ -1,5 +1,122 @@
-import App from '../App';
+"use client";
 
-export default function Page() {
-  return <App />;
-}
+import React, { useState } from 'react';
+import { AttemptResult, GenerationStatus, UserPreferences } from '../types';
+import { generateAttempt } from '../services/openRouterService';
+import { generateMidiBlob, stopPlayback } from '../utils/midiUtils';
+import InputForm from '../components/InputForm';
+import AttemptCard from '../components/AttemptCard';
+
+const Page: React.FC = () => {
+  const [status, setStatus] = useState<GenerationStatus>(GenerationStatus.IDLE);
+  const [attempts, setAttempts] = useState<AttemptResult[]>([]);
+  const [playingId, setPlayingId] = useState<number | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Initialize empty slots based on requested count
+  const resetAttempts = (count: number) => {
+    setAttempts(Array.from({ length: count }, (_, i) => ({
+      id: i + 1,
+      status: 'pending'
+    })));
+    setPlayingId(null);
+    setErrorMsg(null);
+  };
+
+  const handleGenerate = async (prefs: UserPreferences) => {
+    setStatus(GenerationStatus.GENERATING);
+    resetAttempts(prefs.attemptCount);
+
+    // Launch parallel attempts based on attemptCount
+    const attemptPromises = Array.from({ length: prefs.attemptCount }, (_, i) => i + 1).map(async (id) => {
+      try {
+        // Add small delay to avoid exact same microsecond timestamp seeds if logic relies on it
+        await new Promise(r => setTimeout(r, id * 100));
+
+        const composition = await generateAttempt(id, prefs);
+        const blob = generateMidiBlob(composition);
+
+        setAttempts(prev => prev.map(a =>
+          a.id === id ? { ...a, status: 'success', data: composition, midiBlob: blob } : a
+        ));
+        return { id, data: composition, success: true };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to generate JSON';
+        setAttempts(prev => prev.map(a =>
+          a.id === id ? { ...a, status: 'failed', error: message } : a
+        ));
+        return { id, success: false };
+      }
+    });
+
+    const results = await Promise.all(attemptPromises);
+    const successfulAttempts = results.filter(r => r.success);
+
+    if (successfulAttempts.length === 0) {
+      setStatus(GenerationStatus.ERROR);
+      setErrorMsg("All generation attempts failed. Please try a simpler prompt.");
+    } else {
+      setStatus(GenerationStatus.COMPLETED);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-surface-900 text-text-primary">
+      {/* Minimal Header */}
+      <header className="border-b border-surface-600/50 backdrop-blur-sm bg-surface-900/80 sticky top-0 z-50">
+        <div className="max-w-5xl mx-auto px-6 py-4">
+          <span className="font-mono text-sm font-medium tracking-wide text-text-primary">
+            MIDI GENERATOR
+          </span>
+        </div>
+      </header>
+
+      <main className="max-w-5xl mx-auto px-6 py-12">
+
+        {/* Input Section */}
+        <section className="max-w-xl mx-auto mb-16">
+          <InputForm
+            onSubmit={handleGenerate}
+            isGenerating={status === GenerationStatus.GENERATING}
+          />
+          {errorMsg && (
+            <div className="mt-6 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded text-red-400 text-sm font-light">
+              {errorMsg}
+            </div>
+          )}
+        </section>
+
+        {/* Results Grid */}
+        {attempts.length > 0 && (
+          <section>
+            <div className="mb-6 flex items-center gap-3">
+              <div className="h-px flex-1 bg-surface-600/50" />
+              <span className="font-mono text-xs text-text-muted uppercase tracking-widest">
+                Results
+              </span>
+              <div className="h-px flex-1 bg-surface-600/50" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+              {attempts.map((attempt) => (
+                <AttemptCard
+                  key={attempt.id}
+                  attempt={attempt}
+                  isPlaying={playingId === attempt.id}
+                  onPlay={(id) => {
+                    setPlayingId(id);
+                  }}
+                  onStop={() => {
+                    stopPlayback();
+                    setPlayingId(null);
+                  }}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+      </main>
+    </div>
+  );
+};
+
+export default Page;

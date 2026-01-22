@@ -10,10 +10,12 @@ export const DEFAULT_PREFERENCES = {
 };
 
 export const AVAILABLE_MODELS = [
+  { id: "openai/gpt-5.2-chat", name: "GPT-5.2 Chat" },
   { id: "anthropic/claude-sonnet-4.5", name: "Claude Sonnet 4.5" },
   { id: "xiaomi/mimo-v2-flash:free", name: "MiMo V2 Flash (free)" },
   { id: "x-ai/grok-code-fast-1", name: "Grok Code Fast 1" },
   { id: "google/gemini-3-flash-preview", name: "Gemini 3 Flash Preview" },
+  { id: "google/gemini-3-pro-preview", name: "Gemini 3 Pro Preview" },
   { id: "anthropic/claude-opus-4.5", name: "Claude Opus 4.5" },
   { id: "google/gemini-2.5-pro", name: "Gemini 2.5 Pro" },
   { id: "google/gemini-2.5-flash", name: "Gemini 2.5 Flash" },
