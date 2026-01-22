@@ -2,6 +2,12 @@ import { MidiComposition } from '../types';
 import * as Tone from 'tone';
 import { Midi } from '@tonejs/midi';
 
+const normalizeVelocity = (value: number) => {
+  if (!Number.isFinite(value)) return 0.8;
+  const scaled = value > 1 ? value / 127 : value;
+  return Math.max(0, Math.min(1, scaled));
+};
+
 // Helper to convert our JSON composition to a Tone.js Midi object
 export const createMidiObject = (composition: MidiComposition): Midi => {
   // We need to calculate seconds from beats because @tonejs/midi expects time/duration in seconds
@@ -28,7 +34,7 @@ export const createMidiObject = (composition: MidiComposition): Midi => {
         // Conversion: AI gives us Beats, Library wants Seconds.
         time: note.time * secondsPerBeat,
         duration: note.duration * secondsPerBeat,
-        velocity: typeof note.velocity === 'number' ? note.velocity : 0.8
+        velocity: normalizeVelocity(typeof note.velocity === 'number' ? note.velocity : 0.8)
       });
     });
   });
@@ -82,7 +88,7 @@ export const playComposition = async (composition: MidiComposition) => {
       time: n.time * secondsPerBeat,
       note: Tone.Frequency(n.midi, "midi").toNote(),
       duration: n.duration * secondsPerBeat,
-      velocity: n.velocity
+      velocity: normalizeVelocity(n.velocity)
     }));
 
     const part = new Tone.Part((time, value) => {
