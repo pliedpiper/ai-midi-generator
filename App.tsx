@@ -1,10 +1,11 @@
-import React, { useState, useRef } from 'react';
+"use client";
+
+import React, { useState } from 'react';
 import { AttemptResult, GenerationStatus, UserPreferences } from './types';
 import { generateAttempt } from './services/openRouterService';
 import { generateMidiBlob, stopPlayback } from './utils/midiUtils';
 import InputForm from './components/InputForm';
 import AttemptCard from './components/AttemptCard';
-import { Loader, Trophy } from 'lucide-react';
 
 const App: React.FC = () => {
   const [status, setStatus] = useState<GenerationStatus>(GenerationStatus.IDLE);
@@ -23,11 +24,6 @@ const App: React.FC = () => {
   };
 
   const handleGenerate = async (prefs: UserPreferences) => {
-    if (!process.env.API_KEY) {
-        setErrorMsg("API Key is missing. Please check your environment configuration.");
-        return;
-    }
-
     setStatus(GenerationStatus.GENERATING);
     resetAttempts(prefs.attemptCount);
 
@@ -45,8 +41,9 @@ const App: React.FC = () => {
         ));
         return { id, data: composition, success: true };
       } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to generate JSON';
         setAttempts(prev => prev.map(a =>
-          a.id === id ? { ...a, status: 'failed', error: 'Failed to generate JSON' } : a
+          a.id === id ? { ...a, status: 'failed', error: message } : a
         ));
         return { id, success: false };
       }

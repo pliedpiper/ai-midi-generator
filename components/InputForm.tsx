@@ -1,3 +1,5 @@
+"use client";
+
 import React from 'react';
 import { UserPreferences } from '../types';
 import { AVAILABLE_MODELS, DEFAULT_PREFERENCES } from '../constants';

@@ -1,5 +1,0 @@
-{
-  "name": "AI MIDI Generator",
-  "description": "A web application that generates MIDI music compositions using AI.",
-  "requestFramePermissions": []
-}

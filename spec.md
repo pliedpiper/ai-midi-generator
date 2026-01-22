@@ -6,7 +6,7 @@ AI MIDI Generator is a web application that leverages OpenRouter via the OpenAI 
 ## Architecture
 
 ### Frontend
-- **Framework**: React 19 (via ESM imports)
+- **Framework**: Next.js App Router (React 19)
 - **Styling**: Tailwind CSS
 - **Icons**: Lucide React
 - **Audio Engine**: Tone.js & @tonejs/midi
@@ -72,10 +72,12 @@ The LLM is instructed to return this JSON structure:
 ## Services
 
 - **openRouterService.ts**:
-  - `generateAttempt(id, prefs)`: Constructs a prompt with a unique variation seed (`Variation ID: {id}-{random}`) to prevent deterministic repetition. Uses a system prompt that embeds a strict JSON schema and parses the model response.
+  - `generateAttempt(id, prefs)`: Calls the Next.js API route (`/api/generate`) with a unique variation seed to prevent deterministic repetition.
+- **app/api/generate/route.ts**:
+  - Server-side OpenAI SDK call to OpenRouter. Uses a system prompt that embeds a strict JSON schema and parses the model response.
 - **midiUtils.ts**:
   - `createMidiObject`: Converts the custom JSON format to a `@tonejs/midi` object. Handles the critical conversion between musical "beats" (LLM output) and "seconds" (Audio engine input).
   - `playComposition`: Uses `Tone.PolySynth` to play back the notes in the browser. Handles cleanup and polyphony.
 
 ## Deployment & Security
-This implementation runs the API calls client-side for demonstration purposes. In a production environment, the `openRouterService` logic must be moved to a Node.js/Express backend to securely manage the `API_KEY` and enforce rate limiting.
+The OpenAI/OpenRouter call runs server-side in the Next.js API route. Set `OPENAI_API_KEY` in `.env.local` and avoid exposing it to the client.
