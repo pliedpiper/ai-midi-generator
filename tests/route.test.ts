@@ -72,7 +72,7 @@ describe('validateComposition', () => {
   it('rejects null input', () => {
     const result = validateComposition(null);
     expect(result.valid).toBe(false);
-    if (!result.valid) {
+    if (result.valid === false) {
       expect(result.error).toContain('not an object');
     }
   });
@@ -81,7 +81,7 @@ describe('validateComposition', () => {
     const { title, ...noTitle } = validComposition;
     const result = validateComposition(noTitle);
     expect(result.valid).toBe(false);
-    if (!result.valid) {
+    if (result.valid === false) {
       expect(result.error).toContain('title');
     }
   });
@@ -89,7 +89,7 @@ describe('validateComposition', () => {
   it('rejects non-finite tempo', () => {
     const result = validateComposition({ ...validComposition, tempo: Infinity });
     expect(result.valid).toBe(false);
-    if (!result.valid) {
+    if (result.valid === false) {
       expect(result.error).toContain('tempo');
     }
   });
@@ -97,7 +97,7 @@ describe('validateComposition', () => {
   it('rejects zero tempo', () => {
     const result = validateComposition({ ...validComposition, tempo: 0 });
     expect(result.valid).toBe(false);
-    if (!result.valid) {
+    if (result.valid === false) {
       expect(result.error).toContain('tempo');
     }
   });
@@ -105,7 +105,7 @@ describe('validateComposition', () => {
   it('rejects invalid time signature format', () => {
     const result = validateComposition({ ...validComposition, timeSignature: [4] });
     expect(result.valid).toBe(false);
-    if (!result.valid) {
+    if (result.valid === false) {
       expect(result.error).toContain('timeSignature');
     }
   });
@@ -113,7 +113,7 @@ describe('validateComposition', () => {
   it('rejects non-integer time signature values', () => {
     const result = validateComposition({ ...validComposition, timeSignature: [4.5, 4] });
     expect(result.valid).toBe(false);
-    if (!result.valid) {
+    if (result.valid === false) {
       expect(result.error).toContain('timeSignature');
     }
   });
@@ -121,7 +121,7 @@ describe('validateComposition', () => {
   it('rejects empty tracks array', () => {
     const result = validateComposition({ ...validComposition, tracks: [] });
     expect(result.valid).toBe(false);
-    if (!result.valid) {
+    if (result.valid === false) {
       expect(result.error).toContain('tracks');
     }
   });
@@ -132,7 +132,7 @@ describe('validateComposition', () => {
       tracks: [{ name: 'Piano', notes: [{ midi: 60 }] }] // missing time, duration
     });
     expect(result.valid).toBe(false);
-    if (!result.valid) {
+    if (result.valid === false) {
       expect(result.error).toContain('track');
     }
   });

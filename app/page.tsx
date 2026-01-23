@@ -16,6 +16,8 @@ const Page: React.FC = () => {
 
   // Initialize empty slots based on requested count
   const resetAttempts = (count: number) => {
+    // Stop any playing audio before resetting
+    stopPlayback();
     setAttempts(Array.from({ length: count }, (_, i) => ({
       id: i + 1,
       status: 'pending'

@@ -1,10 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { extractJson, validateComposition } from '../utils/validation';
 
-// Note: Full integration tests with mocked OpenAI require complex setup.
-// These tests focus on the validation logic which is already covered in route.test.ts.
-// For full integration testing, consider using a test server setup or E2E tests.
-
 describe('API /api/generate validation functions', () => {
   describe('extractJson edge cases', () => {
     it('handles multiple JSON objects - takes outer bounds', () => {
