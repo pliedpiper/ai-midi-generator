@@ -31,6 +31,12 @@ const InputForm: React.FC<Props> = ({ onSubmit, isGenerating }) => {
           rows={3}
           value={prefs.prompt}
           onChange={e => setPrefs({ ...prefs, prompt: e.target.value })}
+          onKeyDown={e => {
+            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !isGenerating) {
+              e.preventDefault();
+              onSubmit(prefs);
+            }
+          }}
           placeholder="An upbeat 8-bit video game loop with a catchy melody..."
           disabled={isGenerating}
         />
