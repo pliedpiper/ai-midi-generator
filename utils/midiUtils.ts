@@ -1,40 +1,101 @@
-import { MidiComposition } from '../types';
+import { MidiComposition, Note } from '../types';
 import * as Tone from 'tone';
 import { Midi } from '@tonejs/midi';
 
-const normalizeVelocity = (value: number) => {
-  if (!Number.isFinite(value)) return 0.8;
+// Constants for MIDI range validation
+const MIN_MIDI_NOTE = 0;
+const MAX_MIDI_NOTE = 127;
+const MIN_DURATION = 0.001; // Minimum duration in beats
+const DEFAULT_VELOCITY = 0.8;
+const MIN_TEMPO = 20;
+const MAX_TEMPO = 300;
+const DEFAULT_TEMPO = 120;
+
+export const normalizeVelocity = (value: number | undefined): number => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return DEFAULT_VELOCITY;
   const scaled = value > 1 ? value / 127 : value;
   return Math.max(0, Math.min(1, scaled));
 };
 
+// Clamp MIDI note to valid range (0-127)
+export const clampMidiNote = (midi: number): number => {
+  if (!Number.isFinite(midi)) return 60; // Default to middle C
+  return Math.max(MIN_MIDI_NOTE, Math.min(MAX_MIDI_NOTE, Math.round(midi)));
+};
+
+// Normalize note time (must be >= 0)
+export const normalizeNoteTime = (time: number): number => {
+  if (!Number.isFinite(time)) return 0;
+  return Math.max(0, time);
+};
+
+// Normalize note duration (must be > 0)
+export const normalizeNoteDuration = (duration: number): number => {
+  if (!Number.isFinite(duration) || duration <= 0) return MIN_DURATION;
+  return duration;
+};
+
+// Normalize tempo with guards for non-finite values
+export const normalizeTempo = (tempo: number): number => {
+  if (!Number.isFinite(tempo) || tempo <= 0) return DEFAULT_TEMPO;
+  return Math.max(MIN_TEMPO, Math.min(MAX_TEMPO, tempo));
+};
+
+// Normalize time signature with guards
+export const normalizeTimeSignature = (timeSig: number[]): [number, number] => {
+  if (!Array.isArray(timeSig) || timeSig.length < 2) return [4, 4];
+  const [num, den] = timeSig;
+  const safeNum = Number.isFinite(num) && num > 0 ? Math.round(num) : 4;
+  const safeDen = Number.isFinite(den) && den > 0 ? Math.round(den) : 4;
+  return [safeNum, safeDen];
+};
+
+// Normalize a single note with all guards applied
+export const normalizeNote = (note: Note): Note => ({
+  midi: clampMidiNote(note.midi),
+  time: normalizeNoteTime(note.time),
+  duration: normalizeNoteDuration(note.duration),
+  velocity: normalizeVelocity(note.velocity),
+  name: note.name
+});
+
+// Normalize all notes in a track and sort by time
+export const normalizeAndSortNotes = (notes: Note[]): Note[] => {
+  if (!Array.isArray(notes)) return [];
+  return notes
+    .map(normalizeNote)
+    .sort((a, b) => a.time - b.time);
+};
+
 // Helper to convert our JSON composition to a Tone.js Midi object
 export const createMidiObject = (composition: MidiComposition): Midi => {
-  // We need to calculate seconds from beats because @tonejs/midi expects time/duration in seconds
-  // Formula: seconds = beats * (60 / BPM)
-  const secondsPerBeat = 60 / composition.tempo;
-  const [num, den] = composition.timeSignature;
-  
+  const tempo = normalizeTempo(composition.tempo);
+  const secondsPerBeat = 60 / tempo;
+  const [num, den] = normalizeTimeSignature(composition.timeSignature);
+
   const midi = new Midi();
-  midi.name = composition.title;
-  midi.header.setTempo(composition.tempo);
+  midi.name = composition.title || 'Untitled';
+  midi.header.setTempo(tempo);
   midi.header.timeSignatures.push({ ticks: 0, timeSignature: [num, den] });
-  
+
   composition.tracks.forEach(trackData => {
     const track = midi.addTrack();
-    track.name = trackData.name;
-    track.instrument.number = trackData.programNumber;
-    
-    // Heuristic: If track name contains "drum", set to channel 9 (percussion channel in GM)
-    track.channel = trackData.name.toLowerCase().includes('drum') ? 9 : 0;
+    track.name = trackData.name || 'Track';
+    track.instrument.number = Number.isFinite(trackData.programNumber)
+      ? Math.max(0, Math.min(127, Math.round(trackData.programNumber)))
+      : 0;
 
-    trackData.notes.forEach(note => {
+    // Heuristic: If track name contains "drum", set to channel 9 (percussion channel in GM)
+    track.channel = trackData.name?.toLowerCase().includes('drum') ? 9 : 0;
+
+    const normalizedNotes = normalizeAndSortNotes(trackData.notes);
+    normalizedNotes.forEach(note => {
       track.addNote({
         midi: note.midi,
         // Conversion: AI gives us Beats, Library wants Seconds.
         time: note.time * secondsPerBeat,
         duration: note.duration * secondsPerBeat,
-        velocity: normalizeVelocity(typeof note.velocity === 'number' ? note.velocity : 0.8)
+        velocity: note.velocity
       });
     });
   });
@@ -48,55 +109,101 @@ export const generateMidiBlob = (composition: MidiComposition): Blob => {
   return new Blob([arrayBuffer as BlobPart], { type: 'audio/midi' });
 };
 
-// Playback engine
+// Playback engine - track all parts for proper cleanup
 let synths: Tone.PolySynth[] = [];
-let sequencePart: Tone.Part | null = null;
+let parts: Tone.Part[] = [];
 
 export const stopPlayback = () => {
   Tone.Transport.stop();
   Tone.Transport.cancel();
-  synths.forEach(s => s.dispose());
+
+  // Dispose all parts
+  parts.forEach(p => {
+    try {
+      p.dispose();
+    } catch {
+      // Ignore disposal errors
+    }
+  });
+  parts = [];
+
+  // Dispose all synths
+  synths.forEach(s => {
+    try {
+      s.dispose();
+    } catch {
+      // Ignore disposal errors
+    }
+  });
   synths = [];
-  if (sequencePart) {
-    sequencePart.dispose();
-    sequencePart = null;
-  }
 };
 
-export const playComposition = async (composition: MidiComposition) => {
-  await Tone.start();
+export class PlaybackError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'PlaybackError';
+  }
+}
+
+export const playComposition = async (composition: MidiComposition): Promise<void> => {
+  // Validate composition has playable content
+  if (!composition) {
+    throw new PlaybackError('No composition provided');
+  }
+
+  if (!composition.tracks || composition.tracks.length === 0) {
+    throw new PlaybackError('Composition has no tracks');
+  }
+
+  const hasNotes = composition.tracks.some(t => t.notes && t.notes.length > 0);
+  if (!hasNotes) {
+    throw new PlaybackError('Composition has no notes to play');
+  }
+
+  // Start audio context - this may fail if browser blocks autoplay
+  try {
+    await Tone.start();
+  } catch (err) {
+    throw new PlaybackError('Failed to start audio context. Click to enable audio.');
+  }
+
+  // Clean up previous playback
   stopPlayback();
 
-  Tone.Transport.bpm.value = composition.tempo;
-  Tone.Transport.timeSignature = composition.timeSignature;
+  const tempo = normalizeTempo(composition.tempo);
+  const timeSig = normalizeTimeSignature(composition.timeSignature);
 
-  const secondsPerBeat = 60 / composition.tempo;
+  Tone.Transport.bpm.value = tempo;
+  Tone.Transport.timeSignature = timeSig;
 
-  // Create a synth for each track
+  const secondsPerBeat = 60 / tempo;
+
+  // Create a synth and part for each track
   composition.tracks.forEach(track => {
-    // Simple synth selection based on track name/program
+    if (!track.notes || track.notes.length === 0) return;
+
     const synth = new Tone.PolySynth(Tone.Synth, {
       envelope: { attack: 0.02, decay: 0.1, sustain: 0.3, release: 1 }
     }).toDestination();
-    
+
     // Lower volume a bit to prevent clipping with multiple tracks
-    synth.volume.value = -6; 
+    synth.volume.value = -6;
     synths.push(synth);
 
-    const notesForTone = track.notes.map(n => ({
-      // Tone.Part expects seconds for time/duration
+    const normalizedNotes = normalizeAndSortNotes(track.notes);
+    const notesForTone = normalizedNotes.map(n => ({
       time: n.time * secondsPerBeat,
       note: Tone.Frequency(n.midi, "midi").toNote(),
       duration: n.duration * secondsPerBeat,
-      velocity: normalizeVelocity(n.velocity)
+      velocity: n.velocity
     }));
 
     const part = new Tone.Part((time, value) => {
       synth.triggerAttackRelease(value.note, value.duration, time, value.velocity);
     }, notesForTone).start(0);
-    
-    // We aren't tracking parts individually for cleanup in this simple demo, 
-    // relying on Transport.cancel() but for robustness we could.
+
+    // Track part for cleanup
+    parts.push(part);
   });
 
   Tone.Transport.start();

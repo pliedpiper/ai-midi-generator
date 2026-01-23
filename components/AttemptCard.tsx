@@ -3,12 +3,11 @@
 import React from 'react';
 import { AttemptResult } from '../types';
 import { Play, Square, Download, AlertCircle, Check, Loader2 } from 'lucide-react';
-import { playComposition, stopPlayback } from '../utils/midiUtils';
 
 interface Props {
   attempt: AttemptResult;
   isPlaying: boolean;
-  onPlay: (id: number) => void;
+  onPlay: () => void;
   onStop: () => void;
 }
 
@@ -27,8 +26,7 @@ const AttemptCard: React.FC<Props> = ({ attempt, isPlaying, onPlay, onStop }) =>
     if (isPlaying) {
       onStop();
     } else if (attempt.data) {
-      onPlay(attempt.id);
-      playComposition(attempt.data);
+      onPlay();
     }
   };
 

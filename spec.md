@@ -79,5 +79,59 @@ The LLM is instructed to return this JSON structure:
   - `createMidiObject`: Converts the custom JSON format to a `@tonejs/midi` object. Handles the critical conversion between musical "beats" (LLM output) and "seconds" (Audio engine input).
   - `playComposition`: Uses `Tone.PolySynth` to play back the notes in the browser. Handles cleanup and polyphony.
 
+## Error Handling & Validation
+
+### Server-Side Validation (`/api/generate`)
+The API route implements comprehensive validation:
+
+1. **Request Validation**
+   - `id`: Must be a positive finite number
+   - `prefs`: Must be an object with required fields
+
+2. **Preferences Validation**
+   - `prompt`: Required, must be a non-empty string (returns 400 if empty)
+   - `model`: Required, must be in the server-side allowlist (see below)
+   - `tempo`: Normalized to range 20-300 BPM (default: 120)
+   - `key`: Defaults to "C Major" if missing
+   - `timeSignature`: Must match pattern "N/N" (default: "4/4")
+   - `durationBars`: Normalized to range 1-64 bars (default: 8)
+   - `attemptCount`: Normalized to range 1-5 (default: 1)
+
+3. **Model Allowlist**
+   Only models defined in `AVAILABLE_MODELS` (from `constants.ts`) are accepted:
+   - `openai/gpt-5.2-chat`
+   - `anthropic/claude-sonnet-4.5`
+   - `xiaomi/mimo-v2-flash:free`
+   - `x-ai/grok-code-fast-1`
+   - `google/gemini-3-flash-preview`
+   - `google/gemini-3-pro-preview`
+   - `anthropic/claude-opus-4.5`
+   - `google/gemini-2.5-pro`
+   - `google/gemini-2.5-flash`
+   - `deepseek/deepseek-v3.2`
+   - `x-ai/grok-4.1-fast`
+   - `google/gemini-2.5-flash-lite`
+
+4. **Model Output Validation**
+   - JSON extraction from potential markdown fences
+   - Schema validation ensuring: title, tempo (finite positive), timeSignature ([int, int]), key, and non-empty tracks array
+   - Track validation: name (string) and notes array with midi/time/duration fields
+   - Returns 502 on invalid model output
+
+### MIDI Conversion Guards (`midiUtils.ts`)
+- **Tempo**: Non-finite values default to 120, clamped to 20-300
+- **Time Signature**: Invalid arrays default to [4, 4]
+- **MIDI Notes**: Clamped to 0-127, rounds fractional values
+- **Note Time**: Negative values normalized to 0
+- **Note Duration**: Zero/negative values normalized to minimum 0.001
+- **Velocity**: Values > 1 treated as MIDI velocity (0-127) and scaled
+- **Notes sorted**: All notes sorted by time for proper playback
+
+### Playback Error Handling
+- `playComposition` returns a Promise that rejects with `PlaybackError` on failure
+- All `Tone.Part` instances tracked and disposed on `stopPlayback()`
+- UI only sets `playingId` after successful playback start
+- Playback errors displayed in dismissible banner above results grid
+
 ## Deployment & Security
 The OpenAI/OpenRouter call runs server-side in the Next.js API route. Set `OPENAI_API_KEY` in `.env.local` and avoid exposing it to the client.

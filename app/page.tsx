@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { AttemptResult, GenerationStatus, UserPreferences } from '../types';
 import { generateAttempt } from '../services/openRouterService';
-import { generateMidiBlob, stopPlayback } from '../utils/midiUtils';
+import { generateMidiBlob, stopPlayback, playComposition, PlaybackError } from '../utils/midiUtils';
 import InputForm from '../components/InputForm';
 import AttemptCard from '../components/AttemptCard';
 
@@ -12,6 +12,7 @@ const Page: React.FC = () => {
   const [attempts, setAttempts] = useState<AttemptResult[]>([]);
   const [playingId, setPlayingId] = useState<number | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [playbackError, setPlaybackError] = useState<string | null>(null);
 
   // Initialize empty slots based on requested count
   const resetAttempts = (count: number) => {
@@ -21,6 +22,7 @@ const Page: React.FC = () => {
     })));
     setPlayingId(null);
     setErrorMsg(null);
+    setPlaybackError(null);
   };
 
   const handleGenerate = async (prefs: UserPreferences) => {
@@ -60,6 +62,38 @@ const Page: React.FC = () => {
     }
   };
 
+  // Handle playback with proper error handling - only set playingId after success
+  const handlePlay = useCallback(async (id: number, attempt: AttemptResult) => {
+    if (!attempt.data) return;
+
+    // Clear any previous playback error
+    setPlaybackError(null);
+
+    try {
+      await playComposition(attempt.data);
+      // Only set playingId after playback successfully starts
+      setPlayingId(id);
+    } catch (err) {
+      // Playback failed - ensure cleanup
+      stopPlayback();
+      setPlayingId(null);
+
+      const message = err instanceof PlaybackError
+        ? err.message
+        : err instanceof Error
+          ? err.message
+          : 'Playback failed';
+
+      setPlaybackError(message);
+    }
+  }, []);
+
+  const handleStop = useCallback(() => {
+    stopPlayback();
+    setPlayingId(null);
+    setPlaybackError(null);
+  }, []);
+
   return (
     <div className="min-h-screen bg-surface-900 text-text-primary">
       {/* Minimal Header */}
@@ -96,19 +130,28 @@ const Page: React.FC = () => {
               </span>
               <div className="h-px flex-1 bg-surface-600/50" />
             </div>
+
+            {/* Playback error display */}
+            {playbackError && (
+              <div className="mb-4 px-4 py-3 bg-orange-500/10 border border-orange-500/20 rounded text-orange-400 text-sm font-light flex items-center gap-2">
+                <span>Playback error: {playbackError}</span>
+                <button
+                  onClick={() => setPlaybackError(null)}
+                  className="ml-auto text-orange-400 hover:text-orange-300 font-medium"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
               {attempts.map((attempt) => (
                 <AttemptCard
                   key={attempt.id}
                   attempt={attempt}
                   isPlaying={playingId === attempt.id}
-                  onPlay={(id) => {
-                    setPlayingId(id);
-                  }}
-                  onStop={() => {
-                    stopPlayback();
-                    setPlayingId(null);
-                  }}
+                  onPlay={() => handlePlay(attempt.id, attempt)}
+                  onStop={handleStop}
                 />
               ))}
             </div>
