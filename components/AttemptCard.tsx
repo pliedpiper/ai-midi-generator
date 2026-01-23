@@ -31,7 +31,7 @@ const AttemptCard: React.FC<Props> = ({ attempt, isPlaying, onPlay, onStop }) =>
   };
 
   return (
-    <div className="group flex flex-col bg-surface-800 rounded border border-surface-600 hover:border-surface-500 transition-colors">
+    <div className="group flex flex-col w-44 bg-surface-800 rounded border border-surface-600 hover:border-surface-500 transition-colors">
       {/* Header */}
       <div className="px-4 py-3 border-b border-surface-700 flex justify-between items-center">
         <span className="font-mono text-xs text-text-muted uppercase tracking-wider">
