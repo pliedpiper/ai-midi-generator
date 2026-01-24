@@ -1,0 +1,13 @@
+I am going to start my first progress report by stating I am heavily engaged with using claude code on this project and I am going to try to push AI coding to its limits on this program. I will layout below my case for using it. 
+
+I’ve reached the first checkpoint for the final project two weeks early. After only a few hours of progress, I’ve completed what was expected to take roughly 25 hours.
+Now that the computer science department has allowed us to use AI, I feel like a major constraint has been removed. As a result, I need to significantly increase the scope of the project, or it will not be challenging at all. Please don’t take this as bragging. I’m not an impressive programmer, but this is exactly what AI is enabling me to do.
+
+I’m going to brainstorm some ideas for expanding the scope. At this point, I already have something functional. I’ve been using it this week to generate design ideas for electronic music. They still need some tweaking, but the midi's my program is generating. Its already proving to be a strong tool for inspiration.
+
+Next, I’m going to move authentication forward and establish a working production branch, since I want that in place before I start adding more features. Even though I’m expanding the project scope, I’ll also expand the grading criteria I submitted earlier this semester to match. While I’m using AI heavily for implementation, I still want to deliberately practice software engineering fundamentals such as clear requirements, modular design, version control discipline, testing, documentation, and iterative development.
+
+Next, I’m going to move authentication forward and establish a working production branch, since I want that in place before I start adding more features. Even though I’m expanding the project scope, I’ll also expand the grading criteria I submitted earlier this semester to match. While I’m using AI heavily for implementation, I still want to deliberately practice software engineering fundamentals such as clear requirements, modular design, version control discipline, testing, documentation, and iterative development.
+
+This is a little off topic. My AI in software engineering class that I am taking this semester feels ancient. I would like them to focus more on tools like Claude code, Open code, or an another AI CLI tool. Almost no one who I have talked to in the field still copy and pastes prompts from chat gpt into vscode. I am going to document my challenges, my wins, what assumstions I have about AI tools that change throughout this process. I want to be prepared for what I am going to be doing in a job when I gradutate. 
+
