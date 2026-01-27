@@ -16,6 +16,27 @@ export const MIDI_LIMITS = {
   DEFAULT_VELOCITY: 0.8,
 } as const;
 
+export const SCALE_ROOTS = [
+  { value: 0, label: 'C' }, { value: 1, label: 'C#/Db' }, { value: 2, label: 'D' },
+  { value: 3, label: 'D#/Eb' }, { value: 4, label: 'E' }, { value: 5, label: 'F' },
+  { value: 6, label: 'F#/Gb' }, { value: 7, label: 'G' }, { value: 8, label: 'G#/Ab' },
+  { value: 9, label: 'A' }, { value: 10, label: 'A#/Bb' }, { value: 11, label: 'B' }
+] as const;
+
+export const SCALE_TYPES = {
+  major: { label: 'Major', intervals: [0, 2, 4, 5, 7, 9, 11] },
+  natural_minor: { label: 'Natural Minor', intervals: [0, 2, 3, 5, 7, 8, 10] },
+  harmonic_minor: { label: 'Harmonic Minor', intervals: [0, 2, 3, 5, 7, 8, 11] },
+  pentatonic_major: { label: 'Pentatonic Major', intervals: [0, 2, 4, 7, 9] },
+  pentatonic_minor: { label: 'Pentatonic Minor', intervals: [0, 3, 5, 7, 10] },
+  blues: { label: 'Blues', intervals: [0, 3, 5, 6, 7, 10] },
+  dorian: { label: 'Dorian', intervals: [0, 2, 3, 5, 7, 9, 10] },
+  mixolydian: { label: 'Mixolydian', intervals: [0, 2, 4, 5, 7, 9, 10] },
+  chromatic: { label: 'Chromatic (No Snap)', intervals: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] }
+} as const;
+
+export type ScaleTypeKey = keyof typeof SCALE_TYPES;
+
 export const DEFAULT_PREFERENCES = {
   prompt: "A funky synthwave bassline with light arpeggios",
   model: "google/gemini-3-flash-preview",
@@ -24,7 +45,9 @@ export const DEFAULT_PREFERENCES = {
   timeSignature: "4/4",
   durationBars: 8,
   constraints: "",
-  attemptCount: 5
+  attemptCount: 5,
+  scaleRoot: 0,          // C
+  scaleType: 'major' as ScaleTypeKey
 };
 
 export const AVAILABLE_MODELS = [

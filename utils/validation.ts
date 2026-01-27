@@ -1,4 +1,4 @@
-import { AVAILABLE_MODELS, MIDI_LIMITS } from '@/constants';
+import { AVAILABLE_MODELS, MIDI_LIMITS, SCALE_TYPES } from '@/constants';
 import type { MidiComposition, UserPreferences, Note, Track } from '@/types';
 import { clampNumber } from './midiUtils';
 
@@ -96,6 +96,15 @@ export const validatePrefs = (prefs: unknown): PrefsValidationResult => {
   // Normalize attempt count with clamping
   const attemptCount = clampNumber(p.attemptCount, MIN_ATTEMPTS, MAX_ATTEMPTS, MIN_ATTEMPTS);
 
+  // Normalize scale root (0-11)
+  const scaleRoot = typeof p.scaleRoot === 'number' && Number.isFinite(p.scaleRoot)
+    ? Math.max(0, Math.min(11, Math.round(p.scaleRoot))) : 0;
+
+  // Normalize scale type
+  const validScaleTypes = Object.keys(SCALE_TYPES);
+  const scaleType = typeof p.scaleType === 'string' && validScaleTypes.includes(p.scaleType)
+    ? p.scaleType : 'major';
+
   return {
     valid: true,
     normalized: {
@@ -106,7 +115,9 @@ export const validatePrefs = (prefs: unknown): PrefsValidationResult => {
       timeSignature,
       durationBars,
       constraints,
-      attemptCount
+      attemptCount,
+      scaleRoot,
+      scaleType
     }
   };
 };

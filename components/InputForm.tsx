@@ -3,6 +3,7 @@
 import React from 'react';
 import { UserPreferences } from '../types';
 import { AVAILABLE_MODELS, DEFAULT_PREFERENCES } from '../constants';
+import { parseKeyString } from '../utils/scaleUtils';
 import { ChevronDown, Loader2 } from 'lucide-react';
 
 interface Props {
@@ -124,7 +125,15 @@ const InputForm: React.FC<Props> = ({ onSubmit, isGenerating }) => {
               type="text"
               className="w-full bg-surface-800 border border-surface-600 rounded px-3 py-2 text-sm text-text-primary focus:border-accent outline-none transition-colors font-light"
               value={prefs.key}
-              onChange={e => setPrefs({ ...prefs, key: e.target.value })}
+              onChange={e => {
+                const newKey = e.target.value;
+                const parsed = parseKeyString(newKey);
+                if (parsed) {
+                  setPrefs({ ...prefs, key: newKey, scaleRoot: parsed.scaleRoot, scaleType: parsed.scaleType });
+                } else {
+                  setPrefs({ ...prefs, key: newKey });
+                }
+              }}
               disabled={isGenerating}
             />
           </div>

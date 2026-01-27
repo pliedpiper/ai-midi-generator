@@ -1,7 +1,8 @@
-import { MidiComposition, Note } from '../types';
+import { MidiComposition, Note, SnapOptions } from '../types';
 import * as Tone from 'tone';
 import { Midi } from '@tonejs/midi';
 import { MIDI_LIMITS } from '../constants';
+import { snapToScale, isDrumTrack } from './scaleUtils';
 
 const {
   MIN_MIDI_NOTE,
@@ -72,24 +73,43 @@ export const normalizeTimeSignature = (timeSig: number[]): [number, number] => {
 };
 
 // Normalize a single note with all guards applied
-export const normalizeNote = (note: Note): Note => ({
-  midi: clampMidiNote(note.midi),
-  time: normalizeNoteTime(note.time),
-  duration: normalizeNoteDuration(note.duration),
-  velocity: normalizeVelocity(note.velocity),
-  name: note.name
-});
+export const normalizeNote = (
+  note: Note,
+  snapOptions?: SnapOptions,
+  skipSnap?: boolean
+): Note => {
+  let midi = note.midi;
+  // Always snap if snapOptions provided (unless skipSnap for drums)
+  if (snapOptions && !skipSnap) {
+    midi = snapToScale(midi, snapOptions.scaleRoot, snapOptions.scaleType);
+  }
+  return {
+    midi: clampMidiNote(midi),
+    time: normalizeNoteTime(note.time),
+    duration: normalizeNoteDuration(note.duration),
+    velocity: normalizeVelocity(note.velocity),
+    name: note.name
+  };
+};
 
 // Normalize all notes in a track and sort by time
-export const normalizeAndSortNotes = (notes: Note[]): Note[] => {
+export const normalizeAndSortNotes = (
+  notes: Note[],
+  snapOptions?: SnapOptions,
+  trackName?: string
+): Note[] => {
   if (!Array.isArray(notes)) return [];
+  const skipSnap = isDrumTrack(trackName);
   return notes
-    .map(normalizeNote)
+    .map(note => normalizeNote(note, snapOptions, skipSnap))
     .sort((a, b) => a.time - b.time);
 };
 
 // Helper to convert our JSON composition to a Tone.js Midi object
-export const createMidiObject = (composition: MidiComposition): Midi => {
+export const createMidiObject = (
+  composition: MidiComposition,
+  snapOptions?: SnapOptions
+): Midi => {
   const tempo = normalizeTempo(composition.tempo);
   const [num, den] = normalizeTimeSignature(composition.timeSignature);
 
@@ -108,7 +128,7 @@ export const createMidiObject = (composition: MidiComposition): Midi => {
     // Heuristic: If track name contains "drum", set to percussion channel (GM standard)
     track.channel = trackData.name?.toLowerCase().includes('drum') ? DRUM_CHANNEL : 0;
 
-    const normalizedNotes = normalizeAndSortNotes(trackData.notes);
+    const normalizedNotes = normalizeAndSortNotes(trackData.notes, snapOptions, trackData.name);
     normalizedNotes.forEach(note => {
       track.addNote({
         midi: note.midi,
@@ -123,8 +143,11 @@ export const createMidiObject = (composition: MidiComposition): Midi => {
   return midi;
 };
 
-export const generateMidiBlob = (composition: MidiComposition): Blob => {
-  const midi = createMidiObject(composition);
+export const generateMidiBlob = (
+  composition: MidiComposition,
+  snapOptions?: SnapOptions
+): Blob => {
+  const midi = createMidiObject(composition, snapOptions);
   const arrayBuffer = midi.toArray();
   return new Blob([arrayBuffer as BlobPart], { type: 'audio/midi' });
 };
@@ -191,9 +214,11 @@ function createTrackSynth(): Tone.PolySynth {
 function scheduleTrackNotes(
   notes: Note[],
   synth: Tone.PolySynth,
-  tempo: number
+  tempo: number,
+  snapOptions?: SnapOptions,
+  trackName?: string
 ): Tone.Part {
-  const notesForTone = normalizeAndSortNotes(notes).map(n => ({
+  const notesForTone = normalizeAndSortNotes(notes, snapOptions, trackName).map(n => ({
     time: beatsToSeconds(n.time, tempo),
     note: Tone.Frequency(n.midi, "midi").toNote(),
     duration: beatsToSeconds(n.duration, tempo),
@@ -205,7 +230,10 @@ function scheduleTrackNotes(
   }, notesForTone).start(0);
 }
 
-export const playComposition = async (composition: MidiComposition): Promise<void> => {
+export const playComposition = async (
+  composition: MidiComposition,
+  snapOptions?: SnapOptions
+): Promise<void> => {
   validateForPlayback(composition);
 
   // Start audio context - this may fail if browser blocks autoplay
@@ -230,7 +258,7 @@ export const playComposition = async (composition: MidiComposition): Promise<voi
     const synth = createTrackSynth();
     synths.push(synth);
 
-    const part = scheduleTrackNotes(track.notes, synth, tempo);
+    const part = scheduleTrackNotes(track.notes, synth, tempo, snapOptions, track.name);
     parts.push(part);
   });
 

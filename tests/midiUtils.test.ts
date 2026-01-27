@@ -181,6 +181,29 @@ describe('normalizeNote', () => {
     const result = normalizeNote(note);
     expect(result).toEqual(note);
   });
+
+  it('snaps note when snapOptions provided', () => {
+    // C# (midi 61) should snap to C (midi 60) in C major
+    const note = { midi: 61, time: 0, duration: 1, velocity: 0.8 };
+    const snapOptions = { scaleRoot: 0, scaleType: 'major' };
+    const result = normalizeNote(note, snapOptions);
+    expect(result.midi).toBe(60);
+  });
+
+  it('does not snap when skipSnap is true', () => {
+    // C# (midi 61) should remain 61 when skipSnap is true
+    const note = { midi: 61, time: 0, duration: 1, velocity: 0.8 };
+    const snapOptions = { scaleRoot: 0, scaleType: 'major' };
+    const result = normalizeNote(note, snapOptions, true);
+    expect(result.midi).toBe(61);
+  });
+
+  it('does not snap when snapOptions not provided (backward compat)', () => {
+    // C# (midi 61) should remain 61 without snapOptions
+    const note = { midi: 61, time: 0, duration: 1, velocity: 0.8 };
+    const result = normalizeNote(note);
+    expect(result.midi).toBe(61);
+  });
 });
 
 describe('normalizeAndSortNotes', () => {
@@ -209,5 +232,36 @@ describe('normalizeAndSortNotes', () => {
     expect(result[0].midi).toBe(60);
     expect(result[1].midi).toBe(108); // clamped to max valid MIDI note
     expect(result[1].duration).toBe(0.001);
+  });
+
+  it('snaps notes when snapOptions provided', () => {
+    const notes = [
+      { midi: 61, time: 0, duration: 1, velocity: 0.8 }, // C#
+      { midi: 63, time: 1, duration: 1, velocity: 0.8 }  // D#
+    ];
+    const snapOptions = { scaleRoot: 0, scaleType: 'major' };
+    const result = normalizeAndSortNotes(notes, snapOptions);
+    expect(result[0].midi).toBe(60); // C# -> C
+    expect(result[1].midi).toBe(62); // D# -> D (tie-break to lower)
+  });
+
+  it('skips snapping for drum tracks', () => {
+    const notes = [
+      { midi: 36, time: 0, duration: 1, velocity: 0.8 }, // Kick drum
+      { midi: 38, time: 1, duration: 1, velocity: 0.8 }  // Snare
+    ];
+    const snapOptions = { scaleRoot: 0, scaleType: 'major' };
+    const result = normalizeAndSortNotes(notes, snapOptions, 'Drum Kit');
+    // Drum notes should not be snapped even though 36 and 38 aren't in C major
+    expect(result[0].midi).toBe(36);
+    expect(result[1].midi).toBe(38);
+  });
+
+  it('does not snap without snapOptions (backward compat)', () => {
+    const notes = [
+      { midi: 61, time: 0, duration: 1, velocity: 0.8 } // C#
+    ];
+    const result = normalizeAndSortNotes(notes);
+    expect(result[0].midi).toBe(61); // Unchanged
   });
 });

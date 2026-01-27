@@ -44,4 +44,11 @@ export interface UserPreferences {
   durationBars: number;
   constraints: string;
   attemptCount: number;
+  scaleRoot: number;      // 0-11 pitch class
+  scaleType: string;      // key from SCALE_TYPES
+}
+
+export interface SnapOptions {
+  scaleRoot: number;
+  scaleType: string;
 }

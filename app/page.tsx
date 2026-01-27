@@ -1,11 +1,17 @@
 "use client";
 
 import React, { useState, useCallback } from 'react';
-import { AttemptResult, GenerationStatus, UserPreferences } from '../types';
+import { AttemptResult, GenerationStatus, UserPreferences, SnapOptions } from '../types';
 import { generateAttempt } from '../services/openRouterService';
 import { generateMidiBlob, stopPlayback, playComposition, PlaybackError } from '../utils/midiUtils';
 import InputForm from '../components/InputForm';
 import AttemptCard from '../components/AttemptCard';
+
+// Helper to extract snap options from preferences
+const getSnapOptions = (prefs: UserPreferences | null): SnapOptions | undefined => {
+  if (!prefs) return undefined;
+  return { scaleRoot: prefs.scaleRoot, scaleType: prefs.scaleType };
+};
 
 const Page: React.FC = () => {
   const [status, setStatus] = useState<GenerationStatus>(GenerationStatus.IDLE);
@@ -13,6 +19,7 @@ const Page: React.FC = () => {
   const [playingId, setPlayingId] = useState<number | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
+  const [lastPrefs, setLastPrefs] = useState<UserPreferences | null>(null);
 
   // Initialize empty slots based on requested count
   const resetAttempts = (count: number) => {
@@ -29,7 +36,10 @@ const Page: React.FC = () => {
 
   const handleGenerate = async (prefs: UserPreferences) => {
     setStatus(GenerationStatus.GENERATING);
+    setLastPrefs(prefs);
     resetAttempts(prefs.attemptCount);
+
+    const snapOptions = getSnapOptions(prefs);
 
     // Launch parallel attempts based on attemptCount
     const attemptPromises = Array.from({ length: prefs.attemptCount }, (_, i) => i + 1).map(async (id) => {
@@ -38,7 +48,7 @@ const Page: React.FC = () => {
         await new Promise(r => setTimeout(r, id * 100));
 
         const composition = await generateAttempt(id, prefs);
-        const blob = generateMidiBlob(composition);
+        const blob = generateMidiBlob(composition, snapOptions);
 
         setAttempts(prev => prev.map(a =>
           a.id === id ? { ...a, status: 'success', data: composition, midiBlob: blob } : a
@@ -71,8 +81,10 @@ const Page: React.FC = () => {
     // Clear any previous playback error
     setPlaybackError(null);
 
+    const snapOptions = getSnapOptions(lastPrefs);
+
     try {
-      await playComposition(attempt.data);
+      await playComposition(attempt.data, snapOptions);
       // Only set playingId after playback successfully starts
       setPlayingId(id);
     } catch (err) {
@@ -88,7 +100,7 @@ const Page: React.FC = () => {
 
       setPlaybackError(message);
     }
-  }, []);
+  }, [lastPrefs]);
 
   const handleStop = useCallback(() => {
     stopPlayback();
