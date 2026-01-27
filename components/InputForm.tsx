@@ -16,7 +16,15 @@ const InputForm: React.FC<Props> = ({ onSubmit, isGenerating }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(prefs);
+    const normalizedPrefs: UserPreferences = {
+      ...prefs,
+      tempo: Number.isFinite(prefs.tempo) ? prefs.tempo : DEFAULT_PREFERENCES.tempo,
+      durationBars: Number.isFinite(prefs.durationBars) ? prefs.durationBars : DEFAULT_PREFERENCES.durationBars
+    };
+    if (normalizedPrefs.tempo !== prefs.tempo || normalizedPrefs.durationBars !== prefs.durationBars) {
+      setPrefs(normalizedPrefs);
+    }
+    onSubmit(normalizedPrefs);
   };
 
   return (
@@ -34,7 +42,7 @@ const InputForm: React.FC<Props> = ({ onSubmit, isGenerating }) => {
           onKeyDown={e => {
             if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !isGenerating) {
               e.preventDefault();
-              onSubmit(prefs);
+              e.currentTarget.form?.requestSubmit();
             }
           }}
           placeholder="An upbeat 8-bit video game loop with a catchy melody..."
@@ -87,8 +95,14 @@ const InputForm: React.FC<Props> = ({ onSubmit, isGenerating }) => {
             <input
               type="number"
               className="w-full bg-surface-800 border border-surface-600 rounded px-3 py-2 text-sm text-text-primary focus:border-accent outline-none transition-colors font-light"
-              value={prefs.tempo}
-              onChange={e => setPrefs({ ...prefs, tempo: parseInt(e.target.value) || 120 })}
+              value={Number.isFinite(prefs.tempo) ? prefs.tempo : ''}
+              onChange={e => {
+                const value = e.target.value;
+                setPrefs({
+                  ...prefs,
+                  tempo: value === '' ? NaN : parseInt(value, 10)
+                });
+              }}
               disabled={isGenerating}
             />
           </div>
@@ -123,8 +137,14 @@ const InputForm: React.FC<Props> = ({ onSubmit, isGenerating }) => {
             <input
               type="number"
               className="w-full bg-surface-800 border border-surface-600 rounded px-3 py-2 text-sm text-text-primary focus:border-accent outline-none transition-colors font-light"
-              value={prefs.durationBars}
-              onChange={e => setPrefs({ ...prefs, durationBars: parseInt(e.target.value) || 8 })}
+              value={Number.isFinite(prefs.durationBars) ? prefs.durationBars : ''}
+              onChange={e => {
+                const value = e.target.value;
+                setPrefs({
+                  ...prefs,
+                  durationBars: value === '' ? NaN : parseInt(value, 10)
+                });
+              }}
               disabled={isGenerating}
             />
           </div>
