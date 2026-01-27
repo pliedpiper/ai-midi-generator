@@ -39,7 +39,8 @@ export const AVAILABLE_MODELS = [
   { id: "google/gemini-2.5-flash", name: "Gemini 2.5 Flash" },
   { id: "deepseek/deepseek-v3.2", name: "DeepSeek V3.2" },
   { id: "x-ai/grok-4.1-fast", name: "Grok 4.1 Fast" },
-  { id: "google/gemini-2.5-flash-lite", name: "Gemini 2.5 Flash Lite" }
+  { id: "google/gemini-2.5-flash-lite", name: "Gemini 2.5 Flash Lite" },
+  { id: "moonshotai/kimi-k2.5", name: "Kimi K2.5" }
 ];
 
 export const SYSTEM_PROMPT_GENERATOR = `

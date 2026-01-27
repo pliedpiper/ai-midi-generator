@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import OpenAI, { APIError, APIConnectionError, APIConnectionTimeoutError } from 'openai';
 import { SYSTEM_PROMPT_GENERATOR } from '@/constants';
 import type { UserPreferences } from '@/types';
 import { extractJson, validatePrefs, validateComposition } from '@/utils/validation';
@@ -184,7 +184,72 @@ export async function POST(req: Request) {
     // Log full error details server-side
     console.error('Generation failed:', error);
 
-    // Return generic message to client (don't leak provider details)
+    // Handle specific OpenAI SDK error types
+    if (error instanceof APIConnectionTimeoutError) {
+      return NextResponse.json(
+        { error: 'Request timed out. Try a shorter prompt or different model.' },
+        { status: 504 }
+      );
+    }
+
+    if (error instanceof APIConnectionError) {
+      return NextResponse.json(
+        { error: 'Could not reach the AI service. Check your connection.' },
+        { status: 503 }
+      );
+    }
+
+    if (error instanceof APIError) {
+      const status = error.status ?? 502;
+
+      // Authentication errors
+      if (status === 401) {
+        return NextResponse.json(
+          { error: 'API key is invalid or expired. Check server configuration.' },
+          { status: 401 }
+        );
+      }
+
+      // Payment/quota errors
+      if (status === 402) {
+        return NextResponse.json(
+          { error: 'OpenRouter credits exhausted. Add credits to continue.' },
+          { status: 402 }
+        );
+      }
+
+      // Model not found
+      if (status === 404) {
+        return NextResponse.json(
+          { error: 'Selected model is unavailable. Try a different model.' },
+          { status: 404 }
+        );
+      }
+
+      // Provider rate limiting
+      if (status === 429) {
+        return NextResponse.json(
+          { error: 'Provider rate limit reached. Wait a moment and try again.' },
+          { status: 429 }
+        );
+      }
+
+      // Model overloaded
+      if (status === 503) {
+        return NextResponse.json(
+          { error: 'Model is overloaded. Try again shortly or use a different model.' },
+          { status: 503 }
+        );
+      }
+
+      // Other API errors
+      return NextResponse.json(
+        { error: `AI service error (${status}). Please try again.` },
+        { status: 502 }
+      );
+    }
+
+    // Unknown errors
     return NextResponse.json(
       { error: 'Failed to generate composition. Please try again.' },
       { status: 502 }
