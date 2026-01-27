@@ -14,16 +14,16 @@ const InputForm: React.FC<Props> = ({ onSubmit, isGenerating }) => {
   const [prefs, setPrefs] = React.useState<UserPreferences>(DEFAULT_PREFERENCES);
   const [showAdvanced, setShowAdvanced] = React.useState(false);
 
+  const isPromptEmpty = !prefs.prompt.trim();
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isPromptEmpty) return;
     const normalizedPrefs: UserPreferences = {
       ...prefs,
       tempo: Number.isFinite(prefs.tempo) ? prefs.tempo : DEFAULT_PREFERENCES.tempo,
       durationBars: Number.isFinite(prefs.durationBars) ? prefs.durationBars : DEFAULT_PREFERENCES.durationBars
     };
-    if (normalizedPrefs.tempo !== prefs.tempo || normalizedPrefs.durationBars !== prefs.durationBars) {
-      setPrefs(normalizedPrefs);
-    }
     onSubmit(normalizedPrefs);
   };
 
@@ -31,9 +31,14 @@ const InputForm: React.FC<Props> = ({ onSubmit, isGenerating }) => {
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Prompt */}
       <div>
-        <label className="block font-mono text-xs text-text-muted uppercase tracking-wider mb-3">
-          Describe your music
-        </label>
+        <div className="flex justify-between items-baseline mb-3">
+          <label className="font-mono text-xs text-text-muted uppercase tracking-wider">
+            Describe your music
+          </label>
+          <span className="text-[10px] text-text-muted/60 font-mono">
+            {navigator.platform?.includes('Mac') ? 'Cmd' : 'Ctrl'}+Enter to submit
+          </span>
+        </div>
         <textarea
           className="w-full bg-surface-800 border border-surface-600 rounded px-4 py-3 text-text-primary placeholder-text-muted/50 focus:border-accent focus:ring-0 outline-none transition-colors resize-none font-light"
           rows={3}
@@ -76,6 +81,8 @@ const InputForm: React.FC<Props> = ({ onSubmit, isGenerating }) => {
       <button
         type="button"
         onClick={() => setShowAdvanced(!showAdvanced)}
+        aria-expanded={showAdvanced}
+        aria-controls="advanced-controls"
         className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors"
       >
         <ChevronDown
@@ -87,13 +94,16 @@ const InputForm: React.FC<Props> = ({ onSubmit, isGenerating }) => {
 
       {/* Advanced Controls */}
       {showAdvanced && (
-        <div className="grid grid-cols-2 gap-4 pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div id="advanced-controls" className="grid grid-cols-2 gap-4 pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
           <div>
             <label className="block font-mono text-[10px] text-text-muted uppercase tracking-wider mb-2">
               Tempo
             </label>
             <input
               type="number"
+              step="1"
+              min="20"
+              max="300"
               className="w-full bg-surface-800 border border-surface-600 rounded px-3 py-2 text-sm text-text-primary focus:border-accent outline-none transition-colors font-light"
               value={Number.isFinite(prefs.tempo) ? prefs.tempo : ''}
               onChange={e => {
@@ -136,6 +146,9 @@ const InputForm: React.FC<Props> = ({ onSubmit, isGenerating }) => {
             </label>
             <input
               type="number"
+              step="1"
+              min="1"
+              max="64"
               className="w-full bg-surface-800 border border-surface-600 rounded px-3 py-2 text-sm text-text-primary focus:border-accent outline-none transition-colors font-light"
               value={Number.isFinite(prefs.durationBars) ? prefs.durationBars : ''}
               onChange={e => {
@@ -182,7 +195,7 @@ const InputForm: React.FC<Props> = ({ onSubmit, isGenerating }) => {
             max="5"
             step="1"
             value={prefs.attemptCount}
-            onChange={(e) => setPrefs({...prefs, attemptCount: parseInt(e.target.value)})}
+            onChange={(e) => setPrefs({...prefs, attemptCount: parseInt(e.target.value, 10)})}
             className="relative w-full cursor-pointer bg-transparent"
             disabled={isGenerating}
           />
@@ -195,9 +208,9 @@ const InputForm: React.FC<Props> = ({ onSubmit, isGenerating }) => {
       {/* Submit */}
       <button
         type="submit"
-        disabled={isGenerating}
+        disabled={isGenerating || isPromptEmpty}
         className={`w-full py-3.5 rounded font-medium tracking-wide transition-all ${
-          isGenerating
+          isGenerating || isPromptEmpty
             ? 'bg-surface-700 text-text-muted cursor-not-allowed'
             : 'bg-accent text-surface-900 hover:bg-accent-hover active:scale-[0.99]'
         }`}

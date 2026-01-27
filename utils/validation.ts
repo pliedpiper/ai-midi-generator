@@ -23,6 +23,13 @@ const MIN_ATTEMPTS = 1;
 const MAX_ATTEMPTS = 5;
 const DEFAULT_PROGRAM_NUMBER = 0;
 
+// Size limits to prevent abuse
+const MAX_PROMPT_LENGTH = 2000;
+const MAX_CONSTRAINTS_LENGTH = 500;
+const MAX_TRACKS = 16;
+const MAX_NOTES_PER_TRACK = 1000;
+const MAX_TOTAL_NOTES = 5000;
+
 export const extractJson = (content: string): string => {
   const trimmed = content.trim();
   if (!trimmed) throw new Error('Empty response from OpenRouter');
@@ -46,9 +53,12 @@ export const validatePrefs = (prefs: unknown): PrefsValidationResult => {
 
   const p = prefs as Record<string, unknown>;
 
-  // Required: prompt must be non-empty string
+  // Required: prompt must be non-empty string within size limit
   if (typeof p.prompt !== 'string' || !p.prompt.trim()) {
     return { valid: false, error: 'prompt is required and must be a non-empty string' };
+  }
+  if (p.prompt.length > MAX_PROMPT_LENGTH) {
+    return { valid: false, error: `prompt must be ${MAX_PROMPT_LENGTH} characters or less` };
   }
 
   // Required: model must be in allowlist
@@ -77,8 +87,14 @@ export const validatePrefs = (prefs: unknown): PrefsValidationResult => {
     durationBars = Math.max(MIN_BARS, Math.min(MAX_BARS, Math.round(p.durationBars)));
   }
 
-  // Normalize constraints (allow empty)
-  const constraints = typeof p.constraints === 'string' ? p.constraints : '';
+  // Normalize constraints (allow empty, but limit length)
+  let constraints = '';
+  if (typeof p.constraints === 'string') {
+    if (p.constraints.length > MAX_CONSTRAINTS_LENGTH) {
+      return { valid: false, error: `constraints must be ${MAX_CONSTRAINTS_LENGTH} characters or less` };
+    }
+    constraints = p.constraints;
+  }
 
   // Normalize attempt count with clamping
   let attemptCount = 1;
@@ -152,13 +168,28 @@ export const validateComposition = (data: unknown): CompositionValidationResult 
     return { valid: false, error: 'Invalid timeSignature: must be [numerator, denominator] with positive integers' };
   }
 
-  // Tracks: must be non-empty array
+  // Tracks: must be non-empty array within size limits
   if (!Array.isArray(d.tracks) || d.tracks.length === 0) {
     return { valid: false, error: 'tracks must be a non-empty array' };
+  }
+  if (d.tracks.length > MAX_TRACKS) {
+    return { valid: false, error: `Too many tracks (max ${MAX_TRACKS})` };
   }
 
   if (!d.tracks.every(isValidTrack)) {
     return { valid: false, error: 'One or more tracks have invalid structure' };
+  }
+
+  // Check note counts to prevent memory issues
+  let totalNotes = 0;
+  for (const track of d.tracks as Track[]) {
+    if (track.notes.length > MAX_NOTES_PER_TRACK) {
+      return { valid: false, error: `Track "${track.name}" has too many notes (max ${MAX_NOTES_PER_TRACK})` };
+    }
+    totalNotes += track.notes.length;
+  }
+  if (totalNotes > MAX_TOTAL_NOTES) {
+    return { valid: false, error: `Too many total notes (max ${MAX_TOTAL_NOTES})` };
   }
 
   // Normalize tracks - ensure programNumber exists and is valid
