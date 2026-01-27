@@ -1,20 +1,86 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# AI MIDI Generator
 
-# Run and deploy your AI Studio app
+Generate MIDI compositions from text prompts using LLMs. Describe the music you want, and the app creates playable MIDI files in your browser.
 
-This contains everything you need to run your app locally.
+## Features
 
-View your app in AI Studio: https://ai.studio/apps/drive/1xls32Z9wCVNnA7fDxBchenkaltGN0HkD
+- **Text-to-MIDI**: Describe music in natural language, get a MIDI file
+- **Multiple models**: Choose from GPT-5.2, Claude Sonnet/Opus, Gemini, DeepSeek, Grok, and more via OpenRouter
+- **In-browser playback**: Listen instantly with Tone.js synthesis
+- **Variations**: Generate up to 5 variations per prompt
+- **Advanced controls**: Tempo, key, time signature, duration, and constraints
+- **MIDI export**: Download generated compositions as .mid files
 
-## Run Locally
+## Tech Stack
 
-**Prerequisites:**  Node.js
+- **Frontend**: Next.js 15 (App Router) + React 19 + Tailwind CSS
+- **Audio**: Tone.js + @tonejs/midi
+- **API**: OpenRouter (OpenAI SDK compatible)
+- **Testing**: Vitest
 
+## Quick Start
 
-1. Install dependencies:
-   `npm install`
-2. Set `OPENAI_API_KEY` in `.env.local` (server-only) to your OpenRouter/OpenAI key.
-3. Run the app:
-   `npm run dev`
+**Prerequisites**: Node.js 18+
+
+```bash
+# Install dependencies
+npm install
+
+# Create environment file
+echo "OPENAI_API_KEY=sk-or-your-openrouter-key" > .env.local
+
+# Start development server
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm start` | Serve production build |
+| `npm test` | Run tests in watch mode |
+| `npm run test:run` | Run tests once |
+
+## Project Structure
+
+```
+├── app/
+│   ├── api/generate/    # MIDI generation endpoint
+│   ├── page.tsx         # Main UI
+│   └── layout.tsx       # App layout
+├── components/
+│   ├── InputForm.tsx    # User input form
+│   └── AttemptCard.tsx  # Playback/download UI
+├── utils/
+│   ├── midiUtils.ts     # MIDI conversion & playback
+│   └── validation.ts    # Input/output validation
+├── services/
+│   └── openRouterService.ts  # API client
+├── constants.ts         # Models, prompts, defaults
+└── types.ts             # TypeScript types
+```
+
+## Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `OPENAI_API_KEY` | Yes | OpenRouter API key (starts with `sk-or-`) |
+
+## How It Works
+
+1. User describes desired music (e.g., "An upbeat 8-bit video game loop")
+2. App sends prompt to selected LLM via OpenRouter
+3. LLM returns structured JSON with tracks, notes, timing
+4. App validates response and converts to MIDI
+5. Tone.js plays the composition; user can download as .mid file
+
+## Security
+
+- Rate limited: 10 requests/minute per IP
+- Input validation with size limits
+- CSP headers configured for safe audio playback
+- Server-side API key (never exposed to client)
