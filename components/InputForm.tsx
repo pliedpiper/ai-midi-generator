@@ -36,7 +36,7 @@ const InputForm: React.FC<Props> = ({ onSubmit, isGenerating }) => {
             Describe your music
           </label>
           <span className="text-[10px] text-text-muted/60 font-mono">
-            {navigator.platform?.includes('Mac') ? 'Cmd' : 'Ctrl'}+Enter to submit
+            ⌘/Ctrl+Enter to submit
           </span>
         </div>
         <textarea
@@ -170,7 +170,7 @@ const InputForm: React.FC<Props> = ({ onSubmit, isGenerating }) => {
               className="w-full bg-surface-800 border border-surface-600 rounded px-3 py-2 text-sm text-text-primary placeholder-text-muted/50 focus:border-accent outline-none transition-colors font-light"
               value={prefs.constraints}
               onChange={e => setPrefs({ ...prefs, constraints: e.target.value })}
-              placeholder="No drums, use arpeggios..."
+              placeholder="No drums, focus on melody..."
               disabled={isGenerating}
             />
           </div>

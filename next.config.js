@@ -30,12 +30,13 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Next.js requires unsafe-inline/eval in dev
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:", // Next.js + Tone.js AudioWorklet
               "style-src 'self' 'unsafe-inline'", // Tailwind uses inline styles
               "img-src 'self' data: blob:",
               "font-src 'self'",
               "connect-src 'self'",
               "media-src 'self' blob:", // For audio playback
+              "worker-src 'self' blob:", // Tone.js Web Workers
               "frame-ancestors 'self'",
               "base-uri 'self'",
               "form-action 'self'"

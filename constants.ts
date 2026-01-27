@@ -2,10 +2,10 @@ export const DEFAULT_PREFERENCES = {
   prompt: "A funky synthwave bassline with light arpeggios",
   model: "google/gemini-3-flash-preview",
   tempo: 120,
-  key: "C Minor",
+  key: "C Major",
   timeSignature: "4/4",
   durationBars: 8,
-  constraints: "No drums, focus on melody",
+  constraints: "",
   attemptCount: 5
 };
 
