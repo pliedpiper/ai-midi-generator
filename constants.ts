@@ -1,3 +1,21 @@
+// Validation & normalization constants 
+export const MIDI_LIMITS = {
+  MIN_TEMPO: 20,
+  MAX_TEMPO: 300,
+  DEFAULT_TEMPO: 120,
+  MIN_BARS: 1,
+  MAX_BARS: 64,
+  DEFAULT_BARS: 8,
+  MIN_ATTEMPTS: 1,
+  MAX_ATTEMPTS: 5,
+  MIN_MIDI_NOTE: 21,
+  MAX_MIDI_NOTE: 108,
+  DEFAULT_PROGRAM_NUMBER: 0,
+  DRUM_CHANNEL: 9,
+  MIN_DURATION: 0.001,
+  DEFAULT_VELOCITY: 0.8,
+} as const;
+
 export const DEFAULT_PREFERENCES = {
   prompt: "A funky synthwave bassline with light arpeggios",
   model: "google/gemini-3-flash-preview",
@@ -27,7 +45,7 @@ export const AVAILABLE_MODELS = [
 export const SYSTEM_PROMPT_GENERATOR = `
 You are an expert MIDI composer.
 Your task is to generate a musical composition based on the user's prompt and constraints.
-You must output strict JSON data that represents the music.
+You MUST output strict JSON data that represents the music.
 The output will be converted programmatically to a MIDI file.
 Ensure valid note ranges (21-108), strict adherence to the requested key and scale, and correct rhythmic quantization.
 Tracks should be separated by instrument. Use standard General MIDI program numbers (0-127) if possible, or provide a sensible default.

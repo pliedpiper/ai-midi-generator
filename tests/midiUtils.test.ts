@@ -50,12 +50,16 @@ describe('clampMidiNote', () => {
     expect(clampMidiNote(Infinity)).toBe(60);
   });
 
-  it('clamps to 0 minimum', () => {
-    expect(clampMidiNote(-10)).toBe(0);
+  it('clamps to 21 minimum', () => {
+    expect(clampMidiNote(-10)).toBe(21);
+    expect(clampMidiNote(0)).toBe(21);
+    expect(clampMidiNote(20)).toBe(21);
   });
 
-  it('clamps to 127 maximum', () => {
-    expect(clampMidiNote(200)).toBe(127);
+  it('clamps to 108 maximum', () => {
+    expect(clampMidiNote(200)).toBe(108);
+    expect(clampMidiNote(127)).toBe(108);
+    expect(clampMidiNote(109)).toBe(108);
   });
 
   it('rounds to nearest integer', () => {
@@ -65,8 +69,8 @@ describe('clampMidiNote', () => {
 
   it('passes through valid values', () => {
     expect(clampMidiNote(60)).toBe(60);
-    expect(clampMidiNote(0)).toBe(0);
-    expect(clampMidiNote(127)).toBe(127);
+    expect(clampMidiNote(21)).toBe(21);
+    expect(clampMidiNote(108)).toBe(108);
   });
 });
 
@@ -164,7 +168,7 @@ describe('normalizeNote', () => {
   it('normalizes all fields', () => {
     const note = { midi: 200, time: -5, duration: 0, velocity: 200, name: 'C4' };
     const result = normalizeNote(note);
-    expect(result.midi).toBe(127);
+    expect(result.midi).toBe(108); // clamped to max valid MIDI note
     expect(result.time).toBe(0);
     expect(result.duration).toBe(0.001);
     // velocity 200 > 1 -> scaled to 200/127 ≈ 1.57 -> clamped to 1
@@ -203,7 +207,7 @@ describe('normalizeAndSortNotes', () => {
     ];
     const result = normalizeAndSortNotes(notes);
     expect(result[0].midi).toBe(60);
-    expect(result[1].midi).toBe(127);
+    expect(result[1].midi).toBe(108); // clamped to max valid MIDI note
     expect(result[1].duration).toBe(0.001);
   });
 });

@@ -1,15 +1,36 @@
 import { MidiComposition, Note } from '../types';
 import * as Tone from 'tone';
 import { Midi } from '@tonejs/midi';
+import { MIDI_LIMITS } from '../constants';
 
-// Constants for MIDI range validation
-const MIN_MIDI_NOTE = 0;
-const MAX_MIDI_NOTE = 127;
-const MIN_DURATION = 0.001; // Minimum duration in beats
-const DEFAULT_VELOCITY = 0.8;
-const MIN_TEMPO = 20;
-const MAX_TEMPO = 300;
-const DEFAULT_TEMPO = 120;
+const {
+  MIN_MIDI_NOTE,
+  MAX_MIDI_NOTE,
+  MIN_DURATION,
+  DEFAULT_VELOCITY,
+  MIN_TEMPO,
+  MAX_TEMPO,
+  DEFAULT_TEMPO,
+  DRUM_CHANNEL,
+} = MIDI_LIMITS;
+
+// Generic clamping helper for numeric validation/normalization
+export function clampNumber(
+  value: unknown,
+  min: number,
+  max: number,
+  defaultValue: number
+): number {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return Math.max(min, Math.min(max, Math.round(value)));
+  }
+  return defaultValue;
+}
+
+// Convert beats to seconds based on tempo
+export function beatsToSeconds(beats: number, tempo: number): number {
+  return beats * (60 / tempo);
+}
 
 export const normalizeVelocity = (value: number | undefined): number => {
   if (typeof value !== 'number' || !Number.isFinite(value)) return DEFAULT_VELOCITY;
@@ -70,7 +91,6 @@ export const normalizeAndSortNotes = (notes: Note[]): Note[] => {
 // Helper to convert our JSON composition to a Tone.js Midi object
 export const createMidiObject = (composition: MidiComposition): Midi => {
   const tempo = normalizeTempo(composition.tempo);
-  const secondsPerBeat = 60 / tempo;
   const [num, den] = normalizeTimeSignature(composition.timeSignature);
 
   const midi = new Midi();
@@ -85,16 +105,16 @@ export const createMidiObject = (composition: MidiComposition): Midi => {
       ? Math.max(0, Math.min(127, Math.round(trackData.programNumber)))
       : 0;
 
-    // Heuristic: If track name contains "drum", set to channel 9 (percussion channel in GM)
-    track.channel = trackData.name?.toLowerCase().includes('drum') ? 9 : 0;
+    // Heuristic: If track name contains "drum", set to percussion channel (GM standard)
+    track.channel = trackData.name?.toLowerCase().includes('drum') ? DRUM_CHANNEL : 0;
 
     const normalizedNotes = normalizeAndSortNotes(trackData.notes);
     normalizedNotes.forEach(note => {
       track.addNote({
         midi: note.midi,
         // Conversion: AI gives us Beats, Library wants Seconds.
-        time: note.time * secondsPerBeat,
-        duration: note.duration * secondsPerBeat,
+        time: beatsToSeconds(note.time, tempo),
+        duration: beatsToSeconds(note.duration, tempo),
         velocity: note.velocity
       });
     });
@@ -145,29 +165,56 @@ export class PlaybackError extends Error {
   }
 }
 
-export const playComposition = async (composition: MidiComposition): Promise<void> => {
-  // Validate composition has playable content
+// Validate composition has playable content
+function validateForPlayback(composition: MidiComposition): void {
   if (!composition) {
     throw new PlaybackError('No composition provided');
   }
-
   if (!composition.tracks || composition.tracks.length === 0) {
     throw new PlaybackError('Composition has no tracks');
   }
-
-  const hasNotes = composition.tracks.some(t => t.notes && t.notes.length > 0);
-  if (!hasNotes) {
+  if (!composition.tracks.some(t => t.notes && t.notes.length > 0)) {
     throw new PlaybackError('Composition has no notes to play');
   }
+}
+
+// Create a synth for a track
+function createTrackSynth(): Tone.PolySynth {
+  const synth = new Tone.PolySynth(Tone.Synth, {
+    envelope: { attack: 0.02, decay: 0.1, sustain: 0.3, release: 1 }
+  }).toDestination();
+  synth.volume.value = -6;
+  return synth;
+}
+
+// Schedule notes from a track into a Tone.Part
+function scheduleTrackNotes(
+  notes: Note[],
+  synth: Tone.PolySynth,
+  tempo: number
+): Tone.Part {
+  const notesForTone = normalizeAndSortNotes(notes).map(n => ({
+    time: beatsToSeconds(n.time, tempo),
+    note: Tone.Frequency(n.midi, "midi").toNote(),
+    duration: beatsToSeconds(n.duration, tempo),
+    velocity: n.velocity
+  }));
+
+  return new Tone.Part((time, value) => {
+    synth.triggerAttackRelease(value.note, value.duration, time, value.velocity);
+  }, notesForTone).start(0);
+}
+
+export const playComposition = async (composition: MidiComposition): Promise<void> => {
+  validateForPlayback(composition);
 
   // Start audio context - this may fail if browser blocks autoplay
   try {
     await Tone.start();
-  } catch (err) {
+  } catch {
     throw new PlaybackError('Failed to start audio context. Click to enable audio.');
   }
 
-  // Clean up previous playback
   stopPlayback();
 
   const tempo = normalizeTempo(composition.tempo);
@@ -176,33 +223,14 @@ export const playComposition = async (composition: MidiComposition): Promise<voi
   Tone.Transport.bpm.value = tempo;
   Tone.Transport.timeSignature = timeSig;
 
-  const secondsPerBeat = 60 / tempo;
-
   // Create a synth and part for each track
   composition.tracks.forEach(track => {
     if (!track.notes || track.notes.length === 0) return;
 
-    const synth = new Tone.PolySynth(Tone.Synth, {
-      envelope: { attack: 0.02, decay: 0.1, sustain: 0.3, release: 1 }
-    }).toDestination();
-
-    // Lower volume a bit to prevent clipping with multiple tracks
-    synth.volume.value = -6;
+    const synth = createTrackSynth();
     synths.push(synth);
 
-    const normalizedNotes = normalizeAndSortNotes(track.notes);
-    const notesForTone = normalizedNotes.map(n => ({
-      time: n.time * secondsPerBeat,
-      note: Tone.Frequency(n.midi, "midi").toNote(),
-      duration: n.duration * secondsPerBeat,
-      velocity: n.velocity
-    }));
-
-    const part = new Tone.Part((time, value) => {
-      synth.triggerAttackRelease(value.note, value.duration, time, value.velocity);
-    }, notesForTone).start(0);
-
-    // Track part for cleanup
+    const part = scheduleTrackNotes(track.notes, synth, tempo);
     parts.push(part);
   });
 

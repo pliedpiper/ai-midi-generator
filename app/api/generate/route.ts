@@ -57,7 +57,8 @@ const client = new OpenAI({
 });
 
 const buildPrompt = (id: number, prefs: UserPreferences) => {
-  const variationSeed = `Variation ID: ${id}-${Math.random().toString(36).substring(7)}`;
+  // Random marker to encourage variation (not a deterministic seed)
+  const variationMarker = `Variation ID: ${id}-${Math.random().toString(36).substring(7)}`;
   return `
 User Prompt: "${prefs.prompt}"
 Tempo: ${prefs.tempo} BPM
@@ -66,7 +67,7 @@ Time Signature: ${prefs.timeSignature}
 Length: ${prefs.durationBars} bars
 Constraints: ${prefs.constraints}
 
-${variationSeed}
+${variationMarker}
 
 Make this version unique compared to others.
   `.trim();

@@ -1,5 +1,6 @@
-import { AVAILABLE_MODELS } from '@/constants';
+import { AVAILABLE_MODELS, MIDI_LIMITS } from '@/constants';
 import type { MidiComposition, UserPreferences, Note, Track } from '@/types';
+import { clampNumber } from './midiUtils';
 
 // Validation result types for better type narrowing
 export type ValidationError = { valid: false; error: string };
@@ -12,16 +13,18 @@ export type CompositionValidationResult = ValidationError | CompositionValidatio
 // Allowlist of valid model IDs
 const ALLOWED_MODEL_IDS = new Set(AVAILABLE_MODELS.map(m => m.id));
 
-// Validation constants
-const MIN_TEMPO = 20;
-const MAX_TEMPO = 300;
-const DEFAULT_TEMPO = 120;
-const MIN_BARS = 1;
-const MAX_BARS = 64;
-const DEFAULT_BARS = 8;
-const MIN_ATTEMPTS = 1;
-const MAX_ATTEMPTS = 5;
-const DEFAULT_PROGRAM_NUMBER = 0;
+// Import validation constants from centralized location
+const {
+  MIN_TEMPO,
+  MAX_TEMPO,
+  DEFAULT_TEMPO,
+  MIN_BARS,
+  MAX_BARS,
+  DEFAULT_BARS,
+  MIN_ATTEMPTS,
+  MAX_ATTEMPTS,
+  DEFAULT_PROGRAM_NUMBER,
+} = MIDI_LIMITS;
 
 // Size limits to prevent abuse
 const MAX_PROMPT_LENGTH = 2000;
@@ -67,10 +70,7 @@ export const validatePrefs = (prefs: unknown): PrefsValidationResult => {
   }
 
   // Normalize tempo with clamping
-  let tempo = DEFAULT_TEMPO;
-  if (typeof p.tempo === 'number' && Number.isFinite(p.tempo)) {
-    tempo = Math.max(MIN_TEMPO, Math.min(MAX_TEMPO, Math.round(p.tempo)));
-  }
+  const tempo = clampNumber(p.tempo, MIN_TEMPO, MAX_TEMPO, DEFAULT_TEMPO);
 
   // Normalize key (default to C Major if missing/invalid)
   const key = typeof p.key === 'string' && p.key.trim() ? p.key.trim() : 'C Major';
@@ -82,10 +82,7 @@ export const validatePrefs = (prefs: unknown): PrefsValidationResult => {
   }
 
   // Normalize duration bars with clamping
-  let durationBars = DEFAULT_BARS;
-  if (typeof p.durationBars === 'number' && Number.isFinite(p.durationBars)) {
-    durationBars = Math.max(MIN_BARS, Math.min(MAX_BARS, Math.round(p.durationBars)));
-  }
+  const durationBars = clampNumber(p.durationBars, MIN_BARS, MAX_BARS, DEFAULT_BARS);
 
   // Normalize constraints (allow empty, but limit length)
   let constraints = '';
@@ -97,10 +94,7 @@ export const validatePrefs = (prefs: unknown): PrefsValidationResult => {
   }
 
   // Normalize attempt count with clamping
-  let attemptCount = 1;
-  if (typeof p.attemptCount === 'number' && Number.isFinite(p.attemptCount)) {
-    attemptCount = Math.max(MIN_ATTEMPTS, Math.min(MAX_ATTEMPTS, Math.round(p.attemptCount)));
-  }
+  const attemptCount = clampNumber(p.attemptCount, MIN_ATTEMPTS, MAX_ATTEMPTS, MIN_ATTEMPTS);
 
   return {
     valid: true,
