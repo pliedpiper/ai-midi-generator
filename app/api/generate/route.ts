@@ -10,8 +10,8 @@ export const runtime = 'nodejs';
 const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
 const RATE_LIMIT_MAX_REQUESTS = 10; // 10 requests per minute per IP
 const MAX_BODY_SIZE = 10_000; // 10KB max request body
-const MAX_TOKENS = 4096; // Limit model output tokens
-const REQUEST_TIMEOUT_MS = 60_000; // 60 second timeout
+const MAX_TOKENS = 16384; // Limit model output tokens
+const REQUEST_TIMEOUT_MS = 180_000; // 180 second timeout
 
 // Simple in-memory rate limiter (use Redis in production)
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
@@ -153,6 +153,12 @@ export async function POST(req: Request) {
 
     let parsed: unknown;
     try {
+      const tailLength = 400;
+      const jsonTail = jsonText.length > tailLength
+        ? jsonText.slice(-tailLength)
+        : jsonText;
+      console.log('Model JSON length:', jsonText.length);
+      console.log('Model JSON tail:', jsonTail);
       parsed = JSON.parse(jsonText);
     } catch (parseError) {
       console.error('JSON parse error:', parseError);
