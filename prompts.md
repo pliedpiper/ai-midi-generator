@@ -9,6 +9,7 @@
 - If you want a loop, say "seamless loop" and keep bars short (4, 8, or 16).
 - For clearer melodies, ask for a single lead track plus simple harmony.
 - If results feel busy, constrain polyphony ("no chords over 3 notes") and reduce track count.
+- After generating, review your output against the original prompt — verify the mood, instrumentation, and structure actually reflect what was requested before finalizing.
 
 ## 10 test prompts (with suggested settings)
 
