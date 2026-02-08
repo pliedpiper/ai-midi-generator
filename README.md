@@ -1,6 +1,6 @@
 # AI MIDI Generator
 
-Generate MIDI compositions from text prompts using LLMs. Users authenticate with Google, configure their own OpenRouter key once, and every successful generation is auto-saved.
+Generate MIDI compositions from text prompts using LLMs. Users authenticate with Supabase email/password login, configure their own OpenRouter key once, and every successful generation is auto-saved.
 
 ## Features
 
@@ -10,7 +10,7 @@ Generate MIDI compositions from text prompts using LLMs. Users authenticate with
 - **Variations**: Generate up to 5 variations per prompt
 - **Advanced controls**: Tempo, key, time signature, duration, and constraints
 - **MIDI export**: Download generated compositions as .mid files
-- **Google login**: Supabase Auth + route protection
+- **Supabase login**: Email/password auth + route protection
 - **Saved history**: Replay/download/delete generations from **My Generations**
 
 ## Tech Stack
@@ -38,7 +38,7 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
-Then log in with Google and add your OpenRouter key inside the app when prompted.
+Then create an account/sign in and add your OpenRouter key inside the app when prompted.
 
 ## Scripts
 
@@ -65,7 +65,7 @@ This project uses Vitest for fast unit/integration-style testing of the API rout
 │   ├── api/generate/    # MIDI generation endpoint
 │   ├── api/generations/ # Saved generations API
 │   ├── api/user/openrouter-key/ # User key setup API
-│   ├── login/           # Google auth entry page
+│   ├── login/           # Email/password auth entry page
 │   ├── generations/     # Saved generations page
 │   ├── page.tsx         # Main UI
 │   └── layout.tsx       # App layout
@@ -110,15 +110,18 @@ User OpenRouter keys are entered in the app after login and stored encrypted in 
 ## Supabase Setup
 
 1. Create a Supabase project.
-2. Enable **Google** provider in Supabase Auth and configure OAuth credentials.
-3. Run SQL migration from `supabase/migrations/20260208_auth_and_generations.sql`.
-4. Set Site URL / Redirect URLs to include:
-   - `http://localhost:3000/auth/callback`
-   - your production domain `/auth/callback`
+2. In Supabase Auth, ensure **Email** provider is enabled (default in most projects).
+3. Configure email confirmation behavior as desired:
+   - If confirmation is enabled, users must verify email after sign-up before signing in.
+   - If disabled, users can sign in immediately after sign-up.
+4. Run SQL migration from `supabase/migrations/20260208_auth_and_generations.sql`.
+5. Set Site URL (for auth emails) to your app URL:
+   - local: `http://localhost:3000`
+   - production: your deployed domain
 
 ## How It Works
 
-1. User logs in with Google.
+1. User logs in (or signs up) with email/password via Supabase Auth.
 2. User adds OpenRouter key once (stored encrypted, per account).
 3. User describes desired music and starts generation.
 4. App sends prompt to selected LLM via OpenRouter using that user key.
