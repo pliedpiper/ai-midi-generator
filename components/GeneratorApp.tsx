@@ -220,10 +220,7 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({ userEmail, initialHasApiKey
 
   return (
     <div className="min-h-screen bg-surface-900 text-text-primary">
-      <AppHeader
-        userEmail={userEmail}
-        onManageApiKey={() => setShowApiKeyForm(prev => !prev)}
-      />
+      <AppHeader userEmail={userEmail} />
 
       <main className="max-w-5xl mx-auto px-6 py-12">
         {showApiKeyForm && (

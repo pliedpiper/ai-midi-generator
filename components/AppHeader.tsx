@@ -7,10 +7,9 @@ import { createClient } from '@/lib/supabase/client';
 
 interface AppHeaderProps {
   userEmail: string;
-  onManageApiKey?: () => void;
 }
 
-const AppHeader: React.FC<AppHeaderProps> = ({ userEmail, onManageApiKey }) => {
+const AppHeader: React.FC<AppHeaderProps> = ({ userEmail }) => {
   const pathname = usePathname();
   const router = useRouter();
   const [isSigningOut, setIsSigningOut] = React.useState(false);
@@ -48,19 +47,20 @@ const AppHeader: React.FC<AppHeaderProps> = ({ userEmail, onManageApiKey }) => {
         </div>
 
         <div className="flex items-center gap-2">
-          {onManageApiKey && (
-            <button
-              type="button"
-              onClick={onManageApiKey}
-              className="px-3 py-1.5 text-xs font-medium rounded bg-surface-700 text-text-secondary hover:bg-surface-600 hover:text-text-primary transition-colors"
-            >
-              API Key
-            </button>
-          )}
-
           <span className="hidden md:inline text-xs text-text-muted">
             {userEmail}
           </span>
+
+          <Link
+            href="/account"
+            className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+              pathname === '/account'
+                ? 'bg-surface-600 text-text-primary'
+                : 'bg-surface-700 text-text-secondary hover:bg-surface-600 hover:text-text-primary'
+            }`}
+          >
+            Account
+          </Link>
 
           <button
             type="button"

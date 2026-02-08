@@ -31,3 +31,43 @@ export async function GET() {
 
   return NextResponse.json({ generations: data ?? [] });
 }
+
+export async function DELETE() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: userError
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+  }
+
+  const { count, error: countError } = await supabase
+    .from('generations')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id);
+
+  if (countError) {
+    console.error('Failed to count generations before delete:', countError);
+    return NextResponse.json(
+      { error: 'Failed to delete generations.' },
+      { status: 500 }
+    );
+  }
+
+  const { error } = await supabase
+    .from('generations')
+    .delete()
+    .eq('user_id', user.id);
+
+  if (error) {
+    console.error('Failed to delete generations:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete generations.' },
+      { status: 500 }
+    );
+  }
+
+  return NextResponse.json({ deleted: true, deletedCount: count ?? 0 });
+}

@@ -11,6 +11,7 @@ Generate MIDI compositions from text prompts using LLMs. Users authenticate with
 - **Advanced controls**: Tempo, key, time signature, duration, and constraints
 - **MIDI export**: Download generated compositions as .mid files
 - **Supabase login**: Email/password auth + route protection
+- **Account settings**: Change email/password, manage OpenRouter key, export data, and delete account
 - **Saved history**: Replay/download/delete generations from **My Generations**
 - **Expanded visualizer**: Open any saved generation in a detailed modal with piano-roll visualization
 
@@ -65,9 +66,11 @@ This project uses Vitest for fast unit/integration-style testing of the API rout
 ├── app/
 │   ├── api/generate/    # MIDI generation endpoint
 │   ├── api/generations/ # Saved generations API
+│   ├── api/account/     # Account delete/export endpoints
 │   ├── api/user/openrouter-key/ # User key setup API
 │   ├── login/           # Email/password auth entry page
 │   ├── generations/     # Saved generations page
+│   ├── account/         # Account settings page
 │   ├── page.tsx         # Main UI
 │   └── layout.tsx       # App layout
 ├── components/
@@ -116,7 +119,10 @@ User OpenRouter keys are entered in the app after login and stored encrypted in 
 3. Configure email confirmation behavior as desired:
    - If confirmation is enabled, users must verify email after sign-up before signing in.
    - If disabled, users can sign in immediately after sign-up.
-4. Run SQL migration from `supabase/migrations/20260208_auth_and_generations.sql`.
+4. Run SQL migrations in `supabase/migrations/`:
+   - `supabase/migrations/20260208_auth_and_generations.sql`
+   - `supabase/migrations/20260208_delete_current_user_function.sql`
+   - `supabase/migrations/20260208_user_settings_delete_policy.sql`
 5. Set Site URL (for auth emails) to your app URL:
    - local: `http://localhost:3000`
    - production: your deployed domain
@@ -130,6 +136,7 @@ User OpenRouter keys are entered in the app after login and stored encrypted in 
 5. LLM returns structured JSON with tracks and note timing.
 6. App validates output, saves the generation row, and returns composition.
 7. Tone.js plays composition; user can download or view later in **My Generations**.
+8. Users can manage account settings in **Account** (email/password updates, data export, key removal, and account deletion).
 
 ## Security
 
@@ -139,6 +146,7 @@ User OpenRouter keys are entered in the app after login and stored encrypted in 
 - CSP headers configured for safe audio playback
 - Row-Level Security (RLS) policies enforce per-user data access
 - OpenRouter keys encrypted before database storage
+- Account deletion uses a dedicated authenticated SQL RPC (`delete_current_user`) and cascades app data via foreign keys
 
 ## OpenRouter Key Safety
 
