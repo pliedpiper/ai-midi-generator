@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { signOutAndRedirect } from '@/lib/auth/signOut';
 
 interface AppHeaderProps {
   userEmail: string;
@@ -13,18 +14,26 @@ const AppHeader: React.FC<AppHeaderProps> = ({ userEmail }) => {
   const pathname = usePathname();
   const router = useRouter();
   const [isSigningOut, setIsSigningOut] = React.useState(false);
+  const [signOutError, setSignOutError] = React.useState<string | null>(null);
 
   const handleSignOut = async () => {
     setIsSigningOut(true);
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
+    setSignOutError(null);
+
+    try {
+      const supabase = createClient();
+      await signOutAndRedirect(supabase, router);
+    } catch (error) {
+      setSignOutError(error instanceof Error ? error.message : 'Failed to sign out.');
+    } finally {
+      setIsSigningOut(false);
+    }
   };
 
   return (
     <header className="border-b border-surface-600/50 backdrop-blur-sm bg-surface-900/80 sticky top-0 z-50">
-      <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
+      <div className="max-w-6xl mx-auto px-6 py-4 flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-6">
           <span className="font-mono text-sm font-medium tracking-wide text-text-primary">
             MIDI GENERATOR
@@ -75,6 +84,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({ userEmail }) => {
             {isSigningOut ? 'Signing out...' : 'Sign out'}
           </button>
         </div>
+      </div>
+      {signOutError && (
+        <p className="text-xs text-red-400">{signOutError}</p>
+      )}
       </div>
     </header>
   );

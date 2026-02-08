@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { sanitizeNextPath } from '@/utils/redirectPath';
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -11,6 +12,6 @@ export async function GET(request: Request) {
     await supabase.auth.exchangeCodeForSession(code);
   }
 
-  const safeNextPath = nextPath && nextPath.startsWith('/') ? nextPath : '/';
+  const safeNextPath = sanitizeNextPath(nextPath);
   return NextResponse.redirect(new URL(safeNextPath, requestUrl.origin));
 }

@@ -31,9 +31,9 @@ const nextConfig = {
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:", // Next.js + Tone.js AudioWorklet
-              "style-src 'self' 'unsafe-inline'", // Tailwind uses inline styles
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com", // Tailwind + Google Fonts stylesheet
               "img-src 'self' data: blob:",
-              "font-src 'self'",
+              "font-src 'self' https://fonts.gstatic.com data:",
               "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
               "media-src 'self' blob:", // For audio playback
               "worker-src 'self' blob:", // Tone.js Web Workers

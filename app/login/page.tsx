@@ -4,6 +4,7 @@ import React from 'react';
 import { Loader2, LogIn, UserPlus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import { getSafeNextPathFromSearch } from '@/utils/redirectPath';
 
 const LoginPage: React.FC = () => {
   const router = useRouter();
@@ -21,8 +22,7 @@ const LoginPage: React.FC = () => {
     setMessage(null);
 
     const supabase = createClient();
-    const requestedNext = new URLSearchParams(window.location.search).get('next') ?? '/';
-    const safeNext = requestedNext.startsWith('/') ? requestedNext : '/';
+    const safeNext = getSafeNextPathFromSearch(window.location.search);
 
     if (!email.trim() || !password) {
       setError('Email and password are required.');
