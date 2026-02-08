@@ -34,7 +34,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'", // Tailwind uses inline styles
               "img-src 'self' data: blob:",
               "font-src 'self'",
-              "connect-src 'self'",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
               "media-src 'self' blob:", // For audio playback
               "worker-src 'self' blob:", // Tone.js Web Workers
               "frame-ancestors 'self'",

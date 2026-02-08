@@ -3,18 +3,19 @@ import OpenAI, { APIError, APIConnectionError, APIConnectionTimeoutError } from 
 import { SYSTEM_PROMPT_GENERATOR } from '@/constants';
 import type { UserPreferences } from '@/types';
 import { extractJson, validatePrefs, validateComposition } from '@/utils/validation';
+import { createClient as createSupabaseClient } from '@/lib/supabase/server';
+import { decryptSecret } from '@/utils/encryption';
+import { getEncryptedOpenRouterKey } from '@/lib/userSettings';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 export const runtime = 'nodejs';
 
 // Rate limiting configuration
 const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
-const RATE_LIMIT_MAX_REQUESTS = 10; // 10 requests per minute per IP
+const RATE_LIMIT_MAX_REQUESTS = 10; // 10 requests per minute per user
 const MAX_BODY_SIZE = 10_000; // 10KB max request body
 const MAX_TOKENS = 16384; // Limit model output tokens
 const REQUEST_TIMEOUT_MS = 180_000; // 180 second timeout
-
-// Simple in-memory rate limiter (use Redis in production)
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 
 function getRateLimitKey(req: Request): string {
   // Try to get IP from various headers
@@ -23,35 +24,8 @@ function getRateLimitKey(req: Request): string {
   return forwarded?.split(',')[0]?.trim() || realIp || 'unknown';
 }
 
-function checkRateLimit(ip: string): { allowed: boolean; remaining: number; resetIn: number } {
-  const now = Date.now();
-  const entry = rateLimitMap.get(ip);
-
-  if (!entry || now > entry.resetTime) {
-    rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
-    return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - 1, resetIn: RATE_LIMIT_WINDOW_MS };
-  }
-
-  if (entry.count >= RATE_LIMIT_MAX_REQUESTS) {
-    return { allowed: false, remaining: 0, resetIn: entry.resetTime - now };
-  }
-
-  entry.count++;
-  return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - entry.count, resetIn: entry.resetTime - now };
-}
-
-// Periodically clean up old rate limit entries
-setInterval(() => {
-  const now = Date.now();
-  for (const [ip, entry] of rateLimitMap.entries()) {
-    if (now > entry.resetTime) {
-      rateLimitMap.delete(ip);
-    }
-  }
-}, RATE_LIMIT_WINDOW_MS);
-
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || '',
+const createOpenRouterClient = (apiKey: string) => new OpenAI({
+  apiKey,
   baseURL: 'https://openrouter.ai/api/v1',
   timeout: REQUEST_TIMEOUT_MS
 });
@@ -74,18 +48,54 @@ Make this version unique compared to others.
 };
 
 export async function POST(req: Request) {
-  // Check API key first
-  if (!process.env.OPENAI_API_KEY) {
-    console.error('OPENAI_API_KEY is not configured');
+  const supabase = await createSupabaseClient();
+  const {
+    data: { user },
+    error: userError
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
     return NextResponse.json(
-      { error: 'Server configuration error.' },
+      { error: 'You must be logged in to generate MIDI.' },
+      { status: 401 }
+    );
+  }
+
+  let userOpenRouterApiKey: string;
+  try {
+    const encryptedKey = await getEncryptedOpenRouterKey(supabase, user.id);
+    if (!encryptedKey) {
+      return NextResponse.json(
+        { error: 'OpenRouter API key not configured. Add your key in the app settings.' },
+        { status: 400 }
+      );
+    }
+    userOpenRouterApiKey = decryptSecret(encryptedKey);
+  } catch (error) {
+    console.error('Failed to resolve user OpenRouter key:', error);
+    return NextResponse.json(
+      { error: 'Could not load your OpenRouter API key.' },
       { status: 500 }
     );
   }
 
-  // Rate limiting
+  // Rate limiting (per user with IP fallback)
   const clientIp = getRateLimitKey(req);
-  const rateLimit = checkRateLimit(clientIp);
+  const rateLimitIdentifier = user.id ? `user:${user.id}` : `ip:${clientIp}`;
+  let rateLimit;
+  try {
+    rateLimit = await checkRateLimit(
+      rateLimitIdentifier,
+      RATE_LIMIT_MAX_REQUESTS,
+      RATE_LIMIT_WINDOW_MS
+    );
+  } catch (error) {
+    console.error('Redis rate limiter failed:', error);
+    return NextResponse.json(
+      { error: 'Rate limiter unavailable. Please try again shortly.' },
+      { status: 503 }
+    );
+  }
 
   if (!rateLimit.allowed) {
     return NextResponse.json(
@@ -138,6 +148,8 @@ export async function POST(req: Request) {
   const normalizedPrefs = prefsResult.normalized;
 
   try {
+    const client = createOpenRouterClient(userOpenRouterApiKey);
+
     const response = await client.chat.completions.create({
       model: normalizedPrefs.model,
       messages: [
@@ -178,6 +190,23 @@ export async function POST(req: Request) {
       );
     }
 
+    const { error: saveError } = await supabase.from('generations').insert({
+      user_id: user.id,
+      title: compositionResult.composition.title,
+      model: normalizedPrefs.model,
+      attempt_index: id,
+      prefs: normalizedPrefs,
+      composition: compositionResult.composition
+    });
+
+    if (saveError) {
+      console.error('Failed to save generation:', saveError);
+      return NextResponse.json(
+        { error: 'Failed to save generation.' },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(
       { composition: compositionResult.composition },
       {
@@ -211,7 +240,7 @@ export async function POST(req: Request) {
       // Authentication errors
       if (status === 401) {
         return NextResponse.json(
-          { error: 'API key is invalid or expired. Check server configuration.' },
+          { error: 'Your OpenRouter API key is invalid or expired.' },
           { status: 401 }
         );
       }
