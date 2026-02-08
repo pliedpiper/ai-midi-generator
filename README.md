@@ -129,3 +129,11 @@ User OpenRouter keys are entered in the app after login and stored encrypted in 
 - CSP headers configured for safe audio playback
 - Row-Level Security (RLS) policies enforce per-user data access
 - OpenRouter keys encrypted before database storage
+
+## OpenRouter Key Safety
+
+- User OpenRouter keys are submitted to the server over HTTPS and encrypted before being written to `user_settings`.
+- Keys are decrypted only inside the server route that calls OpenRouter (`app/api/generate/route.ts`).
+- The app does not expose an endpoint that returns raw OpenRouter keys to clients.
+- Other users cannot read your key through normal app usage because of RLS and server-side handling.
+- Operational caveat: anyone with privileged access to both database contents and `OPENROUTER_KEY_ENCRYPTION_SECRET` could decrypt stored keys. Keep production access tightly restricted.
