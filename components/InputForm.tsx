@@ -4,7 +4,8 @@ import React from 'react';
 import { UserPreferences } from '../types';
 import { AVAILABLE_MODELS, DEFAULT_PREFERENCES } from '../constants';
 import { parseKeyString } from '../utils/scaleUtils';
-import { ChevronDown, Loader2 } from 'lucide-react';
+import { ChevronDown, Loader2, Sparkles } from 'lucide-react';
+import { improvePrompt } from '../services/openRouterService';
 
 interface Props {
   onSubmit: (prefs: UserPreferences) => void;
@@ -14,6 +15,8 @@ interface Props {
 const InputForm: React.FC<Props> = ({ onSubmit, isGenerating }) => {
   const [prefs, setPrefs] = React.useState<UserPreferences>(DEFAULT_PREFERENCES);
   const [showAdvanced, setShowAdvanced] = React.useState(false);
+  const [isImprovingPrompt, setIsImprovingPrompt] = React.useState(false);
+  const [improvePromptError, setImprovePromptError] = React.useState<string | null>(null);
 
   const isPromptEmpty = !prefs.prompt.trim();
 
@@ -28,6 +31,31 @@ const InputForm: React.FC<Props> = ({ onSubmit, isGenerating }) => {
     onSubmit(normalizedPrefs);
   };
 
+  const handleImprovePrompt = async () => {
+    if (isPromptEmpty || isGenerating || isImprovingPrompt) return;
+
+    setImprovePromptError(null);
+    setIsImprovingPrompt(true);
+
+    try {
+      const improved = await improvePrompt({
+        prompt: prefs.prompt.trim(),
+        tempo: prefs.tempo,
+        key: prefs.key,
+        timeSignature: prefs.timeSignature,
+        durationBars: prefs.durationBars,
+        constraints: prefs.constraints
+      });
+      setPrefs(prev => ({ ...prev, prompt: improved }));
+    } catch (error) {
+      setImprovePromptError(
+        error instanceof Error ? error.message : 'Failed to improve prompt.'
+      );
+    } finally {
+      setIsImprovingPrompt(false);
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Prompt */}
@@ -36,24 +64,49 @@ const InputForm: React.FC<Props> = ({ onSubmit, isGenerating }) => {
           <label className="font-mono text-xs text-text-muted uppercase tracking-wider">
             Describe your music
           </label>
-          <span className="text-[10px] text-text-muted/60 font-mono">
-            ⌘/Ctrl+Enter to submit
-          </span>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleImprovePrompt}
+              disabled={isPromptEmpty || isGenerating || isImprovingPrompt}
+              className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider transition-colors ${
+                isPromptEmpty || isGenerating || isImprovingPrompt
+                  ? 'bg-surface-700 text-text-muted cursor-not-allowed'
+                  : 'bg-surface-700 text-text-secondary hover:bg-surface-600 hover:text-text-primary'
+              }`}
+            >
+              {isImprovingPrompt ? (
+                <Loader2 size={12} className="animate-spin" />
+              ) : (
+                <Sparkles size={12} />
+              )}
+              {isImprovingPrompt ? 'Improving...' : 'Improve prompt'}
+            </button>
+            <span className="text-[10px] text-text-muted/60 font-mono">
+              ⌘/Ctrl+Enter to submit
+            </span>
+          </div>
         </div>
         <textarea
           className="w-full bg-surface-800 border border-surface-600 rounded px-4 py-3 text-text-primary placeholder-text-muted/50 focus:border-accent focus:ring-0 outline-none transition-colors resize-none font-light"
           rows={3}
           value={prefs.prompt}
-          onChange={e => setPrefs({ ...prefs, prompt: e.target.value })}
+          onChange={e => {
+            setPrefs({ ...prefs, prompt: e.target.value });
+            if (improvePromptError) setImprovePromptError(null);
+          }}
           onKeyDown={e => {
-            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !isGenerating) {
+            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !isGenerating && !isImprovingPrompt) {
               e.preventDefault();
               e.currentTarget.form?.requestSubmit();
             }
           }}
           placeholder="An upbeat 8-bit video game loop with a catchy melody..."
-          disabled={isGenerating}
+          disabled={isGenerating || isImprovingPrompt}
         />
+        {improvePromptError && (
+          <p className="mt-2 text-xs text-red-400">{improvePromptError}</p>
+        )}
       </div>
 
       {/* Model Select */}
@@ -217,9 +270,9 @@ const InputForm: React.FC<Props> = ({ onSubmit, isGenerating }) => {
       {/* Submit */}
       <button
         type="submit"
-        disabled={isGenerating || isPromptEmpty}
+        disabled={isGenerating || isPromptEmpty || isImprovingPrompt}
         className={`w-full py-3.5 rounded font-medium tracking-wide transition-all ${
-          isGenerating || isPromptEmpty
+          isGenerating || isPromptEmpty || isImprovingPrompt
             ? 'bg-surface-700 text-text-muted cursor-not-allowed'
             : 'bg-accent text-surface-900 hover:bg-accent-hover active:scale-[0.99]'
         }`}

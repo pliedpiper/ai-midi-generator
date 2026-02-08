@@ -4,6 +4,7 @@ import React from 'react';
 import { Download, Expand, Loader2, Play, Search, Square, Trash2 } from 'lucide-react';
 import type { SavedGeneration, SnapOptions } from '@/types';
 import { generateMidiBlob, getTransportBeatPosition, playComposition, stopPlayback } from '@/utils/midiUtils';
+import { buildMidiDownloadFilename } from '@/utils/downloadFilename';
 import {
   getHighlightParts,
   getPromptText,
@@ -208,7 +209,12 @@ const GenerationsPage: React.FC<GenerationsPageProps> = ({ userEmail }) => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${generation.title || 'generation'}.mid`;
+    link.download = buildMidiDownloadFilename({
+      title: generation.title || generation.composition?.title,
+      key: generation.composition?.key,
+      tempo: generation.composition?.tempo,
+      fallbackTitle: `generation-${generation.attempt_index || generation.id}`
+    });
     document.body.appendChild(link);
     link.click();
     link.remove();

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AVAILABLE_MODELS } from '../constants';
-import { generateAttempt } from '../services/openRouterService';
+import { generateAttempt, improvePrompt } from '../services/openRouterService';
 import type { UserPreferences } from '../types';
 
 const validPrefs: UserPreferences = {
@@ -50,5 +50,39 @@ describe('generateAttempt', () => {
     } as unknown as Response);
 
     await expect(generateAttempt(1, validPrefs)).rejects.toThrow('Invalid response from server.');
+  });
+});
+
+describe('improvePrompt', () => {
+  it('surfaces API error message from response JSON', async () => {
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: false,
+      json: vi.fn().mockResolvedValue({ error: 'Prompt improver unavailable.' }),
+    } as unknown as Response);
+
+    await expect(improvePrompt({
+      prompt: 'A simple loop',
+      tempo: 120,
+      key: 'C Major',
+      timeSignature: '4/4',
+      durationBars: 8,
+      constraints: 'No drums'
+    })).rejects.toThrow('Prompt improver unavailable.');
+  });
+
+  it('rejects when server response is missing prompt', async () => {
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({}),
+    } as unknown as Response);
+
+    await expect(improvePrompt({
+      prompt: 'A simple loop',
+      tempo: 120,
+      key: 'C Major',
+      timeSignature: '4/4',
+      durationBars: 8,
+      constraints: ''
+    })).rejects.toThrow('Invalid response from server.');
   });
 });

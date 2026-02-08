@@ -3,6 +3,7 @@
 import React from 'react';
 import { Download, Play, Square, X } from 'lucide-react';
 import type { AttemptResult } from '../types';
+import { buildMidiDownloadFilename } from '../utils/downloadFilename';
 import PianoRoll from './PianoRoll';
 
 interface ExpandedAttemptModalProps {
@@ -61,6 +62,12 @@ const ExpandedAttemptModal: React.FC<ExpandedAttemptModalProps> = ({
 
   const composition = attempt.data;
   const noteCount = composition.tracks.reduce((total, track) => total + (track.notes?.length ?? 0), 0);
+  const downloadFilename = buildMidiDownloadFilename({
+    title: composition.title,
+    key: composition.key,
+    tempo: composition.tempo,
+    fallbackTitle: `attempt-${attempt.id}`
+  });
 
   return (
     <div className="fixed inset-0 z-50">
@@ -136,7 +143,7 @@ const ExpandedAttemptModal: React.FC<ExpandedAttemptModalProps> = ({
               {downloadUrl && (
                 <a
                   href={downloadUrl}
-                  download={`midi_${attempt.id}.mid`}
+                  download={downloadFilename}
                   className="inline-flex items-center gap-1.5 rounded bg-surface-700 px-3 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-600 hover:text-text-primary"
                 >
                   <Download size={13} />

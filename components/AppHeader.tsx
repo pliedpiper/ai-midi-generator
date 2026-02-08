@@ -41,7 +41,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ userEmail }) => {
               href="/generations"
               className={pathname === '/generations' ? 'text-text-primary' : 'text-text-muted hover:text-text-primary'}
             >
-              My Generations
+              Generations
             </Link>
           </nav>
         </div>

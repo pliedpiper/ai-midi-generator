@@ -3,6 +3,7 @@
 import React from 'react';
 import { AttemptResult } from '../types';
 import { Play, Square, Download, AlertCircle, Check, Loader2, Expand } from 'lucide-react';
+import { buildMidiDownloadFilename } from '../utils/downloadFilename';
 
 interface Props {
   attempt: AttemptResult;
@@ -15,6 +16,12 @@ interface Props {
 const AttemptCard: React.FC<Props> = ({ attempt, isPlaying, onPlay, onStop, onExpand }) => {
   const [downloadUrl, setDownloadUrl] = React.useState<string | null>(null);
   const canExpand = attempt.status === 'success' && Boolean(attempt.data);
+  const downloadFilename = buildMidiDownloadFilename({
+    title: attempt.data?.title,
+    key: attempt.data?.key,
+    tempo: attempt.data?.tempo,
+    fallbackTitle: `attempt-${attempt.id}`
+  });
 
   React.useEffect(() => {
     if (attempt.midiBlob) {
@@ -129,7 +136,7 @@ const AttemptCard: React.FC<Props> = ({ attempt, isPlaying, onPlay, onStop, onEx
               {downloadUrl && (
                 <a
                   href={downloadUrl}
-                  download={`midi_${attempt.id}.mid`}
+                  download={downloadFilename}
                   onClick={(event) => event.stopPropagation()}
                   className="flex items-center justify-center w-9 rounded bg-surface-700 text-text-secondary hover:text-text-primary hover:bg-surface-600 transition-colors"
                   title="Download"

@@ -9,6 +9,7 @@ Generate MIDI compositions from text prompts using LLMs. Users authenticate with
 - **In-browser playback**: Listen instantly with Tone.js synthesis
 - **Variations**: Generate up to 5 variations per prompt
 - **Advanced controls**: Tempo, key, time signature, duration, and constraints
+- **Prompt improver**: Refine prompt text in-place with Gemini 3 Flash using `prompts.md` tips
 - **MIDI export**: Download generated compositions as .mid files
 - **Supabase login**: Email/password auth + route protection
 - **Account settings**: Change email/password, manage OpenRouter key, export data, and delete account
@@ -66,6 +67,7 @@ This project uses Vitest for fast unit/integration-style testing of the API rout
 ```
 ├── app/
 │   ├── api/generate/    # MIDI generation endpoint
+│   ├── api/prompt/improve/ # Prompt rewrite endpoint (Gemini 3 Flash)
 │   ├── api/generations/ # Saved generations API
 │   ├── api/account/     # Account delete/export endpoints
 │   ├── api/user/openrouter-key/ # User key setup API
@@ -133,11 +135,12 @@ User OpenRouter keys are entered in the app after login and stored encrypted in 
 1. User logs in (or signs up) with email/password via Supabase Auth.
 2. User adds OpenRouter key once (stored encrypted, per account).
 3. User describes desired music and starts generation.
-4. App sends prompt to selected LLM via OpenRouter using that user key.
-5. LLM returns structured JSON with tracks and note timing.
-6. App validates output, saves the generation row, and returns composition.
-7. Tone.js plays composition; user can download or view later in **My Generations**.
-8. Users can manage account settings in **Account** (email/password updates, data export, key removal, and account deletion).
+4. Optional: user can click **Improve prompt** to rewrite their text using the `prompts.md` guidance.
+5. App sends prompt to selected LLM via OpenRouter using that user key.
+6. LLM returns structured JSON with tracks and note timing.
+7. App validates output, saves the generation row, and returns composition.
+8. Tone.js plays composition; user can download or view later in **My Generations**.
+9. Users can manage account settings in **Account** (email/password updates, data export, key removal, and account deletion).
 
 ## Security
 
@@ -152,7 +155,7 @@ User OpenRouter keys are entered in the app after login and stored encrypted in 
 ## OpenRouter Key Safety
 
 - User OpenRouter keys are submitted to the server over HTTPS and encrypted before being written to `user_settings`.
-- Keys are decrypted only inside the server route that calls OpenRouter (`app/api/generate/route.ts`).
+- Keys are decrypted only inside server routes that call OpenRouter (`app/api/generate/route.ts` and `app/api/prompt/improve/route.ts`).
 - The app does not expose an endpoint that returns raw OpenRouter keys to clients.
 - Other users cannot read your key through normal app usage because of RLS and server-side handling.
 - Operational caveat: anyone with privileged access to both database contents and `OPENROUTER_KEY_ENCRYPTION_SECRET` could decrypt stored keys. Keep production access tightly restricted.
