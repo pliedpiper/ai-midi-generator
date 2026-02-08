@@ -1,0 +1,54 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { AVAILABLE_MODELS } from '../constants';
+import { generateAttempt } from '../services/openRouterService';
+import type { UserPreferences } from '../types';
+
+const validPrefs: UserPreferences = {
+  prompt: 'Compose something chill',
+  model: AVAILABLE_MODELS[0].id,
+  tempo: 120,
+  key: 'C Major',
+  timeSignature: '4/4',
+  durationBars: 8,
+  constraints: '',
+  attemptCount: 1,
+  scaleRoot: 0,
+  scaleType: 'major',
+};
+
+beforeEach(() => {
+  vi.spyOn(global, 'fetch');
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+describe('generateAttempt', () => {
+  it('surfaces API error message from response JSON', async () => {
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: false,
+      json: vi.fn().mockResolvedValue({ error: 'Provider rate limit reached.' }),
+    } as unknown as Response);
+
+    await expect(generateAttempt(1, validPrefs)).rejects.toThrow('Provider rate limit reached.');
+  });
+
+  it('handles non-JSON error bodies with fallback message', async () => {
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: false,
+      json: vi.fn().mockRejectedValue(new Error('Invalid JSON body')),
+    } as unknown as Response);
+
+    await expect(generateAttempt(1, validPrefs)).rejects.toThrow('Failed to generate MIDI composition.');
+  });
+
+  it('rejects when server response is missing composition', async () => {
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({}),
+    } as unknown as Response);
+
+    await expect(generateAttempt(1, validPrefs)).rejects.toThrow('Invalid response from server.');
+  });
+});

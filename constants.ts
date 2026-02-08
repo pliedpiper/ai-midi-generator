@@ -38,7 +38,7 @@ export const SCALE_TYPES = {
 export type ScaleTypeKey = keyof typeof SCALE_TYPES;
 
 export const DEFAULT_PREFERENCES = {
-  prompt: "A funky synthwave bassline with light arpeggios",
+  prompt: "",
   model: "moonshotai/kimi-k2.5",
   tempo: 120,
   key: "C Major",

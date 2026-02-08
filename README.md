@@ -45,6 +45,14 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 | `npm test` | Run tests in watch mode |
 | `npm run test:run` | Run tests once |
 
+## Testing
+
+This project uses Vitest for fast unit/integration-style testing of the API route, validation logic, MIDI generation utilities, scale logic, and client service behavior.
+
+- Run once: `npm run test:run`
+- Watch mode: `npm test`
+- Detailed strategy and suite map: [`docs/testing.md`](docs/testing.md)
+
 ## Project Structure
 
 ```
@@ -60,6 +68,9 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 │   └── validation.ts    # Input/output validation
 ├── services/
 │   └── openRouterService.ts  # API client
+├── tests/               # Vitest suites
+├── docs/
+│   └── testing.md       # Testing strategy and coverage map
 ├── constants.ts         # Models, prompts, defaults
 └── types.ts             # TypeScript types
 ```

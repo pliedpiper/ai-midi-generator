@@ -264,3 +264,15 @@ export const playComposition = async (
 
   Tone.Transport.start();
 };
+
+// Read current transport position in beats for UI synchronization.
+export const getTransportBeatPosition = (tempo: number): number => {
+  const safeTempo = normalizeTempo(tempo);
+  const seconds = Tone.Transport.seconds;
+
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+    return 0;
+  }
+
+  return seconds / (60 / safeTempo);
+};

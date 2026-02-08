@@ -3,9 +3,16 @@
 import React, { useState, useCallback } from 'react';
 import { AttemptResult, GenerationStatus, UserPreferences, SnapOptions } from '../types';
 import { generateAttempt } from '../services/openRouterService';
-import { generateMidiBlob, stopPlayback, playComposition, PlaybackError } from '../utils/midiUtils';
+import {
+  generateMidiBlob,
+  stopPlayback,
+  playComposition,
+  PlaybackError,
+  getTransportBeatPosition
+} from '../utils/midiUtils';
 import InputForm from '../components/InputForm';
 import AttemptCard from '../components/AttemptCard';
+import ExpandedAttemptModal from '../components/ExpandedAttemptModal';
 
 // Helper to extract snap options from preferences
 const getSnapOptions = (prefs: UserPreferences | null): SnapOptions | undefined => {
@@ -20,6 +27,8 @@ const Page: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const [lastPrefs, setLastPrefs] = useState<UserPreferences | null>(null);
+  const [expandedAttemptId, setExpandedAttemptId] = useState<number | null>(null);
+  const [currentBeat, setCurrentBeat] = useState(0);
 
   // Initialize empty slots based on requested count
   const resetAttempts = (count: number) => {
@@ -32,6 +41,8 @@ const Page: React.FC = () => {
     setPlayingId(null);
     setErrorMsg(null);
     setPlaybackError(null);
+    setExpandedAttemptId(null);
+    setCurrentBeat(0);
   };
 
   const handleGenerate = async (prefs: UserPreferences) => {
@@ -87,10 +98,12 @@ const Page: React.FC = () => {
       await playComposition(attempt.data, snapOptions);
       // Only set playingId after playback successfully starts
       setPlayingId(id);
+      setCurrentBeat(0);
     } catch (err) {
       // Playback failed - ensure cleanup
       stopPlayback();
       setPlayingId(null);
+      setCurrentBeat(0);
 
       const message = err instanceof PlaybackError
         ? err.message
@@ -105,8 +118,54 @@ const Page: React.FC = () => {
   const handleStop = useCallback(() => {
     stopPlayback();
     setPlayingId(null);
+    setCurrentBeat(0);
     setPlaybackError(null);
   }, []);
+
+  React.useEffect(() => {
+    if (playingId === null) return;
+    const activeAttempt = attempts.find(a => a.id === playingId);
+    if (!activeAttempt?.data) return;
+
+    let animationFrame: number;
+    const tempo = activeAttempt.data.tempo;
+    const maxBeat = activeAttempt.data.tracks.reduce((trackMax, track) => {
+      const noteMax = track.notes.reduce(
+        (noteEndMax, note) => Math.max(noteEndMax, note.time + Math.max(note.duration, 0.001)),
+        0
+      );
+      return Math.max(trackMax, noteMax);
+    }, 0);
+
+    const updateBeat = () => {
+      const beat = getTransportBeatPosition(tempo);
+      setCurrentBeat(beat);
+
+      if (beat >= maxBeat + 0.05) {
+        handleStop();
+        return;
+      }
+
+      animationFrame = requestAnimationFrame(updateBeat);
+    };
+
+    animationFrame = requestAnimationFrame(updateBeat);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [playingId, attempts, handleStop]);
+
+  React.useEffect(() => {
+    if (expandedAttemptId === null) return;
+    const hasExpandedAttempt = attempts.some(
+      attempt => attempt.id === expandedAttemptId && attempt.status === 'success'
+    );
+    if (!hasExpandedAttempt) {
+      setExpandedAttemptId(null);
+    }
+  }, [attempts, expandedAttemptId]);
+
+  const expandedAttempt = attempts.find(
+    attempt => attempt.id === expandedAttemptId && attempt.status === 'success'
+  ) ?? null;
 
   return (
     <div className="min-h-screen bg-surface-900 text-text-primary">
@@ -166,12 +225,27 @@ const Page: React.FC = () => {
                   isPlaying={playingId === attempt.id}
                   onPlay={() => handlePlay(attempt.id, attempt)}
                   onStop={handleStop}
+                  onExpand={() => setExpandedAttemptId(attempt.id)}
                 />
               ))}
             </div>
           </section>
         )}
       </main>
+
+      <ExpandedAttemptModal
+        attempt={expandedAttempt}
+        isOpen={expandedAttempt !== null}
+        isPlaying={expandedAttempt !== null && playingId === expandedAttempt.id}
+        currentBeat={expandedAttempt !== null && playingId === expandedAttempt.id ? currentBeat : 0}
+        onClose={() => setExpandedAttemptId(null)}
+        onPlay={() => {
+          if (expandedAttempt) {
+            handlePlay(expandedAttempt.id, expandedAttempt);
+          }
+        }}
+        onStop={handleStop}
+      />
     </div>
   );
 };

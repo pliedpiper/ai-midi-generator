@@ -2,17 +2,19 @@
 
 import React from 'react';
 import { AttemptResult } from '../types';
-import { Play, Square, Download, AlertCircle, Check, Loader2 } from 'lucide-react';
+import { Play, Square, Download, AlertCircle, Check, Loader2, Expand } from 'lucide-react';
 
 interface Props {
   attempt: AttemptResult;
   isPlaying: boolean;
   onPlay: () => void;
   onStop: () => void;
+  onExpand: () => void;
 }
 
-const AttemptCard: React.FC<Props> = ({ attempt, isPlaying, onPlay, onStop }) => {
+const AttemptCard: React.FC<Props> = ({ attempt, isPlaying, onPlay, onStop, onExpand }) => {
   const [downloadUrl, setDownloadUrl] = React.useState<string | null>(null);
+  const canExpand = attempt.status === 'success' && Boolean(attempt.data);
 
   React.useEffect(() => {
     if (attempt.midiBlob) {
@@ -30,8 +32,29 @@ const AttemptCard: React.FC<Props> = ({ attempt, isPlaying, onPlay, onStop }) =>
     }
   };
 
+  const handleCardClick = () => {
+    if (canExpand) {
+      onExpand();
+    }
+  };
+
   return (
-    <div className="group flex flex-col w-44 bg-surface-800 rounded border border-surface-600 hover:border-surface-500 transition-colors">
+    <div
+      className={`group flex flex-col w-44 bg-surface-800 rounded border border-surface-600 transition-colors ${
+        canExpand ? 'cursor-pointer hover:border-surface-500' : ''
+      }`}
+      onClick={handleCardClick}
+      onKeyDown={(event) => {
+        if (!canExpand) return;
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onExpand();
+        }
+      }}
+      role={canExpand ? 'button' : undefined}
+      tabIndex={canExpand ? 0 : undefined}
+      aria-label={canExpand ? `Open expanded output ${attempt.id}` : undefined}
+    >
       {/* Header */}
       <div className="px-4 py-3 border-b border-surface-700 flex justify-between items-center">
         <span className="font-mono text-xs text-text-muted uppercase tracking-wider">
@@ -80,7 +103,10 @@ const AttemptCard: React.FC<Props> = ({ attempt, isPlaying, onPlay, onStop }) =>
             {/* Actions */}
             <div className="flex gap-2 mt-auto">
               <button
-                onClick={handlePlayToggle}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handlePlayToggle();
+                }}
                 className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded text-xs font-medium transition-colors ${
                   isPlaying
                     ? 'bg-accent/15 text-accent'
@@ -104,12 +130,25 @@ const AttemptCard: React.FC<Props> = ({ attempt, isPlaying, onPlay, onStop }) =>
                 <a
                   href={downloadUrl}
                   download={`midi_${attempt.id}.mid`}
+                  onClick={(event) => event.stopPropagation()}
                   className="flex items-center justify-center w-9 rounded bg-surface-700 text-text-secondary hover:text-text-primary hover:bg-surface-600 transition-colors"
                   title="Download"
                 >
                   <Download size={14} />
                 </a>
               )}
+
+              <button
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onExpand();
+                }}
+                className="flex items-center justify-center w-9 rounded bg-surface-700 text-text-secondary hover:text-text-primary hover:bg-surface-600 transition-colors"
+                title="Expand"
+                aria-label={`Expand output ${attempt.id}`}
+              >
+                <Expand size={14} />
+              </button>
             </div>
           </>
         ) : attempt.status === 'failed' ? (
