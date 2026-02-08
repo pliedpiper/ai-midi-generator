@@ -52,3 +52,13 @@ export interface SnapOptions {
   scaleRoot: number;
   scaleType: string;
 }
+
+export interface SavedGeneration {
+  id: string;
+  title: string;
+  model: string;
+  attempt_index: number;
+  prefs: UserPreferences;
+  composition: MidiComposition;
+  created_at: string;
+}

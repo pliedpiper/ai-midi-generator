@@ -1,8 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AVAILABLE_MODELS } from '../constants';
 
-const { createCompletionMock } = vi.hoisted(() => ({
+const {
+  createCompletionMock,
+  supabaseGetUserMock,
+  supabaseInsertMock,
+  getEncryptedOpenRouterKeyMock,
+  decryptSecretMock,
+  createSupabaseClientMock,
+  checkRateLimitMock,
+} = vi.hoisted(() => ({
   createCompletionMock: vi.fn(),
+  supabaseGetUserMock: vi.fn(),
+  supabaseInsertMock: vi.fn(),
+  getEncryptedOpenRouterKeyMock: vi.fn(),
+  decryptSecretMock: vi.fn(),
+  createSupabaseClientMock: vi.fn(),
+  checkRateLimitMock: vi.fn(),
 }));
 
 vi.mock('openai', () => {
@@ -55,6 +69,22 @@ vi.mock('openai', () => {
   };
 });
 
+vi.mock('@/lib/supabase/server', () => ({
+  createClient: createSupabaseClientMock,
+}));
+
+vi.mock('@/lib/userSettings', () => ({
+  getEncryptedOpenRouterKey: getEncryptedOpenRouterKeyMock,
+}));
+
+vi.mock('@/utils/encryption', () => ({
+  decryptSecret: decryptSecretMock,
+}));
+
+vi.mock('@/lib/rateLimit', () => ({
+  checkRateLimit: checkRateLimitMock,
+}));
+
 const validPrefs = {
   prompt: 'A short piano motif',
   model: AVAILABLE_MODELS[0].id,
@@ -100,25 +130,61 @@ const makeValidBody = () =>
 beforeEach(() => {
   vi.resetModules();
   createCompletionMock.mockReset();
-  process.env.OPENAI_API_KEY = 'test-key';
-  vi.spyOn(global, 'setInterval').mockImplementation(() => 0 as unknown as NodeJS.Timeout);
+  supabaseGetUserMock.mockReset();
+  supabaseInsertMock.mockReset();
+  getEncryptedOpenRouterKeyMock.mockReset();
+  decryptSecretMock.mockReset();
+  createSupabaseClientMock.mockReset();
+  checkRateLimitMock.mockReset();
+
+  const supabaseMock = {
+    auth: {
+      getUser: supabaseGetUserMock,
+    },
+    from: vi.fn(() => ({
+      insert: supabaseInsertMock,
+    })),
+  };
+
+  createSupabaseClientMock.mockResolvedValue(supabaseMock);
+  supabaseGetUserMock.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
+  getEncryptedOpenRouterKeyMock.mockResolvedValue('encrypted-key');
+  decryptSecretMock.mockReturnValue('sk-or-test');
+  supabaseInsertMock.mockResolvedValue({ error: null });
+  checkRateLimitMock.mockResolvedValue({
+    allowed: true,
+    remaining: 9,
+    resetIn: 60000
+  });
+
   vi.spyOn(console, 'error').mockImplementation(() => {});
   vi.spyOn(console, 'log').mockImplementation(() => {});
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
-  delete process.env.OPENAI_API_KEY;
 });
 
 describe('POST /api/generate', () => {
-  it('returns 500 when OPENAI_API_KEY is missing', async () => {
-    delete process.env.OPENAI_API_KEY;
+  it('returns 401 when user is not authenticated', async () => {
+    supabaseGetUserMock.mockResolvedValueOnce({ data: { user: null }, error: null });
     const { POST } = await import('../app/api/generate/route');
 
     const res = await POST(makeRequest(makeValidBody()));
-    expect(res.status).toBe(500);
-    expect(await res.json()).toEqual({ error: 'Server configuration error.' });
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: 'You must be logged in to generate MIDI.' });
+    expect(createCompletionMock).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when user has not configured OpenRouter key', async () => {
+    getEncryptedOpenRouterKeyMock.mockResolvedValueOnce(null);
+    const { POST } = await import('../app/api/generate/route');
+
+    const res = await POST(makeRequest(makeValidBody()));
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({
+      error: 'OpenRouter API key not configured. Add your key in the app settings.'
+    });
     expect(createCompletionMock).not.toHaveBeenCalled();
   });
 
@@ -163,27 +229,53 @@ describe('POST /api/generate', () => {
     expect(await oversizedTextRes.json()).toEqual({ error: 'Request body too large.' });
   });
 
-  it('enforces per-IP rate limit and sets Retry-After/X-RateLimit-Remaining', async () => {
+  it('enforces per-user rate limit and sets Retry-After/X-RateLimit-Remaining', async () => {
     const { POST } = await import('../app/api/generate/route');
     createCompletionMock.mockResolvedValue({
       choices: [{ message: { content: validModelJson } }],
     });
 
-    const ip = '198.51.100.10';
+    let callCount = 0;
+    checkRateLimitMock.mockImplementation(async () => {
+      callCount += 1;
+      if (callCount <= 10) {
+        return {
+          allowed: true,
+          remaining: 10 - callCount,
+          resetIn: 60_000
+        };
+      }
+      return {
+        allowed: false,
+        remaining: 0,
+        resetIn: 30_000
+      };
+    });
+
     let tenthResponse: Response | undefined;
 
     for (let i = 0; i < 10; i++) {
-      const res = await POST(makeRequest(makeValidBody(), { 'x-forwarded-for': ip }));
+      const res = await POST(makeRequest(makeValidBody(), { 'x-forwarded-for': '198.51.100.10' }));
       expect(res.status).toBe(200);
       tenthResponse = res;
     }
 
     expect(tenthResponse?.headers.get('X-RateLimit-Remaining')).toBe('0');
 
-    const blocked = await POST(makeRequest(makeValidBody(), { 'x-forwarded-for': ip }));
+    const blocked = await POST(makeRequest(makeValidBody(), { 'x-forwarded-for': '198.51.100.10' }));
     expect(blocked.status).toBe(429);
     expect(blocked.headers.get('X-RateLimit-Remaining')).toBe('0');
     expect(Number.parseInt(blocked.headers.get('Retry-After') ?? '0', 10)).toBeGreaterThan(0);
+  });
+
+  it('returns 503 when Redis rate limiter fails', async () => {
+    checkRateLimitMock.mockRejectedValueOnce(new Error('redis unavailable'));
+    const { POST } = await import('../app/api/generate/route');
+
+    const res = await POST(makeRequest(makeValidBody()));
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual({ error: 'Rate limiter unavailable. Please try again shortly.' });
+    expect(createCompletionMock).not.toHaveBeenCalled();
   });
 
   it('maps OpenAI timeout/connection/API status failures', async () => {
