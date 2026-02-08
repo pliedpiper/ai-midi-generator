@@ -65,6 +65,7 @@ const GenerationsPage: React.FC<GenerationsPageProps> = ({ userEmail }) => {
   const [currentBeat, setCurrentBeat] = React.useState(0);
   const [promptQuery, setPromptQuery] = React.useState('');
   const [sortOption, setSortOption] = React.useState<GenerationSortOption>('newest');
+  const [expandedPromptIds, setExpandedPromptIds] = React.useState<Set<string>>(() => new Set());
 
   const visibleGenerations = React.useMemo(() => {
     if (promptQuery.trim().length > 0) {
@@ -221,6 +222,18 @@ const GenerationsPage: React.FC<GenerationsPageProps> = ({ userEmail }) => {
     URL.revokeObjectURL(url);
   };
 
+  const togglePromptExpansion = React.useCallback((generationId: string) => {
+    setExpandedPromptIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(generationId)) {
+        next.delete(generationId);
+      } else {
+        next.add(generationId);
+      }
+      return next;
+    });
+  }, []);
+
   const expandedGeneration = generations.find(item => item.id === expandedGenerationId) ?? null;
 
   return (
@@ -308,6 +321,8 @@ const GenerationsPage: React.FC<GenerationsPageProps> = ({ userEmail }) => {
               const key = getCompositionKey(generation);
               const promptText = getPromptText(generation) || 'No prompt saved.';
               const createdAtText = new Date(generation.created_at).toLocaleString();
+              const isPromptExpanded = expandedPromptIds.has(generation.id);
+              const canExpandPrompt = promptText.length > 120;
 
               return (
                 <article
@@ -318,9 +333,26 @@ const GenerationsPage: React.FC<GenerationsPageProps> = ({ userEmail }) => {
                     {renderHighlightedText(title, promptQuery)}
                   </h2>
 
-                  <p className="mt-2 text-xs text-text-secondary line-clamp-2">
-                    Prompt: {renderHighlightedText(promptText, promptQuery)}
-                  </p>
+                  <div className="mt-2">
+                    <p
+                      className={`text-xs text-text-secondary break-words ${
+                        isPromptExpanded ? '' : 'line-clamp-2'
+                      }`}
+                      title={promptText}
+                    >
+                      Prompt: {renderHighlightedText(promptText, promptQuery)}
+                    </p>
+                    {canExpandPrompt && (
+                      <button
+                        type="button"
+                        onClick={() => togglePromptExpansion(generation.id)}
+                        aria-expanded={isPromptExpanded}
+                        className="mt-1 text-[11px] text-text-muted hover:text-text-primary transition-colors"
+                      >
+                        {isPromptExpanded ? 'Show less' : 'Show full prompt'}
+                      </button>
+                    )}
+                  </div>
 
                   <div className="mt-3 space-y-1 text-[11px] font-mono text-text-muted">
                     <p>Model: {renderHighlightedText(generation.model, promptQuery)}</p>
