@@ -39,7 +39,7 @@ export type ScaleTypeKey = keyof typeof SCALE_TYPES;
 
 export const DEFAULT_PREFERENCES = {
   prompt: "A funky synthwave bassline with light arpeggios",
-  model: "google/gemini-3-flash-preview",
+  model: "moonshotai/kimi-k2.5",
   tempo: 120,
   key: "C Major",
   timeSignature: "4/4",
