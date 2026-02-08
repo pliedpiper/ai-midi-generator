@@ -95,10 +95,12 @@ This project uses Vitest for fast unit/integration-style testing of the API rout
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anon key |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Yes | Supabase publishable key (recommended) |
 | `OPENROUTER_KEY_ENCRYPTION_SECRET` | Yes | Server-side secret used to encrypt user OpenRouter keys |
 | `UPSTASH_REDIS_REST_URL` | Yes | Upstash Redis REST URL for distributed rate limiting |
 | `UPSTASH_REDIS_REST_TOKEN` | Yes | Upstash Redis REST token for distributed rate limiting |
+
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` is also supported as a legacy fallback, but publishable key is preferred.
 
 User OpenRouter keys are entered in the app after login and stored encrypted in `user_settings`.
 
