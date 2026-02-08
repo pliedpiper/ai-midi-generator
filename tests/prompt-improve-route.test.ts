@@ -206,6 +206,41 @@ describe('POST /api/prompt/improve', () => {
     );
   });
 
+  it('strips key and BPM info from improved prompt output', async () => {
+    const { POST } = await import('../app/api/prompt/improve/route');
+    createCompletionMock.mockResolvedValueOnce({
+      choices: [{ message: { content: 'Warm lo-fi piano loop in A minor at 82 BPM with sparse chords and a singable top-line motif.' } }],
+    });
+
+    const res = await POST(makeRequest(makeValidBody()));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      prompt: 'Warm lo-fi piano loop with sparse chords and a singable top-line motif'
+    });
+  });
+
+  it('falls back to sanitized original prompt when model output is only key/BPM info', async () => {
+    const { POST } = await import('../app/api/prompt/improve/route');
+    createCompletionMock.mockResolvedValueOnce({
+      choices: [{ message: { content: 'A minor at 82 BPM' } }],
+    });
+
+    const requestBody = JSON.stringify({
+      prompt: 'Lo-fi piano groove in C minor at 90 BPM with vinyl texture',
+      tempo: 90,
+      key: 'C Minor',
+      timeSignature: '4/4',
+      durationBars: 8,
+      constraints: ''
+    });
+    const res = await POST(makeRequest(requestBody));
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      prompt: 'Lo-fi piano groove with vinyl texture'
+    });
+  });
+
   it('maps OpenRouter auth failures to 401', async () => {
     const { POST } = await import('../app/api/prompt/improve/route');
     const openai = await import('openai');
@@ -218,14 +253,14 @@ describe('POST /api/prompt/improve', () => {
     expect(await res.json()).toEqual({ error: 'Your OpenRouter API key is invalid or expired.' });
   });
 
-  it('returns 502 when provider returns empty output', async () => {
+  it('falls back to original prompt when provider returns empty output', async () => {
     const { POST } = await import('../app/api/prompt/improve/route');
     createCompletionMock.mockResolvedValueOnce({
       choices: [{ message: { content: '' } }],
     });
 
     const res = await POST(makeRequest(makeValidBody()));
-    expect(res.status).toBe(502);
-    expect(await res.json()).toEqual({ error: 'Prompt improver returned an empty response.' });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ prompt: 'lofi piano loop' });
   });
 });

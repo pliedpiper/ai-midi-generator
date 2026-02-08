@@ -16,6 +16,19 @@ const RATE_LIMIT_MAX_REQUESTS = 10;
 const MAX_BODY_SIZE = 8_000;
 const MAX_PROMPT_LENGTH = 2_000;
 const MAX_CONSTRAINTS_LENGTH = 500;
+const KEY_MODE_PATTERN = '(?:major|minor|maj|min|natural minor|harmonic minor|melodic minor|dorian|phrygian|lydian|mixolydian|locrian|ionian|aeolian|pentatonic(?:\\s+(?:major|minor))?|blues|chromatic)';
+const BPM_PATTERN = new RegExp(
+  '\\b(?:at\\s+|around\\s+|about\\s+)?\\d{2,3}(?:\\.\\d+)?\\s*(?:bpm|beats\\s+per\\s+minute)\\b',
+  'gi'
+);
+const KEY_PHRASE_PATTERN = new RegExp(
+  `\\b(?:in\\s+the\\s+key\\s+of|key\\s+of|in)\\s+[A-G](?:#|b)?\\s*${KEY_MODE_PATTERN}\\b`,
+  'gi'
+);
+const STANDALONE_KEY_PATTERN = new RegExp(
+  `\\b[A-G](?:#|b)?\\s*${KEY_MODE_PATTERN}\\b`,
+  'gi'
+);
 
 const FALLBACK_PROMPT_TIPS = `
 - Describe the mood, genre, and role (loop, intro, ambient bed, driving groove).
@@ -143,7 +156,8 @@ Rewrite the prompt to be more specific and useful for MIDI generation while pres
 Rules:
 - Return one improved prompt only, plain text, no markdown.
 - Keep it concise and actionable.
-- Do not restate tempo/key/time signature/bar count unless musically essential.
+- Never include explicit key names/scales (for example: "C Major", "A minor").
+- Never include BPM numbers or tempo values (for example: "120 BPM").
 - Keep under ${MAX_PROMPT_LENGTH} characters.
 `.trim();
 }
@@ -177,6 +191,22 @@ function normalizeModelOutput(content: unknown): string {
   if (!stripped) return '';
   if (stripped.length <= MAX_PROMPT_LENGTH) return stripped;
   return stripped.slice(0, MAX_PROMPT_LENGTH).trim();
+}
+
+function stripKeyAndBpmDetails(text: string): string {
+  const withoutExcludedDetails = text
+    .replace(BPM_PATTERN, '')
+    .replace(KEY_PHRASE_PATTERN, '')
+    .replace(STANDALONE_KEY_PATTERN, '');
+
+  return withoutExcludedDetails
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s+([,.;:!?])/g, '$1')
+    .replace(/([(\[])\s+/g, '$1')
+    .replace(/\s+([)\]])/g, '$1')
+    .replace(/^[,\-:;./\s]+/, '')
+    .replace(/[,\-:;./\s]+$/, '')
+    .trim();
 }
 
 export async function POST(req: Request) {
@@ -279,7 +309,7 @@ export async function POST(req: Request) {
       messages: [
         {
           role: 'system',
-          content: 'You improve prompts for an AI MIDI generator. Output one plain-text improved prompt only.'
+          content: 'You improve prompts for an AI MIDI generator. Output one plain-text improved prompt only. Never include key names/scales or BPM/tempo values.'
         },
         {
           role: 'user',
@@ -291,11 +321,23 @@ export async function POST(req: Request) {
     });
 
     const rawContent = response.choices?.[0]?.message?.content ?? '';
-    const improvedPrompt = normalizeModelOutput(rawContent);
+    const improvedPrompt = stripKeyAndBpmDetails(normalizeModelOutput(rawContent));
     if (!improvedPrompt) {
+      const fallbackPrompt = stripKeyAndBpmDetails(normalizedResult.normalized.prompt);
+      if (!fallbackPrompt) {
+        return NextResponse.json(
+          { error: 'Prompt improver returned an empty response.' },
+          { status: 502 }
+        );
+      }
+
       return NextResponse.json(
-        { error: 'Prompt improver returned an empty response.' },
-        { status: 502 }
+        { prompt: fallbackPrompt },
+        {
+          headers: {
+            'X-RateLimit-Remaining': String(rateLimit.remaining)
+          }
+        }
       );
     }
 
