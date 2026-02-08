@@ -13,6 +13,7 @@ Generate MIDI compositions from text prompts using LLMs. Users authenticate with
 - **Supabase login**: Email/password auth + route protection
 - **Account settings**: Change email/password, manage OpenRouter key, export data, and delete account
 - **Saved history**: Replay/download/delete generations from **My Generations**
+- **History discovery tools**: Search across prompt/title/model/key/date with multi-word matching, relevance ranking + match highlights, and sorting by newest/oldest, length, track count, or key
 - **Expanded visualizer**: Open any saved generation in a detailed modal with piano-roll visualization
 
 ## Tech Stack
