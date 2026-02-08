@@ -31,7 +31,7 @@ npm install
 
 # Create environment file
 cp .env.example .env.local
-# then fill in Supabase values + OPENROUTER_KEY_ENCRYPTION_SECRET
+# then fill in Supabase values + OPENROUTER_KEY_ENCRYPTION_SECRET + Redis vars (KV_* preferred)
 
 # Start development server
 npm run dev
@@ -97,10 +97,13 @@ This project uses Vitest for fast unit/integration-style testing of the API rout
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Yes | Supabase publishable key (recommended) |
 | `OPENROUTER_KEY_ENCRYPTION_SECRET` | Yes | Server-side secret used to encrypt user OpenRouter keys |
-| `UPSTASH_REDIS_REST_URL` | Yes | Upstash Redis REST URL for distributed rate limiting |
-| `UPSTASH_REDIS_REST_TOKEN` | Yes | Upstash Redis REST token for distributed rate limiting |
+| `KV_REST_API_URL` | Yes* | Vercel KV REST URL (preferred for distributed rate limiting) |
+| `KV_REST_API_TOKEN` | Yes* | Vercel KV REST token (preferred for distributed rate limiting) |
+| `UPSTASH_REDIS_REST_URL` | Yes* | Upstash Redis REST URL (fallback if not using `KV_*`) |
+| `UPSTASH_REDIS_REST_TOKEN` | Yes* | Upstash Redis REST token (fallback if not using `KV_*`) |
 
 `NEXT_PUBLIC_SUPABASE_ANON_KEY` is also supported as a legacy fallback, but publishable key is preferred.
+`*` For Redis, provide either the `KV_*` pair or the `UPSTASH_*` pair.
 
 User OpenRouter keys are entered in the app after login and stored encrypted in `user_settings`.
 
