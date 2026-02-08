@@ -19,6 +19,10 @@ const InputForm: React.FC<Props> = ({ onSubmit, isGenerating }) => {
   const [improvePromptError, setImprovePromptError] = React.useState<string | null>(null);
 
   const isPromptEmpty = !prefs.prompt.trim();
+  const sortedAvailableModels = React.useMemo(
+    () => [...AVAILABLE_MODELS].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })),
+    []
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,7 +125,7 @@ const InputForm: React.FC<Props> = ({ onSubmit, isGenerating }) => {
             onChange={e => setPrefs({ ...prefs, model: e.target.value })}
             disabled={isGenerating}
           >
-            {AVAILABLE_MODELS.map(model => (
+            {sortedAvailableModels.map(model => (
               <option key={model.id} value={model.id}>
                 {model.name}
               </option>
