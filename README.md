@@ -12,6 +12,7 @@ Generate MIDI compositions from text prompts using LLMs. Users authenticate with
 - **MIDI export**: Download generated compositions as .mid files
 - **Supabase login**: Email/password auth + route protection
 - **Saved history**: Replay/download/delete generations from **My Generations**
+- **Expanded visualizer**: Open any saved generation in a detailed modal with piano-roll visualization
 
 ## Tech Stack
 
@@ -71,7 +72,8 @@ This project uses Vitest for fast unit/integration-style testing of the API rout
 │   └── layout.tsx       # App layout
 ├── components/
 │   ├── InputForm.tsx    # User input form
-│   └── AttemptCard.tsx  # Playback/download UI
+│   ├── AttemptCard.tsx  # Playback/download UI
+│   └── ExpandedGenerationModal.tsx # Saved generation expanded visual view
 ├── lib/
 │   ├── supabase/        # Supabase client/server/middleware helpers
 │   └── userSettings.ts  # OpenRouter key validation/storage helpers

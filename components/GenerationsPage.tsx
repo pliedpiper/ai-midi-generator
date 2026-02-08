@@ -1,10 +1,11 @@
 "use client";
 
 import React from 'react';
-import { Download, Loader2, Play, Square, Trash2 } from 'lucide-react';
+import { Download, Expand, Loader2, Play, Square, Trash2 } from 'lucide-react';
 import type { SavedGeneration, SnapOptions } from '@/types';
-import { generateMidiBlob, playComposition, stopPlayback } from '@/utils/midiUtils';
+import { generateMidiBlob, getTransportBeatPosition, playComposition, stopPlayback } from '@/utils/midiUtils';
 import AppHeader from './AppHeader';
+import ExpandedGenerationModal from './ExpandedGenerationModal';
 
 interface GenerationsPageProps {
   userEmail: string;
@@ -29,6 +30,8 @@ const GenerationsPage: React.FC<GenerationsPageProps> = ({ userEmail }) => {
   const [error, setError] = React.useState<string | null>(null);
   const [playingId, setPlayingId] = React.useState<string | null>(null);
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
+  const [expandedGenerationId, setExpandedGenerationId] = React.useState<string | null>(null);
+  const [currentBeat, setCurrentBeat] = React.useState(0);
 
   const loadGenerations = React.useCallback(async () => {
     setLoading(true);
@@ -61,19 +64,63 @@ const GenerationsPage: React.FC<GenerationsPageProps> = ({ userEmail }) => {
     };
   }, []);
 
+  React.useEffect(() => {
+    if (playingId === null) return;
+    const activeGeneration = generations.find(item => item.id === playingId);
+    if (!activeGeneration) return;
+
+    let animationFrame: number;
+    const tempo = activeGeneration.composition.tempo;
+    const maxBeat = activeGeneration.composition.tracks.reduce((trackMax, track) => {
+      const noteMax = track.notes.reduce(
+        (noteEndMax, note) => Math.max(noteEndMax, note.time + Math.max(note.duration, 0.001)),
+        0
+      );
+      return Math.max(trackMax, noteMax);
+    }, 0);
+
+    const updateBeat = () => {
+      const beat = getTransportBeatPosition(tempo);
+      setCurrentBeat(beat);
+
+      if (beat >= maxBeat + 0.05) {
+        stopPlayback();
+        setPlayingId(null);
+        setCurrentBeat(0);
+        return;
+      }
+
+      animationFrame = requestAnimationFrame(updateBeat);
+    };
+
+    animationFrame = requestAnimationFrame(updateBeat);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [playingId, generations]);
+
+  React.useEffect(() => {
+    if (expandedGenerationId === null) return;
+    const hasExpandedGeneration = generations.some(item => item.id === expandedGenerationId);
+    if (!hasExpandedGeneration) {
+      setExpandedGenerationId(null);
+    }
+  }, [generations, expandedGenerationId]);
+
   const handlePlayToggle = async (generation: SavedGeneration) => {
     if (playingId === generation.id) {
       stopPlayback();
       setPlayingId(null);
+      setCurrentBeat(0);
       return;
     }
 
     try {
       await playComposition(generation.composition, getSnapOptions(generation));
       setPlayingId(generation.id);
+      setCurrentBeat(0);
     } catch (playError) {
       setError(playError instanceof Error ? playError.message : 'Playback failed.');
       setPlayingId(null);
+      setCurrentBeat(0);
     }
   };
 
@@ -94,6 +141,7 @@ const GenerationsPage: React.FC<GenerationsPageProps> = ({ userEmail }) => {
       if (playingId === generationId) {
         stopPlayback();
         setPlayingId(null);
+        setCurrentBeat(0);
       }
 
       setGenerations(prev => prev.filter(item => item.id !== generationId));
@@ -115,6 +163,8 @@ const GenerationsPage: React.FC<GenerationsPageProps> = ({ userEmail }) => {
     link.remove();
     URL.revokeObjectURL(url);
   };
+
+  const expandedGeneration = generations.find(item => item.id === expandedGenerationId) ?? null;
 
   return (
     <div className="min-h-screen bg-surface-900 text-text-primary">
@@ -180,6 +230,15 @@ const GenerationsPage: React.FC<GenerationsPageProps> = ({ userEmail }) => {
 
                   <button
                     type="button"
+                    onClick={() => setExpandedGenerationId(generation.id)}
+                    className="w-9 flex items-center justify-center rounded bg-surface-700 text-text-secondary hover:bg-surface-600 hover:text-text-primary transition-colors"
+                    aria-label={`Expand ${generation.title || 'generation'}`}
+                  >
+                    <Expand size={14} />
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={() => handleDelete(generation.id)}
                     disabled={deletingId === generation.id}
                     className={`w-9 flex items-center justify-center rounded transition-colors ${
@@ -201,6 +260,29 @@ const GenerationsPage: React.FC<GenerationsPageProps> = ({ userEmail }) => {
           </div>
         )}
       </main>
+
+      <ExpandedGenerationModal
+        generation={expandedGeneration}
+        isOpen={expandedGeneration !== null}
+        isPlaying={expandedGeneration?.id === playingId}
+        currentBeat={expandedGeneration?.id === playingId ? currentBeat : 0}
+        onClose={() => setExpandedGenerationId(null)}
+        onPlay={() => {
+          if (expandedGeneration) {
+            void handlePlayToggle(expandedGeneration);
+          }
+        }}
+        onStop={() => {
+          stopPlayback();
+          setPlayingId(null);
+          setCurrentBeat(0);
+        }}
+        onDownload={() => {
+          if (expandedGeneration) {
+            handleDownload(expandedGeneration);
+          }
+        }}
+      />
     </div>
   );
 };
