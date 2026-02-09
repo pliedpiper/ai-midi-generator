@@ -15,6 +15,7 @@ import {
   PlaybackError,
   getTransportBeatPosition,
 } from "../utils/midiUtils";
+import { parseKeyString } from "../utils/scaleUtils";
 import InputForm from "./InputForm";
 import AttemptCard from "./AttemptCard";
 import ExpandedAttemptModal from "./ExpandedAttemptModal";
@@ -28,8 +29,20 @@ interface GeneratorAppProps {
 // Helper to extract snap options from preferences
 const getSnapOptions = (
   prefs: UserPreferences | null,
+  compositionKey?: string | null,
 ): SnapOptions | undefined => {
   if (!prefs) return undefined;
+
+  if (prefs.key === null && typeof compositionKey === "string") {
+    const parsed = parseKeyString(compositionKey);
+    if (parsed) {
+      return {
+        scaleRoot: parsed.scaleRoot,
+        scaleType: parsed.scaleType,
+      };
+    }
+  }
+
   return { scaleRoot: prefs.scaleRoot, scaleType: prefs.scaleType };
 };
 
@@ -120,8 +133,6 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
     setLastPrefs(prefs);
     resetAttempts(prefs.attemptCount);
 
-    const snapOptions = getSnapOptions(prefs);
-
     // Launch parallel attempts based on attemptCount
     const attemptPromises = Array.from(
       { length: prefs.attemptCount },
@@ -132,6 +143,7 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
         await new Promise((r) => setTimeout(r, id * 100));
 
         const composition = await generateAttempt(id, prefs);
+        const snapOptions = getSnapOptions(prefs, composition.key);
         const blob = generateMidiBlob(composition, snapOptions);
 
         setAttempts((prev) =>
@@ -175,7 +187,7 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
       // Clear any previous playback error
       setPlaybackError(null);
 
-      const snapOptions = getSnapOptions(lastPrefs);
+      const snapOptions = getSnapOptions(lastPrefs, attempt.data.key);
 
       try {
         await playComposition(attempt.data, snapOptions);

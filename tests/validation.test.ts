@@ -73,13 +73,33 @@ describe('validatePrefs', () => {
       expect(result.normalized).toMatchObject({
         prompt: 'syncopated groove',
         tempo: 300,
-        key: 'C Major',
-        timeSignature: '4/4',
+        key: null,
+        timeSignature: null,
         durationBars: 1,
         constraints: '',
         attemptCount: 5,
         scaleRoot: 11,
         scaleType: 'major',
+      });
+    }
+  });
+
+  it('preserves null advanced settings for model-decided fields', () => {
+    const result = validatePrefs({
+      ...validPrefs,
+      tempo: null,
+      key: null,
+      timeSignature: null,
+      durationBars: null
+    });
+
+    expect(result.valid).toBe(true);
+    if (result.valid) {
+      expect(result.normalized).toMatchObject({
+        tempo: null,
+        key: null,
+        timeSignature: null,
+        durationBars: null
       });
     }
   });

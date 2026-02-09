@@ -323,6 +323,41 @@ describe('POST /api/generate', () => {
     expect(await res.json()).toEqual({ error: 'Model returned invalid JSON.' });
   });
 
+  it('omits model-decided advanced settings from the user prompt', async () => {
+    const { POST } = await import('../app/api/generate/route');
+    createCompletionMock.mockResolvedValue({
+      choices: [{ message: { content: validModelJson } }],
+    });
+
+    const requestBody = JSON.stringify({
+      id: 1,
+      prefs: {
+        ...validPrefs,
+        tempo: null,
+        key: null,
+        timeSignature: null,
+        durationBars: null,
+        constraints: '',
+      },
+    });
+
+    const res = await POST(makeRequest(requestBody, { 'x-forwarded-for': '198.51.100.33' }));
+    expect(res.status).toBe(200);
+    expect(createCompletionMock).toHaveBeenCalledTimes(1);
+
+    const call = createCompletionMock.mock.calls[0][0];
+    const userPrompt = (call.messages as Array<{ role: string; content: string }>)
+      .find(message => message.role === 'user')?.content ?? '';
+
+    expect(userPrompt).toContain('Advanced settings: (none provided)');
+    expect(userPrompt).toContain('If an advanced setting is omitted');
+    expect(userPrompt).not.toContain('Tempo:');
+    expect(userPrompt).not.toContain('Key:');
+    expect(userPrompt).not.toContain('Time Signature:');
+    expect(userPrompt).not.toContain('Length:');
+    expect(userPrompt).not.toContain('Constraints:');
+  });
+
   it('sanitizes noisy model titles before saving and returning composition', async () => {
     const { POST } = await import('../app/api/generate/route');
     createCompletionMock.mockResolvedValue({

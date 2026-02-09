@@ -14,6 +14,12 @@ interface Props {
 
 const InputForm: React.FC<Props> = ({ onSubmit, isGenerating }) => {
   const [prefs, setPrefs] = React.useState<UserPreferences>(DEFAULT_PREFERENCES);
+  const [autoSettings, setAutoSettings] = React.useState({
+    tempo: true,
+    key: true,
+    timeSignature: true,
+    durationBars: true
+  });
   const [showAdvanced, setShowAdvanced] = React.useState(false);
   const [isImprovingPrompt, setIsImprovingPrompt] = React.useState(false);
   const [improvePromptError, setImprovePromptError] = React.useState<string | null>(null);
@@ -24,15 +30,32 @@ const InputForm: React.FC<Props> = ({ onSubmit, isGenerating }) => {
     []
   );
 
+  const buildSubmissionPrefs = React.useCallback((): UserPreferences => ({
+    ...prefs,
+    tempo: autoSettings.tempo
+      ? null
+      : typeof prefs.tempo === 'number' && Number.isFinite(prefs.tempo)
+        ? prefs.tempo
+        : DEFAULT_PREFERENCES.tempo,
+    key: autoSettings.key
+      ? null
+      : typeof prefs.key === 'string' && prefs.key.trim() ? prefs.key.trim() : DEFAULT_PREFERENCES.key,
+    timeSignature: autoSettings.timeSignature
+      ? null
+      : typeof prefs.timeSignature === 'string' && prefs.timeSignature.trim()
+        ? prefs.timeSignature.trim()
+        : DEFAULT_PREFERENCES.timeSignature,
+    durationBars: autoSettings.durationBars
+      ? null
+      : typeof prefs.durationBars === 'number' && Number.isFinite(prefs.durationBars)
+        ? prefs.durationBars
+        : DEFAULT_PREFERENCES.durationBars
+  }), [autoSettings, prefs]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isPromptEmpty) return;
-    const normalizedPrefs: UserPreferences = {
-      ...prefs,
-      tempo: Number.isFinite(prefs.tempo) ? prefs.tempo : DEFAULT_PREFERENCES.tempo,
-      durationBars: Number.isFinite(prefs.durationBars) ? prefs.durationBars : DEFAULT_PREFERENCES.durationBars
-    };
-    onSubmit(normalizedPrefs);
+    onSubmit(buildSubmissionPrefs());
   };
 
   const handleImprovePrompt = async () => {
@@ -42,13 +65,14 @@ const InputForm: React.FC<Props> = ({ onSubmit, isGenerating }) => {
     setIsImprovingPrompt(true);
 
     try {
+      const normalizedPrefs = buildSubmissionPrefs();
       const improved = await improvePrompt({
-        prompt: prefs.prompt.trim(),
-        tempo: prefs.tempo,
-        key: prefs.key,
-        timeSignature: prefs.timeSignature,
-        durationBars: prefs.durationBars,
-        constraints: prefs.constraints
+        prompt: normalizedPrefs.prompt.trim(),
+        tempo: normalizedPrefs.tempo,
+        key: normalizedPrefs.key,
+        timeSignature: normalizedPrefs.timeSignature,
+        durationBars: normalizedPrefs.durationBars,
+        constraints: normalizedPrefs.constraints
       });
       setPrefs(prev => ({ ...prev, prompt: improved }));
     } catch (error) {
@@ -58,6 +82,13 @@ const InputForm: React.FC<Props> = ({ onSubmit, isGenerating }) => {
     } finally {
       setIsImprovingPrompt(false);
     }
+  };
+
+  const handleAutoToggle = (
+    field: keyof typeof autoSettings,
+    checked: boolean
+  ) => {
+    setAutoSettings(prev => ({ ...prev, [field]: checked }));
   };
 
   return (
@@ -154,34 +185,58 @@ const InputForm: React.FC<Props> = ({ onSubmit, isGenerating }) => {
       {showAdvanced && (
         <div id="advanced-controls" className="grid grid-cols-2 gap-4 pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
           <div>
-            <label className="block font-mono text-[10px] text-text-muted uppercase tracking-wider mb-2">
-              Tempo
-            </label>
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <label className="block font-mono text-[10px] text-text-muted uppercase tracking-wider">
+                Tempo
+              </label>
+              <label className="inline-flex items-center gap-1.5 text-[10px] text-text-muted font-mono uppercase tracking-wider">
+                <input
+                  type="checkbox"
+                  checked={autoSettings.tempo}
+                  onChange={e => handleAutoToggle('tempo', e.target.checked)}
+                  disabled={isGenerating}
+                  className="h-3.5 w-3.5 rounded border-surface-500 bg-surface-800 text-accent focus:ring-0"
+                />
+                Let model decide
+              </label>
+            </div>
             <input
               type="number"
               step="1"
               min="20"
               max="300"
               className="w-full bg-surface-800 border border-surface-600 rounded px-3 py-2 text-sm text-text-primary focus:border-accent outline-none transition-colors font-light"
-              value={Number.isFinite(prefs.tempo) ? prefs.tempo : ''}
+              value={typeof prefs.tempo === 'number' && Number.isFinite(prefs.tempo) ? prefs.tempo : ''}
               onChange={e => {
                 const value = e.target.value;
                 setPrefs({
                   ...prefs,
-                  tempo: value === '' ? NaN : parseInt(value, 10)
+                  tempo: value === '' ? null : parseInt(value, 10)
                 });
               }}
-              disabled={isGenerating}
+              disabled={isGenerating || autoSettings.tempo}
             />
           </div>
           <div>
-            <label className="block font-mono text-[10px] text-text-muted uppercase tracking-wider mb-2">
-              Key
-            </label>
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <label className="block font-mono text-[10px] text-text-muted uppercase tracking-wider">
+                Key
+              </label>
+              <label className="inline-flex items-center gap-1.5 text-[10px] text-text-muted font-mono uppercase tracking-wider">
+                <input
+                  type="checkbox"
+                  checked={autoSettings.key}
+                  onChange={e => handleAutoToggle('key', e.target.checked)}
+                  disabled={isGenerating}
+                  className="h-3.5 w-3.5 rounded border-surface-500 bg-surface-800 text-accent focus:ring-0"
+                />
+                Let model decide
+              </label>
+            </div>
             <input
               type="text"
               className="w-full bg-surface-800 border border-surface-600 rounded px-3 py-2 text-sm text-text-primary focus:border-accent outline-none transition-colors font-light"
-              value={prefs.key}
+              value={prefs.key ?? ''}
               onChange={e => {
                 const newKey = e.target.value;
                 const parsed = parseKeyString(newKey);
@@ -191,40 +246,64 @@ const InputForm: React.FC<Props> = ({ onSubmit, isGenerating }) => {
                   setPrefs({ ...prefs, key: newKey });
                 }
               }}
-              disabled={isGenerating}
+              disabled={isGenerating || autoSettings.key}
             />
           </div>
           <div>
-            <label className="block font-mono text-[10px] text-text-muted uppercase tracking-wider mb-2">
-              Time Sig
-            </label>
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <label className="block font-mono text-[10px] text-text-muted uppercase tracking-wider">
+                Time Sig
+              </label>
+              <label className="inline-flex items-center gap-1.5 text-[10px] text-text-muted font-mono uppercase tracking-wider">
+                <input
+                  type="checkbox"
+                  checked={autoSettings.timeSignature}
+                  onChange={e => handleAutoToggle('timeSignature', e.target.checked)}
+                  disabled={isGenerating}
+                  className="h-3.5 w-3.5 rounded border-surface-500 bg-surface-800 text-accent focus:ring-0"
+                />
+                Let model decide
+              </label>
+            </div>
             <input
               type="text"
               className="w-full bg-surface-800 border border-surface-600 rounded px-3 py-2 text-sm text-text-primary focus:border-accent outline-none transition-colors font-light"
-              value={prefs.timeSignature}
+              value={prefs.timeSignature ?? ''}
               onChange={e => setPrefs({ ...prefs, timeSignature: e.target.value })}
-              disabled={isGenerating}
+              disabled={isGenerating || autoSettings.timeSignature}
             />
           </div>
           <div>
-            <label className="block font-mono text-[10px] text-text-muted uppercase tracking-wider mb-2">
-              Bars
-            </label>
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <label className="block font-mono text-[10px] text-text-muted uppercase tracking-wider">
+                Bars
+              </label>
+              <label className="inline-flex items-center gap-1.5 text-[10px] text-text-muted font-mono uppercase tracking-wider">
+                <input
+                  type="checkbox"
+                  checked={autoSettings.durationBars}
+                  onChange={e => handleAutoToggle('durationBars', e.target.checked)}
+                  disabled={isGenerating}
+                  className="h-3.5 w-3.5 rounded border-surface-500 bg-surface-800 text-accent focus:ring-0"
+                />
+                Let model decide
+              </label>
+            </div>
             <input
               type="number"
               step="1"
               min="1"
               max="64"
               className="w-full bg-surface-800 border border-surface-600 rounded px-3 py-2 text-sm text-text-primary focus:border-accent outline-none transition-colors font-light"
-              value={Number.isFinite(prefs.durationBars) ? prefs.durationBars : ''}
+              value={typeof prefs.durationBars === 'number' && Number.isFinite(prefs.durationBars) ? prefs.durationBars : ''}
               onChange={e => {
                 const value = e.target.value;
                 setPrefs({
                   ...prefs,
-                  durationBars: value === '' ? NaN : parseInt(value, 10)
+                  durationBars: value === '' ? null : parseInt(value, 10)
                 });
               }}
-              disabled={isGenerating}
+              disabled={isGenerating || autoSettings.durationBars}
             />
           </div>
           <div className="col-span-2">

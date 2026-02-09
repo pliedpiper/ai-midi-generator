@@ -26,6 +26,7 @@ import {
   sortGenerations,
   type GenerationSortOption,
 } from "@/utils/generationListUtils";
+import { parseKeyString } from "@/utils/scaleUtils";
 import AppHeader from "./AppHeader";
 import ExpandedGenerationModal from "./ExpandedGenerationModal";
 
@@ -38,6 +39,16 @@ const getSnapOptions = (
 ): SnapOptions | undefined => {
   const prefs = generation.prefs;
   if (!prefs) return undefined;
+
+  if (prefs.key === null) {
+    const parsed = parseKeyString(generation.composition?.key ?? "");
+    if (parsed) {
+      return {
+        scaleRoot: parsed.scaleRoot,
+        scaleType: parsed.scaleType,
+      };
+    }
+  }
 
   const scaleRoot = typeof prefs.scaleRoot === "number" ? prefs.scaleRoot : 0;
   const scaleType =

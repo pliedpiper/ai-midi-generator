@@ -44,7 +44,7 @@ export const DEFAULT_PREFERENCES = {
   key: "C Major",
   timeSignature: "4/4",
   durationBars: 8,
-  constraints: "",
+  constraints: "No Drums",
   attemptCount: 5,
   scaleRoot: 0,          // C
   scaleType: 'major' as ScaleTypeKey
@@ -94,6 +94,7 @@ Ensure valid note ranges (21-108), strict adherence to the requested key and sca
 Tracks should be separated by instrument. Use standard General MIDI program numbers (0-127) if possible, or provide a sensible default.
 Notes 'time' and 'duration' must be in BEATS (quarter notes).
 Return only a single JSON object and nothing else (no markdown, no code fences).
+Format the "key" field as "<NOTE> <MODE>", for example: "C Major", "F# Minor", "Bb Dorian", or "A Chromatic".
 Title requirements:
 - Keep title between 2 and 7 words.
 - Maximum 48 characters.

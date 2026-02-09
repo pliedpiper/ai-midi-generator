@@ -38,10 +38,10 @@ export interface AttemptResult {
 export interface UserPreferences {
   prompt: string;
   model: string;
-  tempo: number;
-  key: string;
-  timeSignature: string;
-  durationBars: number;
+  tempo: number | null;
+  key: string | null;
+  timeSignature: string | null;
+  durationBars: number | null;
   constraints: string;
   attemptCount: number;
   scaleRoot: number;      // 0-11 pitch class
