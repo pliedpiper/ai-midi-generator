@@ -60,6 +60,8 @@ const SORT_OPTIONS: Array<{ value: GenerationSortOption; label: string }> = [
   { value: "keyDesc", label: "Key (Z-A)" },
 ];
 
+const PROMPT_PREVIEW_LENGTH = 120;
+
 const renderHighlightedText = (
   text: string,
   searchQuery: string,
@@ -385,7 +387,12 @@ const GenerationsPage: React.FC<GenerationsPageProps> = ({ userEmail }) => {
                   generation.created_at,
                 ).toLocaleString();
                 const isPromptExpanded = expandedPromptIds.has(generation.id);
-                const canExpandPrompt = promptText.length > 120;
+                const canExpandPrompt =
+                  promptText.length > PROMPT_PREVIEW_LENGTH;
+                const promptPreviewText =
+                  canExpandPrompt && !isPromptExpanded
+                    ? `${promptText.slice(0, PROMPT_PREVIEW_LENGTH).trimEnd()}...`
+                    : promptText;
 
                 return (
                   <article
@@ -398,23 +405,27 @@ const GenerationsPage: React.FC<GenerationsPageProps> = ({ userEmail }) => {
 
                     <div className="mt-2">
                       <p
-                        className={`text-xs text-text-secondary break-words ${
-                          isPromptExpanded ? "" : "line-clamp-2"
-                        }`}
+                        className="text-xs text-text-secondary break-words"
                         title={promptText}
                       >
-                        Prompt: {renderHighlightedText(promptText, promptQuery)}
+                        Prompt:{" "}
+                        {renderHighlightedText(promptPreviewText, promptQuery)}
+                        {canExpandPrompt && (
+                          <button
+                            type="button"
+                            onClick={() => togglePromptExpansion(generation.id)}
+                            aria-expanded={isPromptExpanded}
+                            aria-label={
+                              isPromptExpanded
+                                ? "Collapse full prompt"
+                                : "Expand full prompt"
+                            }
+                            className="ml-1 inline text-[11px] text-text-muted hover:text-text-primary transition-colors"
+                          >
+                            {isPromptExpanded ? "[less]" : "[...]"}
+                          </button>
+                        )}
                       </p>
-                      {canExpandPrompt && (
-                        <button
-                          type="button"
-                          onClick={() => togglePromptExpansion(generation.id)}
-                          aria-expanded={isPromptExpanded}
-                          className="mt-1 text-[11px] text-text-muted hover:text-text-primary transition-colors"
-                        >
-                          {isPromptExpanded ? "Show less" : "Show full prompt"}
-                        </button>
-                      )}
                     </div>
 
                     <div className="mt-3 space-y-1 text-[11px] font-mono text-text-muted">
