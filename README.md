@@ -54,6 +54,9 @@ Then create an account/sign in and add your OpenRouter key inside the app when p
 | `npm run dev` | Start development server |
 | `npm run build` | Build for production |
 | `npm start` | Serve production build |
+| `npm run lint` | Run ESLint (warnings fail) |
+| `npm run typecheck` | Run TypeScript check (`tsc --noEmit`) |
+| `npm run check` | Run lint + typecheck + tests |
 | `npm test` | Run tests in watch mode |
 | `npm run test:run` | Run tests once |
 
@@ -63,7 +66,13 @@ This project uses Vitest for fast unit/integration-style testing of the API rout
 
 - Run once: `npm run test:run`
 - Watch mode: `npm test`
+- Full local quality gate (same as CI): `npm run check`
 - Detailed strategy and suite map: [`docs/testing.md`](docs/testing.md)
+
+## CI
+
+- GitHub Actions runs `npm run check` on every push and pull request (`.github/workflows/ci.yml`).
+- `npm run check` enforces lint + typecheck + tests as required gates.
 
 ## Project Structure
 
@@ -113,6 +122,8 @@ This project uses Vitest for fast unit/integration-style testing of the API rout
 | `KV_REST_API_TOKEN` | Yes* | Vercel KV REST token (preferred for distributed rate limiting) |
 | `UPSTASH_REDIS_REST_URL` | Yes* | Upstash Redis REST URL (fallback if not using `KV_*`) |
 | `UPSTASH_REDIS_REST_TOKEN` | Yes* | Upstash Redis REST token (fallback if not using `KV_*`) |
+| `CSP_REPORT_ONLY` | No | When `true`, serve CSP as `Content-Security-Policy-Report-Only` for staged rollout |
+| `CSP_REPORT_URI` | No | Optional CSP report endpoint URL added via `report-uri` directive |
 
 `NEXT_PUBLIC_SUPABASE_ANON_KEY` is also supported as a legacy fallback, but publishable key is preferred.
 `*` For Redis, provide either the `KV_*` pair or the `UPSTASH_*` pair.
@@ -152,7 +163,8 @@ User OpenRouter keys are entered in the app after login and stored encrypted in 
 - Login required for generation and saved-history access
 - Rate limited: 10 requests/minute per user (Redis-backed, shared across instances)
 - Input validation with size limits
-- CSP headers configured for safe audio playback
+- CSP headers configured for safe audio playback (including `blob:` for Tone.js)
+- Production CSP omits `'unsafe-eval'` by default; report-only mode is available with `CSP_REPORT_ONLY=true`
 - Row-Level Security (RLS) policies enforce per-user data access
 - OpenRouter keys encrypted before database storage
 - Account deletion uses a dedicated authenticated SQL RPC (`delete_current_user`) and cascades app data via foreign keys

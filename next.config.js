@@ -1,4 +1,34 @@
 /** @type {import('next').NextConfig} */
+const isProduction = process.env.NODE_ENV === 'production';
+const useCspReportOnly = process.env.CSP_REPORT_ONLY === 'true';
+const cspReportUri = process.env.CSP_REPORT_URI?.trim();
+
+const scriptSrc = [
+  "'self'",
+  "'unsafe-inline'",
+  ...(isProduction ? [] : ["'unsafe-eval'"]),
+  'blob:'
+].join(' ');
+
+const cspDirectives = [
+  "default-src 'self'",
+  `script-src ${scriptSrc}`, // Next.js + Tone.js AudioWorklet
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com", // Tailwind + Google Fonts stylesheet
+  "img-src 'self' data: blob:",
+  "font-src 'self' https://fonts.gstatic.com data:",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+  "media-src 'self' blob:", // For audio playback
+  "worker-src 'self' blob:", // Tone.js Web Workers
+  "frame-ancestors 'self'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  ...(cspReportUri ? [`report-uri ${cspReportUri}`] : [])
+].join('; ');
+
+const cspHeaderKey = useCspReportOnly
+  ? 'Content-Security-Policy-Report-Only'
+  : 'Content-Security-Policy';
+
 const nextConfig = {
   async headers() {
     return [
@@ -27,20 +57,8 @@ const nextConfig = {
             value: 'camera=(), microphone=(), geolocation=()'
           },
           {
-            key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:", // Next.js + Tone.js AudioWorklet
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com", // Tailwind + Google Fonts stylesheet
-              "img-src 'self' data: blob:",
-              "font-src 'self' https://fonts.gstatic.com data:",
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
-              "media-src 'self' blob:", // For audio playback
-              "worker-src 'self' blob:", // Tone.js Web Workers
-              "frame-ancestors 'self'",
-              "base-uri 'self'",
-              "form-action 'self'"
-            ].join('; ')
+            key: cspHeaderKey,
+            value: cspDirectives
           }
         ]
       }

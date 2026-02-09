@@ -25,6 +25,12 @@ function getRateLimitKey(req: Request): string {
   return forwarded?.split(',')[0]?.trim() || realIp || 'unknown';
 }
 
+function getTraceId(req: Request): string {
+  const requestId = req.headers.get('x-request-id');
+  const correlationId = req.headers.get('x-correlation-id');
+  return requestId || correlationId || crypto.randomUUID();
+}
+
 const createOpenRouterClient = (apiKey: string) => new OpenAI({
   apiKey,
   baseURL: 'https://openrouter.ai/api/v1',
@@ -56,6 +62,7 @@ Do not include attempt numbers, variation labels, IDs, or random suffixes in the
 };
 
 export async function POST(req: Request) {
+  const traceId = getTraceId(req);
   const supabase = await createSupabaseClient();
   const {
     data: { user },
@@ -173,15 +180,13 @@ export async function POST(req: Request) {
 
     let parsed: unknown;
     try {
-      const tailLength = 400;
-      const jsonTail = jsonText.length > tailLength
-        ? jsonText.slice(-tailLength)
-        : jsonText;
-      console.log('Model JSON length:', jsonText.length);
-      console.log('Model JSON tail:', jsonTail);
       parsed = JSON.parse(jsonText);
     } catch (parseError) {
-      console.error('JSON parse error:', parseError);
+      console.error('JSON parse error:', {
+        traceId,
+        jsonTextLength: jsonText.length,
+        error: parseError
+      });
       return NextResponse.json(
         { error: 'Model returned invalid JSON.' },
         { status: 502 }
@@ -191,7 +196,10 @@ export async function POST(req: Request) {
     // Validate model output against schema
     const compositionResult = validateComposition(parsed);
     if (compositionResult.valid === false) {
-      console.error('Schema validation failed:', compositionResult.error);
+      console.error('Schema validation failed:', {
+        traceId,
+        error: compositionResult.error
+      });
       return NextResponse.json(
         { error: 'Model output failed validation.' },
         { status: 502 }
@@ -235,7 +243,7 @@ export async function POST(req: Request) {
     );
   } catch (error) {
     // Log full error details server-side
-    console.error('Generation failed:', error);
+    console.error('Generation failed:', { traceId, error });
 
     // Handle specific OpenAI SDK error types
     if (error instanceof APIConnectionTimeoutError) {

@@ -58,7 +58,7 @@ vi.mock('openai', () => {
       },
     };
 
-    constructor(_config: unknown) {}
+    constructor() {}
   }
 
   return {

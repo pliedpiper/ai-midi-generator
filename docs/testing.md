@@ -22,6 +22,12 @@ For watch mode:
 npm test
 ```
 
+Run the full local gate (lint + typecheck + tests):
+
+```bash
+npm run check
+```
+
 Run a single file:
 
 ```bash
@@ -39,6 +45,7 @@ npm run test:run -- -t "POST /api/generate"
 - Vitest runs in `node` environment (not `jsdom`).
 - Test files match `**/*.test.ts`.
 - `@` path alias resolves to the project root.
+- CI uses `npm run check` so lint and typecheck failures block PRs before test execution.
 
 Reference: `vitest.config.ts`.
 
@@ -79,7 +86,7 @@ Reference: `vitest.config.ts`.
 |------|-------|
 | `tests/openRouterService.test.ts` | Client service error mapping for generate/improve endpoints and payload shape expectations |
 | `tests/signOut.test.ts` | Sign-out redirect helper behavior for success/failure |
-| `tests/next-config-csp.test.ts` | CSP header includes required Google Fonts hosts used by layout |
+| `tests/next-config-csp.test.ts` | CSP header includes required Google Fonts hosts, preserves Tone.js `blob:` allowances, drops `unsafe-eval` in production, and supports report-only mode |
 
 ## Mocking Strategy
 

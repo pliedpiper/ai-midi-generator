@@ -78,7 +78,7 @@ describe('validateComposition', () => {
   });
 
   it('rejects missing title', () => {
-    const { title, ...noTitle } = validComposition;
+    const noTitle = { ...validComposition, title: undefined };
     const result = validateComposition(noTitle);
     expect(result.valid).toBe(false);
     if (result.valid === false) {
