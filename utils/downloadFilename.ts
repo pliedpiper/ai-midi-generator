@@ -24,7 +24,7 @@ const sanitizeSegment = (value: string, fallback: string): string => {
 };
 
 const sanitizeTempo = (tempo: number | null | undefined): string => {
-  if (!Number.isFinite(tempo) || tempo === null) {
+  if (typeof tempo !== 'number' || !Number.isFinite(tempo)) {
     return 'unknown-bpm';
   }
 

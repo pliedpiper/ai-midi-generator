@@ -114,9 +114,15 @@ export const getPitchRange = (
   const maxOption = options?.max;
   const paddingOption = options?.padding;
 
-  const min = Number.isFinite(minOption) ? Math.round(minOption) : MIN_MIDI_NOTE;
-  const max = Number.isFinite(maxOption) ? Math.round(maxOption) : MAX_MIDI_NOTE;
-  const padding = Number.isFinite(paddingOption) ? Math.max(0, Math.round(paddingOption)) : 2;
+  const min = typeof minOption === 'number' && Number.isFinite(minOption)
+    ? Math.round(minOption)
+    : MIN_MIDI_NOTE;
+  const max = typeof maxOption === 'number' && Number.isFinite(maxOption)
+    ? Math.round(maxOption)
+    : MAX_MIDI_NOTE;
+  const padding = typeof paddingOption === 'number' && Number.isFinite(paddingOption)
+    ? Math.max(0, Math.round(paddingOption))
+    : 2;
 
   if (!notes.length) {
     return { minMidi: min, maxMidi: max };

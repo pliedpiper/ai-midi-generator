@@ -2,16 +2,30 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const originalEnv = { ...process.env };
 
+type HeaderEntry = {
+  key: string;
+  value: string;
+};
+
+type ConfigHeader = {
+  source: string;
+  headers: HeaderEntry[];
+};
+
+type NextConfigWithHeaders = {
+  headers: () => Promise<ConfigHeader[]>;
+};
+
 const loadNextConfig = async () => {
   vi.resetModules();
-  const configModule = await import('../next.config.js');
-  return configModule.default;
+  const configModule = await import('../next.config');
+  return configModule.default as NextConfigWithHeaders;
 };
 
 const getGlobalHeaders = async () => {
   const nextConfig = await loadNextConfig();
   const headerEntries = await nextConfig.headers();
-  return headerEntries.find((entry) => entry.source === '/:path*');
+  return headerEntries.find((entry: ConfigHeader) => entry.source === '/:path*');
 };
 
 afterEach(() => {
@@ -30,7 +44,7 @@ describe('next.config CSP', () => {
     const globalHeaders = await getGlobalHeaders();
     expect(globalHeaders).toBeDefined();
 
-    const cspHeader = globalHeaders?.headers.find((header) => header.key === 'Content-Security-Policy');
+    const cspHeader = globalHeaders?.headers.find((header: HeaderEntry) => header.key === 'Content-Security-Policy');
     expect(cspHeader).toBeDefined();
 
     const csp = cspHeader?.value ?? '';
@@ -50,7 +64,7 @@ describe('next.config CSP', () => {
     const globalHeaders = await getGlobalHeaders();
     expect(globalHeaders).toBeDefined();
 
-    const cspHeader = globalHeaders?.headers.find((header) => header.key === 'Content-Security-Policy');
+    const cspHeader = globalHeaders?.headers.find((header: HeaderEntry) => header.key === 'Content-Security-Policy');
     expect(cspHeader).toBeDefined();
 
     const csp = cspHeader?.value ?? '';
@@ -70,12 +84,12 @@ describe('next.config CSP', () => {
     expect(globalHeaders).toBeDefined();
 
     const reportOnlyHeader = globalHeaders?.headers.find(
-      (header) => header.key === 'Content-Security-Policy-Report-Only'
+      (header: HeaderEntry) => header.key === 'Content-Security-Policy-Report-Only'
     );
     expect(reportOnlyHeader).toBeDefined();
 
     const enforcedHeader = globalHeaders?.headers.find(
-      (header) => header.key === 'Content-Security-Policy'
+      (header: HeaderEntry) => header.key === 'Content-Security-Policy'
     );
     expect(enforcedHeader).toBeUndefined();
   });

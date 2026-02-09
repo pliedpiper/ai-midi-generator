@@ -26,7 +26,7 @@ Generate MIDI compositions from text prompts using LLMs. Users authenticate with
 - **Audio**: Tone.js + @tonejs/midi
 - **API**: OpenRouter (OpenAI SDK compatible)
 - **Auth + DB**: Supabase (Auth + Postgres + RLS)
-- **Testing**: Vitest
+- **Testing**: Vitest + Playwright (smoke)
 
 ## Quick Start
 
@@ -59,20 +59,24 @@ Then create an account/sign in and add your OpenRouter key inside the app when p
 | `npm run check` | Run lint + typecheck + tests |
 | `npm test` | Run tests in watch mode |
 | `npm run test:run` | Run tests once |
+| `npm run test:e2e` | Run Playwright smoke tests |
+| `npm run test:e2e:headed` | Run Playwright smoke tests in headed mode |
 
 ## Testing
 
-This project uses Vitest for fast unit/integration-style testing of the API route, validation logic, MIDI generation utilities, scale logic, and client service behavior.
+This project uses Vitest for unit/integration-style coverage and Playwright for browser-runtime smoke checks.
 
 - Run once: `npm run test:run`
 - Watch mode: `npm test`
 - Full local quality gate (same as CI): `npm run check`
+- Browser smoke checks: `npm run test:e2e`
 - Detailed strategy and suite map: [`docs/testing.md`](docs/testing.md)
 
 ## CI
 
 - GitHub Actions runs `npm run check` on every push and pull request (`.github/workflows/ci.yml`).
 - `npm run check` enforces lint + typecheck + tests as required gates.
+- TypeScript is configured in strict mode (`strict: true`, `noImplicitAny: true`, `strictNullChecks: true`).
 
 ## Project Structure
 
@@ -92,11 +96,13 @@ This project uses Vitest for fast unit/integration-style testing of the API rout
 │   ├── InputForm.tsx    # User input form
 │   ├── AttemptCard.tsx  # Playback/download UI
 │   └── ExpandedGenerationModal.tsx # Saved generation expanded visual view
+├── hooks/               # Client state hooks for large page flows
 ├── lib/
 │   ├── supabase/        # Supabase client/server/middleware helpers
 │   └── userSettings.ts  # OpenRouter key validation/storage helpers
 ├── supabase/
-│   └── migrations/      # SQL schema + RLS policies
+│   ├── migrations/      # SQL schema + RLS/constraints
+│   └── ops/             # Manual audit/rollback runbooks
 ├── utils/
 │   ├── midiUtils.ts     # MIDI conversion & playback
 │   ├── titleUtils.ts    # Generation title sanitization + fallback naming
@@ -141,7 +147,10 @@ User OpenRouter keys are entered in the app after login and stored encrypted in 
    - `supabase/migrations/20260208_auth_and_generations.sql`
    - `supabase/migrations/20260208_delete_current_user_function.sql`
    - `supabase/migrations/20260208_user_settings_delete_policy.sql`
-5. Set Site URL (for auth emails) to your app URL:
+   - `supabase/migrations/20260209_generations_db_constraints.sql`
+5. Optional but recommended before/after Phase 6 rollout:
+   - run audit/verification SQL in `supabase/ops/20260209_generations_constraints_runbook.sql`
+6. Set Site URL (for auth emails) to your app URL:
    - local: `http://localhost:3000`
    - production: your deployed domain
 
@@ -166,6 +175,7 @@ User OpenRouter keys are entered in the app after login and stored encrypted in 
 - CSP headers configured for safe audio playback (including `blob:` for Tone.js)
 - Production CSP omits `'unsafe-eval'` by default; report-only mode is available with `CSP_REPORT_ONLY=true`
 - Row-Level Security (RLS) policies enforce per-user data access
+- Database constraints enforce positive `attempt_index` and conservative JSON shape checks for `prefs`/`composition`
 - OpenRouter keys encrypted before database storage
 - Account deletion uses a dedicated authenticated SQL RPC (`delete_current_user`) and cascades app data via foreign keys
 
