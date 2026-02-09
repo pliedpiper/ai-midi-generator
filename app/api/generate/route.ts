@@ -7,6 +7,7 @@ import { createClient as createSupabaseClient } from '@/lib/supabase/server';
 import { decryptSecret } from '@/utils/encryption';
 import { getEncryptedOpenRouterKey } from '@/lib/userSettings';
 import { checkRateLimit } from '@/lib/rateLimit';
+import { finalizeGenerationTitle } from '@/utils/titleUtils';
 
 export const runtime = 'nodejs';
 
@@ -31,8 +32,6 @@ const createOpenRouterClient = (apiKey: string) => new OpenAI({
 });
 
 const buildPrompt = (id: number, prefs: UserPreferences) => {
-  // Random marker to encourage variation (not a deterministic seed)
-  const variationMarker = `Variation ID: ${id}-${Math.random().toString(36).substring(7)}`;
   return `
 User Prompt: "${prefs.prompt}"
 Tempo: ${prefs.tempo} BPM
@@ -41,9 +40,10 @@ Time Signature: ${prefs.timeSignature}
 Length: ${prefs.durationBars} bars
 Constraints: ${prefs.constraints}
 
-${variationMarker}
+Attempt Number: ${id}
 
-Make this version unique compared to others.
+Make this version musically unique compared to other attempts.
+Do not include attempt numbers, variation labels, IDs, or random suffixes in the title.
   `.trim();
 };
 
@@ -190,13 +190,23 @@ export async function POST(req: Request) {
       );
     }
 
+    const title = finalizeGenerationTitle({
+      modelTitle: compositionResult.composition.title,
+      prompt: normalizedPrefs.prompt,
+      attemptIndex: id
+    });
+    const composition = {
+      ...compositionResult.composition,
+      title
+    };
+
     const { error: saveError } = await supabase.from('generations').insert({
       user_id: user.id,
-      title: compositionResult.composition.title,
+      title,
       model: normalizedPrefs.model,
       attempt_index: id,
       prefs: normalizedPrefs,
-      composition: compositionResult.composition
+      composition
     });
 
     if (saveError) {
@@ -208,7 +218,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json(
-      { composition: compositionResult.composition },
+      { composition },
       {
         headers: {
           'X-RateLimit-Remaining': String(rateLimit.remaining)

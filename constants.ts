@@ -94,6 +94,11 @@ Ensure valid note ranges (21-108), strict adherence to the requested key and sca
 Tracks should be separated by instrument. Use standard General MIDI program numbers (0-127) if possible, or provide a sensible default.
 Notes 'time' and 'duration' must be in BEATS (quarter notes).
 Return only a single JSON object and nothing else (no markdown, no code fences).
+Title requirements:
+- Keep title between 2 and 7 words.
+- Maximum 48 characters.
+- Use a plain descriptive phrase only.
+- Never include variation/attempt labels, IDs, hashes, or random suffixes.
 The JSON must match this schema exactly (all fields required unless marked optional):
 {
   "title": string,

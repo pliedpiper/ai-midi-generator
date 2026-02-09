@@ -322,4 +322,62 @@ describe('POST /api/generate', () => {
     expect(res.status).toBe(502);
     expect(await res.json()).toEqual({ error: 'Model returned invalid JSON.' });
   });
+
+  it('sanitizes noisy model titles before saving and returning composition', async () => {
+    const { POST } = await import('../app/api/generate/route');
+    createCompletionMock.mockResolvedValue({
+      choices: [{
+        message: {
+          content: JSON.stringify({
+            title: 'Country Love Loop Var 4-pd2a49r',
+            tempo: 120,
+            timeSignature: [4, 4],
+            key: 'C Major',
+            tracks: [{ name: 'Piano', notes: [{ midi: 60, time: 0, duration: 1, velocity: 0.8 }] }]
+          })
+        }
+      }]
+    });
+
+    const res = await POST(makeRequest(makeValidBody(), { 'x-forwarded-for': '198.51.100.31' }));
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.composition?.title).toBe('Country Love Loop');
+    expect(supabaseInsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Country Love Loop',
+        composition: expect.objectContaining({ title: 'Country Love Loop' })
+      })
+    );
+  });
+
+  it('uses deterministic fallback title when sanitized title is low quality', async () => {
+    const { POST } = await import('../app/api/generate/route');
+    createCompletionMock.mockResolvedValue({
+      choices: [{
+        message: {
+          content: JSON.stringify({
+            title: 'Var 1',
+            tempo: 120,
+            timeSignature: [4, 4],
+            key: 'C Major',
+            tracks: [{ name: 'Piano', notes: [{ midi: 60, time: 0, duration: 1, velocity: 0.8 }] }]
+          })
+        }
+      }]
+    });
+
+    const res = await POST(makeRequest(makeValidBody(), { 'x-forwarded-for': '198.51.100.32' }));
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.composition?.title).toBe('A Short Piano Motif - Take 1');
+    expect(supabaseInsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'A Short Piano Motif - Take 1',
+        composition: expect.objectContaining({ title: 'A Short Piano Motif - Take 1' })
+      })
+    );
+  });
 });

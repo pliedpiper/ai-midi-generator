@@ -11,6 +11,7 @@ Generate MIDI compositions from text prompts using LLMs. Users authenticate with
 - **Advanced controls**: Tempo, key, time signature, duration, and constraints
 - **Prompt improver**: Refine prompt text in-place with Gemini 3 Flash using `prompts.md` tips
 - **MIDI export**: Download generated compositions as .mid files
+- **Clean generation titles**: Server-side title sanitization removes variation/hash artifacts with deterministic fallback naming
 - **Supabase login**: Email/password auth + route protection
 - **Account settings**: Change email/password, manage OpenRouter key, export data, and delete account
 - **Saved history**: Replay/download/delete generations from **My Generations**
@@ -87,6 +88,7 @@ This project uses Vitest for fast unit/integration-style testing of the API rout
 │   └── migrations/      # SQL schema + RLS policies
 ├── utils/
 │   ├── midiUtils.ts     # MIDI conversion & playback
+│   ├── titleUtils.ts    # Generation title sanitization + fallback naming
 │   ├── encryption.ts    # AES-GCM key encryption/decryption
 │   └── validation.ts    # Input/output validation
 ├── services/
