@@ -57,10 +57,11 @@ Reference: `vitest.config.ts`, `playwright.config.ts`.
 
 | File | Focus |
 |------|-------|
-| `tests/generate-route.test.ts` | `POST /api/generate`: auth guard, user key requirement, body-size limits, rate-limit headers, provider error mapping, malformed model output handling, title sanitization/fallback |
+| `tests/generate-route.test.ts` | `POST /api/generate`: auth guard, user key requirement, idempotency-key requirement/replay/conflict behavior, body-size limits, rate-limit headers, provider error mapping, malformed model output handling, title sanitization/fallback |
 | `tests/prompt-improve-route.test.ts` | `POST /api/prompt/improve`: auth/key requirements, payload validation, rate limiting, Gemini rewriting behavior, key/BPM sanitization, provider error mapping |
 | `tests/openrouter-key-route.test.ts` | `/api/user/openrouter-key` GET/DELETE flow and configured-status response shape |
 | `tests/account-delete-route.test.ts` | `POST /api/account/delete`: auth guard, JSON/confirmation validation, RPC success/failure paths |
+| `tests/generations-route-get.test.ts` | `GET /api/generations`: auth guard, pagination parameter validation, hasMore/nextOffset metadata, and query failure mapping |
 | `tests/generations-route-delete.test.ts` | `DELETE /api/generations`: auth guard, delete/count error handling, deleted-count correctness |
 | `tests/auth-callback-route.test.ts` | `GET /auth/callback`: safe redirect sanitization and code-exchange behavior |
 

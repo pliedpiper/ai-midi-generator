@@ -128,27 +128,48 @@ const GenerationsPage: React.FC<GenerationsPageProps> = ({ userEmail }) => {
               No generations match that prompt search.
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {state.visibleGenerations.map((generation) => (
-                <GenerationCard
-                  key={generation.id}
-                  generation={generation}
-                  promptQuery={state.promptQuery}
-                  isPlaying={state.playingId === generation.id}
-                  isDeleting={state.deletingId === generation.id}
-                  isPromptExpanded={state.expandedPromptIds.has(generation.id)}
-                  onTogglePromptExpand={state.togglePromptExpansion}
-                  onPlayToggle={(item) => {
-                    void state.handlePlayToggle(item);
-                  }}
-                  onDownload={state.handleDownload}
-                  onExpand={state.setExpandedGenerationId}
-                  onDelete={(id) => {
-                    void state.handleDelete(id);
-                  }}
-                  renderHighlightedText={renderHighlightedText}
-                />
-              ))}
+            <div>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {state.visibleGenerations.map((generation) => (
+                  <GenerationCard
+                    key={generation.id}
+                    generation={generation}
+                    promptQuery={state.promptQuery}
+                    isPlaying={state.playingId === generation.id}
+                    isDeleting={state.deletingId === generation.id}
+                    isPromptExpanded={state.expandedPromptIds.has(generation.id)}
+                    onTogglePromptExpand={state.togglePromptExpansion}
+                    onPlayToggle={(item) => {
+                      void state.handlePlayToggle(item);
+                    }}
+                    onDownload={state.handleDownload}
+                    onExpand={state.setExpandedGenerationId}
+                    onDelete={(id) => {
+                      void state.handleDelete(id);
+                    }}
+                    renderHighlightedText={renderHighlightedText}
+                  />
+                ))}
+              </div>
+
+              {state.promptQuery.trim().length === 0 && state.hasMore && (
+                <div className="mt-6 flex justify-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void state.handleLoadMore();
+                    }}
+                    disabled={state.loadingMore}
+                    className={`rounded border px-4 py-2 text-sm transition-colors ${
+                      state.loadingMore
+                        ? "cursor-not-allowed border-surface-600 bg-surface-700 text-text-muted"
+                        : "border-surface-600 bg-surface-800 text-text-primary hover:border-surface-500 hover:bg-surface-700"
+                    }`}
+                  >
+                    {state.loadingMore ? "Loading..." : "Load more"}
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

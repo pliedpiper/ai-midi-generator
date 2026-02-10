@@ -2,14 +2,15 @@ import { MidiComposition, UserPreferences } from '../types';
 
 export const generateAttempt = async (
   id: number,
-  prefs: UserPreferences
+  prefs: UserPreferences,
+  idempotencyKey: string
 ): Promise<MidiComposition> => {
   const response = await fetch('/api/generate', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ id, prefs }),
+    body: JSON.stringify({ id, prefs, idempotencyKey }),
     cache: 'no-store'
   });
 

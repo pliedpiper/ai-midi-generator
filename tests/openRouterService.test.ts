@@ -31,7 +31,7 @@ describe('generateAttempt', () => {
       json: vi.fn().mockResolvedValue({ error: 'Provider rate limit reached.' }),
     } as unknown as Response);
 
-    await expect(generateAttempt(1, validPrefs)).rejects.toThrow('Provider rate limit reached.');
+    await expect(generateAttempt(1, validPrefs, 'batch-1')).rejects.toThrow('Provider rate limit reached.');
   });
 
   it('handles non-JSON error bodies with fallback message', async () => {
@@ -40,7 +40,7 @@ describe('generateAttempt', () => {
       json: vi.fn().mockRejectedValue(new Error('Invalid JSON body')),
     } as unknown as Response);
 
-    await expect(generateAttempt(1, validPrefs)).rejects.toThrow('Failed to generate MIDI composition.');
+    await expect(generateAttempt(1, validPrefs, 'batch-1')).rejects.toThrow('Failed to generate MIDI composition.');
   });
 
   it('rejects when server response is missing composition', async () => {
@@ -49,7 +49,35 @@ describe('generateAttempt', () => {
       json: vi.fn().mockResolvedValue({}),
     } as unknown as Response);
 
-    await expect(generateAttempt(1, validPrefs)).rejects.toThrow('Invalid response from server.');
+    await expect(generateAttempt(1, validPrefs, 'batch-1')).rejects.toThrow('Invalid response from server.');
+  });
+
+  it('sends idempotencyKey in request payload', async () => {
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        composition: {
+          title: 'x',
+          tempo: 120,
+          timeSignature: [4, 4],
+          key: 'C Major',
+          tracks: []
+        }
+      }),
+    } as unknown as Response);
+
+    await generateAttempt(1, validPrefs, 'batch-abc');
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/generate',
+      expect.objectContaining({
+        body: JSON.stringify({
+          id: 1,
+          prefs: validPrefs,
+          idempotencyKey: 'batch-abc'
+        })
+      })
+    );
   });
 });
 

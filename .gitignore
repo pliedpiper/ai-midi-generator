@@ -29,6 +29,15 @@ dist-ssr
 # Next.js
 .next/
 
+# TypeScript incremental cache
+*.tsbuildinfo
+
+# Test and coverage artifacts
+test-results/
+playwright-report/
+coverage/
+.eslintcache
+
 # Claude
 CLAUDE.md
 

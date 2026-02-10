@@ -5,6 +5,14 @@ import { requireAuthenticatedUser } from '@/lib/api/auth';
 import { resolveDecryptedOpenRouterKey } from '@/lib/api/openRouterKey';
 import { enforceRateLimit } from '@/lib/api/rateLimit';
 import { getClientIp, getTraceId, parseJsonBodyWithLimit } from '@/lib/api/request';
+import {
+  acquireIdempotencyLock,
+  buildGenerateIdempotencyKeys,
+  readIdempotencyComposition,
+  releaseIdempotencyLock,
+  waitForIdempotencyComposition,
+  writeIdempotencyComposition
+} from '@/lib/api/idempotency';
 import { generateComposition } from './generateService';
 
 export const runtime = 'nodejs';
@@ -12,10 +20,13 @@ export const runtime = 'nodejs';
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 10;
 const MAX_BODY_SIZE = 10_000;
+const IDEMPOTENCY_KEY_MAX_LENGTH = 120;
+const IDEMPOTENCY_WAIT_MS = 3_000;
 
 type GenerateRequestBody = {
   id?: number;
   prefs?: unknown;
+  idempotencyKey?: unknown;
 };
 
 export async function POST(req: Request) {
@@ -65,7 +76,7 @@ export async function POST(req: Request) {
     return parsedBody.response;
   }
 
-  const { id, prefs } = parsedBody.data;
+  const { id, prefs, idempotencyKey } = parsedBody.data;
 
   if (typeof id !== 'number' || !Number.isFinite(id) || id < 1) {
     return NextResponse.json(
@@ -74,45 +85,143 @@ export async function POST(req: Request) {
     );
   }
 
+  if (
+    typeof idempotencyKey !== 'string' ||
+    !idempotencyKey.trim() ||
+    idempotencyKey.trim().length > IDEMPOTENCY_KEY_MAX_LENGTH
+  ) {
+    return NextResponse.json(
+      { error: `idempotencyKey is required and must be ${IDEMPOTENCY_KEY_MAX_LENGTH} characters or less.` },
+      { status: 400 }
+    );
+  }
+
+  const normalizedIdempotencyKey = idempotencyKey.trim();
+
   const prefsResult = validatePrefs(prefs);
   if (prefsResult.valid === false) {
     return NextResponse.json({ error: prefsResult.error }, { status: 400 });
   }
 
-  const generationResult = await generateComposition({
-    apiKey: keyResult.apiKey,
-    traceId,
-    attemptId: id,
-    prefs: prefsResult.normalized
-  });
+  const idempotencyKeys = buildGenerateIdempotencyKeys(user.id, normalizedIdempotencyKey, id);
 
-  if (generationResult.ok === false) {
-    return generationResult.response;
-  }
-
-  const { error: saveError } = await supabase.from('generations').insert({
-    user_id: user.id,
-    title: generationResult.title,
-    model: prefsResult.normalized.model,
-    attempt_index: id,
-    prefs: prefsResult.normalized,
-    composition: generationResult.composition
-  });
-
-  if (saveError) {
-    console.error('Failed to save generation:', saveError);
+  let cachedComposition = null;
+  try {
+    cachedComposition = await readIdempotencyComposition(idempotencyKeys.resultKey);
+  } catch (error) {
+    console.error('Idempotency cache read failed:', { traceId, error });
     return NextResponse.json(
-      { error: 'Failed to save generation.' },
-      { status: 500 }
+      { error: 'Idempotency service unavailable. Please try again shortly.' },
+      { status: 503 }
     );
   }
 
-  return NextResponse.json(
-    { composition: generationResult.composition },
-    {
-      headers: {
-        'X-RateLimit-Remaining': String(rateLimitResult.result.remaining)
+  if (cachedComposition) {
+    return NextResponse.json(
+      { composition: cachedComposition },
+      {
+        headers: {
+          'X-RateLimit-Remaining': String(rateLimitResult.result.remaining),
+          'X-Idempotent-Replay': '1'
+        }
       }
+    );
+  }
+
+  let lockAcquired = false;
+  try {
+    lockAcquired = await acquireIdempotencyLock(idempotencyKeys.lockKey);
+  } catch (error) {
+    console.error('Idempotency lock acquire failed:', { traceId, error });
+    return NextResponse.json(
+      { error: 'Idempotency service unavailable. Please try again shortly.' },
+      { status: 503 }
+    );
+  }
+
+  if (!lockAcquired) {
+    try {
+      const replayedComposition = await waitForIdempotencyComposition(
+        idempotencyKeys.resultKey,
+        IDEMPOTENCY_WAIT_MS
+      );
+
+      if (replayedComposition) {
+        return NextResponse.json(
+          { composition: replayedComposition },
+          {
+            headers: {
+              'X-RateLimit-Remaining': String(rateLimitResult.result.remaining),
+              'X-Idempotent-Replay': '1'
+            }
+          }
+        );
+      }
+    } catch (error) {
+      console.error('Idempotency wait failed:', { traceId, error });
+      return NextResponse.json(
+        { error: 'Idempotency service unavailable. Please try again shortly.' },
+        { status: 503 }
+      );
     }
-  );
+
+    return NextResponse.json(
+      { error: 'A matching generation request is already in progress. Retry shortly.' },
+      { status: 409 }
+    );
+  }
+
+  try {
+    const generationResult = await generateComposition({
+      apiKey: keyResult.apiKey,
+      traceId,
+      attemptId: id,
+      prefs: prefsResult.normalized
+    });
+
+    if (generationResult.ok === false) {
+      return generationResult.response;
+    }
+
+    const { error: saveError } = await supabase.from('generations').insert({
+      user_id: user.id,
+      title: generationResult.title,
+      model: prefsResult.normalized.model,
+      attempt_index: id,
+      prefs: prefsResult.normalized,
+      composition: generationResult.composition
+    });
+
+    if (saveError) {
+      console.error('Failed to save generation:', saveError);
+      return NextResponse.json(
+        { error: 'Failed to save generation.' },
+        { status: 500 }
+      );
+    }
+
+    try {
+      await writeIdempotencyComposition(
+        idempotencyKeys.resultKey,
+        generationResult.composition
+      );
+    } catch (error) {
+      console.error('Failed to write idempotency cache:', { traceId, error });
+    }
+
+    return NextResponse.json(
+      { composition: generationResult.composition },
+      {
+        headers: {
+          'X-RateLimit-Remaining': String(rateLimitResult.result.remaining)
+        }
+      }
+    );
+  } finally {
+    try {
+      await releaseIdempotencyLock(idempotencyKeys.lockKey);
+    } catch (error) {
+      console.error('Failed to release idempotency lock:', { traceId, error });
+    }
+  }
 }

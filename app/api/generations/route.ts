@@ -3,7 +3,27 @@ import { createClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
 
-export async function GET() {
+const DEFAULT_LIMIT = 50;
+const MAX_LIMIT = 100;
+
+const parsePositiveInt = (value: string, fallback: number) => {
+  if (!value) {
+    return fallback;
+  }
+
+  if (!/^\d+$/.test(value)) {
+    return null;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+
+  return parsed;
+};
+
+export async function GET(req: Request) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -14,12 +34,40 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
   }
 
+  const requestUrl = new URL(req.url);
+  const requestedLimit = parsePositiveInt(
+    requestUrl.searchParams.get('limit') ?? '',
+    DEFAULT_LIMIT
+  );
+  const requestedOffset = parsePositiveInt(
+    requestUrl.searchParams.get('offset') ?? '',
+    0
+  );
+
+  if (
+    requestedLimit === null ||
+    requestedLimit < 1 ||
+    requestedLimit > MAX_LIMIT ||
+    requestedOffset === null
+  ) {
+    return NextResponse.json(
+      {
+        error: `limit must be an integer between 1 and ${MAX_LIMIT}, and offset must be a non-negative integer.`
+      },
+      { status: 400 }
+    );
+  }
+
+  const limit = requestedLimit;
+  const offset = requestedOffset;
+  const queryEnd = offset + limit;
+
   const { data, error } = await supabase
     .from('generations')
     .select('id, title, model, attempt_index, prefs, composition, created_at')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
-    .limit(100);
+    .range(offset, queryEnd);
 
   if (error) {
     console.error('Failed to fetch generations:', error);
@@ -29,7 +77,19 @@ export async function GET() {
     );
   }
 
-  return NextResponse.json({ generations: data ?? [] });
+  const rows = data ?? [];
+  const hasMore = rows.length > limit;
+  const generations = hasMore ? rows.slice(0, limit) : rows;
+
+  return NextResponse.json({
+    generations,
+    pagination: {
+      offset,
+      limit,
+      hasMore,
+      nextOffset: hasMore ? offset + limit : null
+    }
+  });
 }
 
 export async function DELETE() {

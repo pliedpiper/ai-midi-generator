@@ -17,6 +17,7 @@ Generate MIDI compositions from text prompts using LLMs. Users authenticate with
 - **Supabase login**: Email/password auth + route protection
 - **Account settings**: Change email/password, manage OpenRouter key, export data, and delete account
 - **Saved history**: Replay/download/delete generations from **My Generations**
+- **Paginated history**: Load older generations on demand with server-side pagination
 - **History discovery tools**: Search across prompt/title/model/key/date with multi-word matching, relevance ranking + match highlights, and sorting by newest/oldest, length, track count, or key
 - **Expanded visualizer**: Open any saved generation in a detailed modal with piano-roll visualization
 
@@ -171,9 +172,10 @@ User OpenRouter keys are entered in the app after login and stored encrypted in 
 
 - Login required for generation and saved-history access
 - Rate limited: 10 requests/minute per user (Redis-backed, shared across instances)
+- Idempotency key required on generation requests to prevent duplicate paid model calls on client retries
 - Input validation with size limits
 - CSP headers configured for safe audio playback (including `blob:` for Tone.js)
-- Production CSP omits `'unsafe-eval'` by default; report-only mode is available with `CSP_REPORT_ONLY=true`
+- Production CSP omits `'unsafe-inline'` and `'unsafe-eval'` in `script-src` by default; report-only mode is available with `CSP_REPORT_ONLY=true`
 - Row-Level Security (RLS) policies enforce per-user data access
 - Database constraints enforce positive `attempt_index` and conservative JSON shape checks for `prefs`/`composition`
 - OpenRouter keys encrypted before database storage

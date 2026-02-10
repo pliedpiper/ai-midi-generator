@@ -46,6 +46,14 @@ const getSnapOptions = (
   return { scaleRoot: prefs.scaleRoot, scaleType: prefs.scaleType };
 };
 
+const createIdempotencyKey = () => {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+};
+
 const GeneratorApp: React.FC<GeneratorAppProps> = ({
   userEmail,
   initialHasApiKey,
@@ -132,6 +140,7 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
     setStatus(GenerationStatus.GENERATING);
     setLastPrefs(prefs);
     resetAttempts(prefs.attemptCount);
+    const idempotencyKey = createIdempotencyKey();
 
     // Launch parallel attempts based on attemptCount
     const attemptPromises = Array.from(
@@ -142,7 +151,7 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
         // Add small delay to avoid exact same microsecond timestamp seeds if logic relies on it
         await new Promise((r) => setTimeout(r, id * 100));
 
-        const composition = await generateAttempt(id, prefs);
+        const composition = await generateAttempt(id, prefs, idempotencyKey);
         const snapOptions = getSnapOptions(prefs, composition.key);
         const blob = generateMidiBlob(composition, snapOptions);
 

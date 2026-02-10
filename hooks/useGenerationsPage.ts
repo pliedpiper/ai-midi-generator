@@ -16,6 +16,8 @@ import {
 } from "@/utils/generationListUtils";
 import { parseKeyString } from "@/utils/scaleUtils";
 
+const PAGE_SIZE = 50;
+
 const getSnapOptions = (generation: SavedGeneration): SnapOptions | undefined => {
   const prefs = generation.prefs;
   if (!prefs) return undefined;
@@ -36,9 +38,20 @@ const getSnapOptions = (generation: SavedGeneration): SnapOptions | undefined =>
   return { scaleRoot, scaleType };
 };
 
+type GenerationPagePayload = {
+  generations?: unknown;
+  pagination?: {
+    hasMore?: unknown;
+    nextOffset?: unknown;
+  };
+};
+
 export const useGenerationsPage = () => {
   const [generations, setGenerations] = React.useState<SavedGeneration[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [loadingMore, setLoadingMore] = React.useState(false);
+  const [hasMore, setHasMore] = React.useState(false);
+  const [nextOffset, setNextOffset] = React.useState<number | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [playingId, setPlayingId] = React.useState<string | null>(null);
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
@@ -57,11 +70,18 @@ export const useGenerationsPage = () => {
     return sortGenerations(generations, sortOption);
   }, [generations, promptQuery, sortOption]);
 
-  const loadGenerations = React.useCallback(async () => {
-    setLoading(true);
+  const loadGenerations = React.useCallback(async (offset: number, append: boolean) => {
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
     setError(null);
+
     try {
-      const response = await fetch("/api/generations", { cache: "no-store" });
+      const response = await fetch(`/api/generations?limit=${PAGE_SIZE}&offset=${offset}`, {
+        cache: "no-store",
+      });
       if (!response.ok) {
         const data: unknown = await response.json().catch(() => ({}));
         const payload = data as { error?: unknown };
@@ -73,20 +93,42 @@ export const useGenerationsPage = () => {
       }
 
       const data: unknown = await response.json();
-      const payload = data as { generations?: unknown };
+      const payload = data as GenerationPagePayload;
       const items = Array.isArray(payload.generations) ? payload.generations : [];
-      setGenerations(items as SavedGeneration[]);
+      const mappedItems = items as SavedGeneration[];
+
+      setGenerations((prev) => {
+        if (!append) {
+          return mappedItems;
+        }
+
+        const seen = new Set(prev.map((item) => item.id));
+        const deduped = mappedItems.filter((item) => !seen.has(item.id));
+        return [...prev, ...deduped];
+      });
+
+      const pageInfo = payload.pagination ?? {};
+      setHasMore(pageInfo.hasMore === true);
+      setNextOffset(
+        typeof pageInfo.nextOffset === "number" && Number.isFinite(pageInfo.nextOffset)
+          ? pageInfo.nextOffset
+          : null
+      );
     } catch (loadError) {
       setError(
         loadError instanceof Error ? loadError.message : "Failed to load generations."
       );
     } finally {
-      setLoading(false);
+      if (append) {
+        setLoadingMore(false);
+      } else {
+        setLoading(false);
+      }
     }
   }, []);
 
   React.useEffect(() => {
-    void loadGenerations();
+    void loadGenerations(0, false);
   }, [loadGenerations]);
 
   React.useEffect(() => {
@@ -202,6 +244,14 @@ export const useGenerationsPage = () => {
     }
   };
 
+  const handleLoadMore = React.useCallback(async () => {
+    if (!hasMore || nextOffset === null || loadingMore) {
+      return;
+    }
+
+    await loadGenerations(nextOffset, true);
+  }, [hasMore, nextOffset, loadingMore, loadGenerations]);
+
   const handleDownload = (generation: SavedGeneration) => {
     const blob = generateMidiBlob(generation.composition, getSnapOptions(generation));
     const url = URL.createObjectURL(blob);
@@ -242,6 +292,8 @@ export const useGenerationsPage = () => {
 
   return {
     loading,
+    loadingMore,
+    hasMore,
     error,
     generations,
     visibleGenerations,
@@ -256,6 +308,7 @@ export const useGenerationsPage = () => {
     setPromptQuery,
     setSortOption,
     setExpandedGenerationId,
+    handleLoadMore,
     handlePlayToggle,
     handleDelete,
     handleDownload,

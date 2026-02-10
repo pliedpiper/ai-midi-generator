@@ -9,6 +9,11 @@ const {
   decryptSecretMock,
   createSupabaseClientMock,
   checkRateLimitMock,
+  readIdempotencyCompositionMock,
+  acquireIdempotencyLockMock,
+  waitForIdempotencyCompositionMock,
+  writeIdempotencyCompositionMock,
+  releaseIdempotencyLockMock,
 } = vi.hoisted(() => ({
   createCompletionMock: vi.fn(),
   supabaseGetUserMock: vi.fn(),
@@ -17,6 +22,11 @@ const {
   decryptSecretMock: vi.fn(),
   createSupabaseClientMock: vi.fn(),
   checkRateLimitMock: vi.fn(),
+  readIdempotencyCompositionMock: vi.fn(),
+  acquireIdempotencyLockMock: vi.fn(),
+  waitForIdempotencyCompositionMock: vi.fn(),
+  writeIdempotencyCompositionMock: vi.fn(),
+  releaseIdempotencyLockMock: vi.fn(),
 }));
 
 vi.mock('openai', () => {
@@ -85,6 +95,18 @@ vi.mock('@/lib/rateLimit', () => ({
   checkRateLimit: checkRateLimitMock,
 }));
 
+vi.mock('@/lib/api/idempotency', () => ({
+  buildGenerateIdempotencyKeys: vi.fn((userId: string, key: string, attemptId: number) => ({
+    lockKey: `idempotency:generate:lock:${userId}:${key}:${attemptId}`,
+    resultKey: `idempotency:generate:result:${userId}:${key}:${attemptId}`
+  })),
+  readIdempotencyComposition: readIdempotencyCompositionMock,
+  acquireIdempotencyLock: acquireIdempotencyLockMock,
+  waitForIdempotencyComposition: waitForIdempotencyCompositionMock,
+  writeIdempotencyComposition: writeIdempotencyCompositionMock,
+  releaseIdempotencyLock: releaseIdempotencyLockMock
+}));
+
 const validPrefs = {
   prompt: 'A short piano motif',
   model: AVAILABLE_MODELS[0].id,
@@ -125,6 +147,7 @@ const makeValidBody = () =>
   JSON.stringify({
     id: 1,
     prefs: validPrefs,
+    idempotencyKey: 'batch-123',
   });
 
 beforeEach(() => {
@@ -136,6 +159,11 @@ beforeEach(() => {
   decryptSecretMock.mockReset();
   createSupabaseClientMock.mockReset();
   checkRateLimitMock.mockReset();
+  readIdempotencyCompositionMock.mockReset();
+  acquireIdempotencyLockMock.mockReset();
+  waitForIdempotencyCompositionMock.mockReset();
+  writeIdempotencyCompositionMock.mockReset();
+  releaseIdempotencyLockMock.mockReset();
 
   const supabaseMock = {
     auth: {
@@ -156,6 +184,11 @@ beforeEach(() => {
     remaining: 9,
     resetIn: 60000
   });
+  readIdempotencyCompositionMock.mockResolvedValue(null);
+  acquireIdempotencyLockMock.mockResolvedValue(true);
+  waitForIdempotencyCompositionMock.mockResolvedValue(null);
+  writeIdempotencyCompositionMock.mockResolvedValue(undefined);
+  releaseIdempotencyLockMock.mockResolvedValue(undefined);
 
   vi.spyOn(console, 'error').mockImplementation(() => {});
   vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -196,6 +229,17 @@ describe('POST /api/generate', () => {
     expect(await res.json()).toEqual({ error: 'Invalid JSON body.' });
   });
 
+  it('requires idempotencyKey in request body', async () => {
+    const { POST } = await import('../app/api/generate/route');
+    const body = JSON.stringify({ id: 1, prefs: validPrefs });
+
+    const res = await POST(makeRequest(body));
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({
+      error: 'idempotencyKey is required and must be 120 characters or less.'
+    });
+  });
+
   it('enforces body size limits via content-length and parsed text length', async () => {
     const { POST } = await import('../app/api/generate/route');
 
@@ -212,6 +256,7 @@ describe('POST /api/generate', () => {
     const hugePrompt = 'x'.repeat(10050);
     const hugeBody = JSON.stringify({
       id: 1,
+      idempotencyKey: 'batch-oversized',
       prefs: {
         ...validPrefs,
         prompt: hugePrompt,
@@ -312,6 +357,36 @@ describe('POST /api/generate', () => {
     }
   });
 
+  it('replays cached composition without issuing a provider call', async () => {
+    readIdempotencyCompositionMock.mockResolvedValueOnce({
+      title: 'Cached',
+      tempo: 120,
+      timeSignature: [4, 4],
+      key: 'C Major',
+      tracks: [{ name: 'Piano', programNumber: 0, notes: [] }]
+    });
+    const { POST } = await import('../app/api/generate/route');
+
+    const res = await POST(makeRequest(makeValidBody()));
+    expect(res.status).toBe(200);
+    expect(res.headers.get('X-Idempotent-Replay')).toBe('1');
+    expect(createCompletionMock).not.toHaveBeenCalled();
+    expect(supabaseInsertMock).not.toHaveBeenCalled();
+  });
+
+  it('returns 409 when a matching request is already in progress', async () => {
+    acquireIdempotencyLockMock.mockResolvedValueOnce(false);
+    waitForIdempotencyCompositionMock.mockResolvedValueOnce(null);
+    const { POST } = await import('../app/api/generate/route');
+
+    const res = await POST(makeRequest(makeValidBody()));
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({
+      error: 'A matching generation request is already in progress. Retry shortly.'
+    });
+    expect(createCompletionMock).not.toHaveBeenCalled();
+  });
+
   it('returns 502 when model output JSON cannot be parsed', async () => {
     const { POST } = await import('../app/api/generate/route');
     createCompletionMock.mockResolvedValue({
@@ -331,6 +406,7 @@ describe('POST /api/generate', () => {
 
     const requestBody = JSON.stringify({
       id: 1,
+      idempotencyKey: 'batch-auto-settings',
       prefs: {
         ...validPrefs,
         tempo: null,
