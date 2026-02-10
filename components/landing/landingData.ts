@@ -218,7 +218,7 @@ const buildLeadNotes = (): Note[] => {
 
 export const HERO_DEMO_COMPOSITION: MidiComposition = {
   title: 'Glassroom Haze',
-  tempo: 112,
+  tempo: 95,
   timeSignature: [4, 4],
   key: 'E major',
   tracks: [
