@@ -5,7 +5,7 @@ const cspReportUri = process.env.CSP_REPORT_URI?.trim();
 
 const scriptSrc = [
   "'self'",
-  ...(isProduction ? [] : ["'unsafe-inline'"]),
+  "'unsafe-inline'",
   ...(isProduction ? [] : ["'unsafe-eval'"]),
   'blob:'
 ].join(' ');

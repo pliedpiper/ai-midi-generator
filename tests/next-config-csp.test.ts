@@ -54,7 +54,7 @@ describe('next.config CSP', () => {
     expect(csp).toContain("worker-src 'self' blob:");
   });
 
-  it('drops unsafe-eval in production CSP while preserving blob allowances', async () => {
+  it('keeps unsafe-inline but drops unsafe-eval in production CSP while preserving blob allowances', async () => {
     process.env = {
       ...process.env,
       NODE_ENV: 'production'
@@ -68,8 +68,7 @@ describe('next.config CSP', () => {
     expect(cspHeader).toBeDefined();
 
     const csp = cspHeader?.value ?? '';
-    expect(csp).toContain("script-src 'self' blob:");
-    expect(csp).not.toContain("script-src 'self' 'unsafe-inline'");
+    expect(csp).toContain("script-src 'self' 'unsafe-inline' blob:");
     expect(csp).not.toContain("'unsafe-eval'");
     expect(csp).toContain("worker-src 'self' blob:");
   });

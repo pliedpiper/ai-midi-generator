@@ -92,7 +92,7 @@ Reference: `vitest.config.ts`, `playwright.config.ts`.
 | `tests/generator-app.ui.test.tsx` | Generator app key-setup gating and generation-attempt orchestration |
 | `tests/openRouterService.test.ts` | Client service error mapping for generate/improve endpoints |
 | `tests/signOut.test.ts` | Sign-out redirect helper behavior |
-| `tests/next-config-csp.test.ts` | CSP includes required hosts, preserves Tone `blob:` allowances, drops `unsafe-eval` in production, supports report-only mode |
+| `tests/next-config-csp.test.ts` | CSP includes required hosts, preserves Tone `blob:` allowances, keeps `unsafe-inline` but drops `unsafe-eval` in production, supports report-only mode |
 
 ### E2E Smoke (Playwright)
 
