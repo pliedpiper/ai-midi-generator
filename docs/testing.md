@@ -90,6 +90,7 @@ Reference: `vitest.config.ts`, `playwright.config.ts`.
 |------|-------|
 | `tests/input-form.ui.test.tsx` | InputForm submission with auto/manual advanced fields + prompt improvement action |
 | `tests/generator-app.ui.test.tsx` | Generator app key-setup gating and generation-attempt orchestration |
+| `tests/landing-playback-demo.ui.test.tsx` | Landing hero interactive playback demo wiring (play/stop, cleanup, and playback error surface) |
 | `tests/openRouterService.test.ts` | Client service error mapping for generate/improve endpoints |
 | `tests/signOut.test.ts` | Sign-out redirect helper behavior |
 | `tests/next-config-csp.test.ts` | CSP includes required hosts, preserves Tone `blob:` allowances, keeps `unsafe-inline` but drops `unsafe-eval` in production, supports report-only mode |

@@ -20,6 +20,7 @@ Generate MIDI compositions from text prompts using LLMs. Users authenticate with
 - **Paginated history**: Load older generations on demand with server-side pagination
 - **History discovery tools**: Search across prompt/title/model/key/date with multi-word matching, relevance ranking + match highlights, and sorting by newest/oldest, length, track count, or key
 - **Expanded visualizer**: Open any saved generation in a detailed modal with piano-roll visualization
+- **Interactive landing demo**: Public landing hero now includes a real playable preset (same playback stack as the app)
 
 ## Tech Stack
 

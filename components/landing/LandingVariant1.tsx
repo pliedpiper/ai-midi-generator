@@ -1,8 +1,8 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import LandingHeader from './LandingHeader';
 import LandingFooter from './LandingFooter';
-import { FEATURES, SCREENSHOTS } from './landingData';
+import { FEATURES } from './landingData';
+import LandingPlaybackDemo from './LandingPlaybackDemo';
 
 /** Variant 1 — "Bold Hero": stark minimalism, typography-driven, lots of dark space. */
 const LandingVariant1: React.FC = () => (
@@ -36,16 +36,9 @@ const LandingVariant1: React.FC = () => (
       {/* Decorative gradient line */}
       <div className="mx-auto mt-16 h-px max-w-2xl bg-gradient-to-r from-transparent via-accent/60 to-transparent" />
 
-      {/* Hero screenshot */}
-      <div className="mx-auto mt-16 max-w-5xl overflow-hidden rounded-lg border border-surface-600 shadow-2xl">
-        <Image
-          src={SCREENSHOTS.pianoRoll}
-          alt="Piano roll visualization showing a multi-track MIDI composition"
-          width={1440}
-          height={810}
-          className="w-full"
-          priority
-        />
+      {/* Hero playback demo */}
+      <div className="mx-auto mt-16 max-w-5xl">
+        <LandingPlaybackDemo />
       </div>
     </section>
 
