@@ -113,34 +113,4 @@ describe('improvePrompt', () => {
       constraints: ''
     })).rejects.toThrow('Invalid response from server.');
   });
-
-  it('supports model-decided advanced settings in request payload', async () => {
-    vi.mocked(global.fetch).mockResolvedValue({
-      ok: true,
-      json: vi.fn().mockResolvedValue({ prompt: 'Improved prompt' }),
-    } as unknown as Response);
-
-    await improvePrompt({
-      prompt: 'A simple loop',
-      tempo: null,
-      key: null,
-      timeSignature: null,
-      durationBars: null,
-      constraints: ''
-    });
-
-    expect(global.fetch).toHaveBeenCalledWith(
-      '/api/prompt/improve',
-      expect.objectContaining({
-        body: JSON.stringify({
-          prompt: 'A simple loop',
-          tempo: null,
-          key: null,
-          timeSignature: null,
-          durationBars: null,
-          constraints: ''
-        })
-      })
-    );
-  });
 });

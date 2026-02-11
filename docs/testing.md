@@ -89,7 +89,7 @@ Reference: `vitest.config.ts`, `playwright.config.ts`.
 
 | File | Focus |
 |------|-------|
-| `tests/input-form.ui.test.tsx` | InputForm submission with auto/manual advanced fields + prompt improvement action |
+| `tests/input-form.ui.test.tsx` | InputForm submission with explicit advanced fields + prompt improvement action |
 | `tests/generator-app.ui.test.tsx` | Generator app key-setup gating and generation-attempt orchestration |
 | `tests/landing-playback-demo.ui.test.tsx` | Landing hero interactive playback demo wiring (play/stop, cleanup, and playback error surface) |
 | `tests/openRouterService.test.ts` | Client service error mapping for generate/improve endpoints |

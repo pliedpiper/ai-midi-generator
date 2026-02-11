@@ -69,22 +69,20 @@ export const validatePrefs = (prefs: unknown): PrefsValidationResult => {
     return { valid: false, error: `model must be one of: ${Array.from(ALLOWED_MODEL_IDS).join(', ')}` };
   }
 
-  // Normalize optional advanced settings. Null means "let model decide".
-  const tempo = typeof p.tempo === 'number' && Number.isFinite(p.tempo)
-    ? clampNumber(p.tempo, MIN_TEMPO, MAX_TEMPO, DEFAULT_TEMPO)
-    : null;
+  // Normalize tempo with clamping
+  const tempo = clampNumber(p.tempo, MIN_TEMPO, MAX_TEMPO, DEFAULT_TEMPO);
 
-  const key = typeof p.key === 'string' && p.key.trim()
-    ? p.key.trim()
-    : null;
+  // Normalize key (default to C Major if missing/invalid)
+  const key = typeof p.key === 'string' && p.key.trim() ? p.key.trim() : 'C Major';
 
-  const timeSignature = typeof p.timeSignature === 'string' && /^\d+\/\d+$/.test(p.timeSignature.trim())
-    ? p.timeSignature.trim()
-    : null;
+  // Normalize time signature (default to 4/4)
+  let timeSignature = '4/4';
+  if (typeof p.timeSignature === 'string' && /^\d+\/\d+$/.test(p.timeSignature.trim())) {
+    timeSignature = p.timeSignature.trim();
+  }
 
-  const durationBars = typeof p.durationBars === 'number' && Number.isFinite(p.durationBars)
-    ? clampNumber(p.durationBars, MIN_BARS, MAX_BARS, DEFAULT_BARS)
-    : null;
+  // Normalize duration bars with clamping
+  const durationBars = clampNumber(p.durationBars, MIN_BARS, MAX_BARS, DEFAULT_BARS);
 
   // Normalize constraints (allow empty, but limit length)
   let constraints = '';

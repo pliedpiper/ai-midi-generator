@@ -73,8 +73,8 @@ describe('validatePrefs', () => {
       expect(result.normalized).toMatchObject({
         prompt: 'syncopated groove',
         tempo: 300,
-        key: null,
-        timeSignature: null,
+        key: 'C Major',
+        timeSignature: '4/4',
         durationBars: 1,
         constraints: '',
         attemptCount: 5,
@@ -84,7 +84,7 @@ describe('validatePrefs', () => {
     }
   });
 
-  it('preserves null advanced settings for model-decided fields', () => {
+  it('normalizes null advanced settings to defaults', () => {
     const result = validatePrefs({
       ...validPrefs,
       tempo: null,
@@ -96,10 +96,10 @@ describe('validatePrefs', () => {
     expect(result.valid).toBe(true);
     if (result.valid) {
       expect(result.normalized).toMatchObject({
-        tempo: null,
-        key: null,
-        timeSignature: null,
-        durationBars: null
+        tempo: 120,
+        key: 'C Major',
+        timeSignature: '4/4',
+        durationBars: 8
       });
     }
   });

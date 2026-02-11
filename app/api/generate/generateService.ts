@@ -15,24 +15,16 @@ const createOpenRouterClient = (apiKey: string) => new OpenAI({
 });
 
 const buildPrompt = (id: number, prefs: UserPreferences) => {
-  const settings = [
-    prefs.tempo !== null ? `Tempo: ${prefs.tempo} BPM` : null,
-    prefs.key ? `Key: ${prefs.key}` : null,
-    prefs.timeSignature ? `Time Signature: ${prefs.timeSignature}` : null,
-    prefs.durationBars !== null ? `Length: ${prefs.durationBars} bars` : null,
-    prefs.constraints.trim() ? `Constraints: ${prefs.constraints}` : null
-  ].filter(Boolean).join('\n');
-
-  const settingsBlock = settings.length > 0 ? settings : 'Advanced settings: (none provided)';
-
   return `
 User Prompt: "${prefs.prompt}"
-${settingsBlock}
+Tempo: ${prefs.tempo} BPM
+Key: ${prefs.key}
+Time Signature: ${prefs.timeSignature}
+Length: ${prefs.durationBars} bars
+Constraints: ${prefs.constraints}
 
 Attempt Number: ${id}
 
-If an advanced setting is omitted, choose a musically appropriate value and include it in the JSON output.
-Respect any provided advanced settings exactly.
 Make this version musically unique compared to other attempts.
 Do not include attempt numbers, variation labels, IDs, or random suffixes in the title.
   `.trim();

@@ -17,7 +17,7 @@ describe("InputForm UI", () => {
     improvePromptMock.mockReset();
   });
 
-  it("submits with model-decided advanced fields by default", () => {
+  it("submits explicit advanced fields by default", () => {
     const onSubmit = vi.fn();
     render(<InputForm onSubmit={onSubmit} isGenerating={false} />);
 
@@ -32,24 +32,19 @@ describe("InputForm UI", () => {
     expect(submitted).toMatchObject({
       prompt: "A soft ambient piano loop.",
       model: DEFAULT_PREFERENCES.model,
-      tempo: null,
-      key: null,
-      timeSignature: null,
-      durationBars: null,
+      tempo: DEFAULT_PREFERENCES.tempo,
+      key: DEFAULT_PREFERENCES.key,
+      timeSignature: DEFAULT_PREFERENCES.timeSignature,
+      durationBars: DEFAULT_PREFERENCES.durationBars,
       attemptCount: DEFAULT_PREFERENCES.attemptCount,
     });
   });
 
-  it("submits explicit tempo when tempo auto toggle is disabled", () => {
+  it("submits explicit tempo when advanced tempo is edited", () => {
     const onSubmit = vi.fn();
     render(<InputForm onSubmit={onSubmit} isGenerating={false} />);
 
     fireEvent.click(screen.getByRole("button", { name: /Advanced/i }));
-
-    const autoToggles = screen.getAllByRole("checkbox", {
-      name: /Let model decide/i,
-    });
-    fireEvent.click(autoToggles[0]!);
 
     const tempoInput = screen.getAllByRole("spinbutton")[0];
     fireEvent.change(tempoInput, { target: { value: "142" } });

@@ -398,7 +398,7 @@ describe('POST /api/generate', () => {
     expect(await res.json()).toEqual({ error: 'Model returned invalid JSON.' });
   });
 
-  it('omits model-decided advanced settings from the user prompt', async () => {
+  it('normalizes missing advanced settings to explicit defaults in the user prompt', async () => {
     const { POST } = await import('../app/api/generate/route');
     createCompletionMock.mockResolvedValue({
       choices: [{ message: { content: validModelJson } }],
@@ -425,13 +425,13 @@ describe('POST /api/generate', () => {
     const userPrompt = (call.messages as Array<{ role: string; content: string }>)
       .find(message => message.role === 'user')?.content ?? '';
 
-    expect(userPrompt).toContain('Advanced settings: (none provided)');
-    expect(userPrompt).toContain('If an advanced setting is omitted');
-    expect(userPrompt).not.toContain('Tempo:');
-    expect(userPrompt).not.toContain('Key:');
-    expect(userPrompt).not.toContain('Time Signature:');
-    expect(userPrompt).not.toContain('Length:');
-    expect(userPrompt).not.toContain('Constraints:');
+    expect(userPrompt).toContain('Tempo: 120 BPM');
+    expect(userPrompt).toContain('Key: C Major');
+    expect(userPrompt).toContain('Time Signature: 4/4');
+    expect(userPrompt).toContain('Length: 8 bars');
+    expect(userPrompt).toContain('Constraints:');
+    expect(userPrompt).not.toContain('Advanced settings: (none provided)');
+    expect(userPrompt).not.toContain('If an advanced setting is omitted');
   });
 
   it('sanitizes noisy model titles before saving and returning composition', async () => {

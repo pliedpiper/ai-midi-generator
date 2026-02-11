@@ -11,8 +11,6 @@ Deployment: https://ai-midi-generator-murex.vercel.app/ (Vercel)
 - **In-browser playback**: Listen instantly with Tone.js synthesis
 - **Variations**: Generate up to 5 variations per prompt
 - **Advanced controls**: Tempo, key, time signature, duration, and constraints
-- **Per-field model choice**: Each advanced timing/key field can be set to "Let model decide"
-- **Scale snapping preserved**: When key is model-decided, snapping uses the generated composition key
 - **Prompt improver**: Refine prompt text in-place with Gemini 3 Flash using `prompts.md` tips
 - **MIDI export**: Download generated compositions as .mid files
 - **Clean generation titles**: Server-side title sanitization removes variation/hash artifacts with deterministic fallback naming
@@ -165,12 +163,11 @@ User OpenRouter keys are entered in the app after login and stored encrypted in 
 2. User adds OpenRouter key once (stored encrypted, per account).
 3. User describes desired music and starts generation.
 4. Optional: user can click **Improve prompt** to rewrite their text using the `prompts.md` guidance.
-5. User can leave any advanced timing/key field on **Let model decide**; omitted fields are chosen by the model.
-6. App sends prompt to selected LLM via OpenRouter using that user key.
-7. LLM returns structured JSON with tracks and note timing.
-8. App validates output, saves the generation row, and returns composition.
-9. Tone.js plays composition; user can download or view later in **My Generations**.
-10. Users can manage account settings in **Account** (email/password updates, data export, key removal, and account deletion).
+5. App sends prompt to selected LLM via OpenRouter using that user key.
+6. LLM returns structured JSON with tracks and note timing.
+7. App validates output, saves the generation row, and returns composition.
+8. Tone.js plays composition; user can download or view later in **My Generations**.
+9. Users can manage account settings in **Account** (email/password updates, data export, key removal, and account deletion).
 
 ## Security
 
