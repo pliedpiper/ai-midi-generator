@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import type { SavedGeneration } from '@/types';
+import { searchGenerations } from '@/utils/generationListUtils';
 
 export const runtime = 'nodejs';
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
+const SEARCH_QUERY_MAX_LENGTH = 200;
+const SEARCH_FETCH_CHUNK_SIZE = 500;
+const GENERATION_SELECT_COLUMNS = 'id, title, model, attempt_index, prefs, composition, created_at';
 
 const parsePositiveInt = (value: string, fallback: number) => {
   if (!value) {
@@ -21,6 +26,39 @@ const parsePositiveInt = (value: string, fallback: number) => {
   }
 
   return parsed;
+};
+
+const fetchAllUserGenerations = async (
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string
+): Promise<{ rows: SavedGeneration[]; error: unknown }> => {
+  const rows: SavedGeneration[] = [];
+  let chunkOffset = 0;
+
+  while (true) {
+    const chunkEnd = chunkOffset + SEARCH_FETCH_CHUNK_SIZE - 1;
+    const { data, error } = await supabase
+      .from('generations')
+      .select(GENERATION_SELECT_COLUMNS)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .range(chunkOffset, chunkEnd);
+
+    if (error) {
+      return { rows: [], error };
+    }
+
+    const chunkRows = (data ?? []) as SavedGeneration[];
+    rows.push(...chunkRows);
+
+    if (chunkRows.length < SEARCH_FETCH_CHUNK_SIZE) {
+      break;
+    }
+
+    chunkOffset += SEARCH_FETCH_CHUNK_SIZE;
+  }
+
+  return { rows, error: null };
 };
 
 export async function GET(req: Request) {
@@ -43,6 +81,7 @@ export async function GET(req: Request) {
     requestUrl.searchParams.get('offset') ?? '',
     0
   );
+  const searchQuery = (requestUrl.searchParams.get('q') ?? '').trim();
 
   if (
     requestedLimit === null ||
@@ -58,13 +97,45 @@ export async function GET(req: Request) {
     );
   }
 
+  if (searchQuery.length > SEARCH_QUERY_MAX_LENGTH) {
+    return NextResponse.json(
+      { error: `q must be ${SEARCH_QUERY_MAX_LENGTH} characters or less.` },
+      { status: 400 }
+    );
+  }
+
   const limit = requestedLimit;
   const offset = requestedOffset;
   const queryEnd = offset + limit;
 
+  if (searchQuery.length > 0) {
+    const { rows, error } = await fetchAllUserGenerations(supabase, user.id);
+    if (error) {
+      console.error('Failed to fetch generations for search:', error);
+      return NextResponse.json(
+        { error: 'Failed to fetch generations.' },
+        { status: 500 }
+      );
+    }
+
+    const ranked = searchGenerations(rows, searchQuery);
+    const generations = ranked.slice(offset, offset + limit);
+    const hasMore = offset + limit < ranked.length;
+
+    return NextResponse.json({
+      generations,
+      pagination: {
+        offset,
+        limit,
+        hasMore,
+        nextOffset: hasMore ? offset + limit : null
+      }
+    });
+  }
+
   const { data, error } = await supabase
     .from('generations')
-    .select('id, title, model, attempt_index, prefs, composition, created_at')
+    .select(GENERATION_SELECT_COLUMNS)
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .range(offset, queryEnd);

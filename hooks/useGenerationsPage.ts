@@ -10,7 +10,6 @@ import {
 } from "@/utils/midiUtils";
 import { buildMidiDownloadFilename } from "@/utils/downloadFilename";
 import {
-  searchGenerations,
   sortGenerations,
   type GenerationSortOption,
 } from "@/utils/generationListUtils";
@@ -47,6 +46,7 @@ type GenerationPagePayload = {
 };
 
 export const useGenerationsPage = () => {
+  const requestCounterRef = React.useRef(0);
   const [generations, setGenerations] = React.useState<SavedGeneration[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [loadingMore, setLoadingMore] = React.useState(false);
@@ -66,21 +66,38 @@ export const useGenerationsPage = () => {
 
   const visibleGenerations = React.useMemo(() => {
     if (deferredPromptQuery.trim().length > 0) {
-      return searchGenerations(generations, deferredPromptQuery);
+      return generations;
     }
     return sortGenerations(generations, sortOption);
   }, [deferredPromptQuery, generations, sortOption]);
 
-  const loadGenerations = React.useCallback(async (offset: number, append: boolean) => {
+  const loadGenerations = React.useCallback(async (
+    offset: number,
+    append: boolean,
+    query: string
+  ) => {
+    const normalizedQuery = query.trim();
+    const requestId = requestCounterRef.current + 1;
+    requestCounterRef.current = requestId;
+
     if (append) {
       setLoadingMore(true);
     } else {
       setLoading(true);
+      setLoadingMore(false);
     }
     setError(null);
 
     try {
-      const response = await fetch(`/api/generations?limit=${PAGE_SIZE}&offset=${offset}`, {
+      const params = new URLSearchParams({
+        limit: String(PAGE_SIZE),
+        offset: String(offset),
+      });
+      if (normalizedQuery.length > 0) {
+        params.set("q", normalizedQuery);
+      }
+
+      const response = await fetch(`/api/generations?${params.toString()}`, {
         cache: "no-store",
       });
       if (!response.ok) {
@@ -97,6 +114,10 @@ export const useGenerationsPage = () => {
       const payload = data as GenerationPagePayload;
       const items = Array.isArray(payload.generations) ? payload.generations : [];
       const mappedItems = items as SavedGeneration[];
+
+      if (requestCounterRef.current !== requestId) {
+        return;
+      }
 
       setGenerations((prev) => {
         if (!append) {
@@ -116,10 +137,16 @@ export const useGenerationsPage = () => {
           : null
       );
     } catch (loadError) {
+      if (requestCounterRef.current !== requestId) {
+        return;
+      }
       setError(
         loadError instanceof Error ? loadError.message : "Failed to load generations."
       );
     } finally {
+      if (requestCounterRef.current !== requestId) {
+        return;
+      }
       if (append) {
         setLoadingMore(false);
       } else {
@@ -129,8 +156,8 @@ export const useGenerationsPage = () => {
   }, []);
 
   React.useEffect(() => {
-    void loadGenerations(0, false);
-  }, [loadGenerations]);
+    void loadGenerations(0, false, deferredPromptQuery);
+  }, [deferredPromptQuery, loadGenerations]);
 
   React.useEffect(() => {
     return () => {
@@ -250,8 +277,8 @@ export const useGenerationsPage = () => {
       return;
     }
 
-    await loadGenerations(nextOffset, true);
-  }, [hasMore, nextOffset, loadingMore, loadGenerations]);
+    await loadGenerations(nextOffset, true, deferredPromptQuery);
+  }, [deferredPromptQuery, hasMore, loadGenerations, loadingMore, nextOffset]);
 
   const handleDownload = (generation: SavedGeneration) => {
     const blob = generateMidiBlob(generation.composition, getSnapOptions(generation));
@@ -304,6 +331,7 @@ export const useGenerationsPage = () => {
     expandedGeneration,
     currentBeat,
     promptQuery,
+    activeSearchQuery: deferredPromptQuery,
     sortOption,
     expandedPromptIds,
     setPromptQuery,

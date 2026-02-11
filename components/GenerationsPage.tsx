@@ -57,7 +57,7 @@ const GenerationsPage: React.FC<GenerationsPageProps> = ({ userEmail }) => {
 
             <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center">
               <label className="relative flex-1">
-                <span className="sr-only">Search by prompt text</span>
+                <span className="sr-only">Search saved generations</span>
                 <Search
                   size={14}
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
@@ -66,7 +66,7 @@ const GenerationsPage: React.FC<GenerationsPageProps> = ({ userEmail }) => {
                   type="text"
                   value={state.promptQuery}
                   onChange={(event) => state.setPromptQuery(event.target.value)}
-                  placeholder="Search by prompt text..."
+                  placeholder="Search title, prompt, model, key, or date..."
                   className="w-full bg-surface-800 border border-surface-600 rounded pl-9 pr-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:border-accent outline-none transition-colors"
                 />
               </label>
@@ -99,9 +99,14 @@ const GenerationsPage: React.FC<GenerationsPageProps> = ({ userEmail }) => {
                 <p className="text-xs text-text-muted">
                   Showing {state.visibleGenerations.length} of {state.generations.length}
                 </p>
-                {state.promptQuery.trim().length > 0 && (
+                {state.activeSearchQuery.trim().length > 0 && (
                   <p className="text-xs text-text-muted">
                     Search results are ranked by relevance, then recency.
+                  </p>
+                )}
+                {state.activeSearchQuery.trim().length > 0 && state.hasMore && (
+                  <p className="text-xs text-text-muted">
+                    Searching your full library. Load more to continue.
                   </p>
                 )}
               </div>
@@ -152,7 +157,7 @@ const GenerationsPage: React.FC<GenerationsPageProps> = ({ userEmail }) => {
                 ))}
               </div>
 
-              {state.promptQuery.trim().length === 0 && state.hasMore && (
+              {state.hasMore && (
                 <div className="mt-6 flex justify-center">
                   <button
                     type="button"
@@ -166,7 +171,11 @@ const GenerationsPage: React.FC<GenerationsPageProps> = ({ userEmail }) => {
                         : "border-surface-600 bg-surface-800 text-text-primary hover:border-surface-500 hover:bg-surface-700"
                     }`}
                   >
-                    {state.loadingMore ? "Loading..." : "Load more"}
+                    {state.loadingMore
+                      ? "Loading..."
+                      : state.activeSearchQuery.trim().length > 0
+                        ? "Load more matches"
+                        : "Load more"}
                   </button>
                 </div>
               )}

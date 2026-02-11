@@ -92,6 +92,17 @@ describe('GET /api/generations', () => {
     });
   });
 
+  it('returns 400 when q exceeds max length', async () => {
+    const { GET } = await import('../app/api/generations/route');
+    const query = 'a'.repeat(201);
+
+    const res = await GET(new Request(`http://localhost/api/generations?q=${query}`));
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({
+      error: 'q must be 200 characters or less.'
+    });
+  });
+
   it('returns paginated results with hasMore metadata', async () => {
     const rows = Array.from({ length: 51 }, (_, index) => ({
       id: `generation-${index + 1}`,
@@ -154,6 +165,65 @@ describe('GET /api/generations', () => {
       nextOffset: null
     });
     expect(supabaseRangeMock).toHaveBeenCalledWith(4, 6);
+  });
+
+  it('searches across full library and paginates ranked matches', async () => {
+    const rows = [
+      {
+        id: 'generation-1',
+        title: 'Ambient Dawn',
+        model: 'model-a',
+        attempt_index: 1,
+        prefs: { prompt: 'soft pads and bells' },
+        composition: { key: 'C Major' },
+        created_at: '2026-01-04T00:00:00.000Z'
+      },
+      {
+        id: 'generation-2',
+        title: 'Neon Bass',
+        model: 'model-b',
+        attempt_index: 2,
+        prefs: { prompt: 'ambient bassline groove' },
+        composition: { key: 'A Minor' },
+        created_at: '2026-01-03T00:00:00.000Z'
+      },
+      {
+        id: 'generation-3',
+        title: 'Midnight Loop',
+        model: 'ambient-model',
+        attempt_index: 3,
+        prefs: { prompt: 'tight sequencer pulse' },
+        composition: { key: 'E Minor' },
+        created_at: '2026-01-02T00:00:00.000Z'
+      },
+      {
+        id: 'generation-4',
+        title: 'Rock Study',
+        model: 'model-c',
+        attempt_index: 4,
+        prefs: { prompt: 'guitar riffs' },
+        composition: { key: 'D Major' },
+        created_at: '2026-01-01T00:00:00.000Z'
+      }
+    ];
+    supabaseRangeMock.mockResolvedValueOnce({ data: rows, error: null });
+    const { GET } = await import('../app/api/generations/route');
+
+    const res = await GET(
+      new Request('http://localhost/api/generations?q=ambient&limit=1&offset=1')
+    );
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.generations).toHaveLength(1);
+    expect(body.generations[0].id).toBe('generation-2');
+    expect(body.pagination).toEqual({
+      offset: 1,
+      limit: 1,
+      hasMore: true,
+      nextOffset: 2
+    });
+    expect(supabaseRangeMock).toHaveBeenCalledWith(0, 499);
   });
 
   it('returns 500 when query fails', async () => {

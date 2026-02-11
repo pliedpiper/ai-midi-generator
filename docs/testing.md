@@ -61,7 +61,7 @@ Reference: `vitest.config.ts`, `playwright.config.ts`.
 | `tests/prompt-improve-route.test.ts` | `POST /api/prompt/improve`: auth/key requirements, payload validation, rate limiting, Gemini rewriting behavior, key/BPM sanitization, provider error mapping |
 | `tests/openrouter-key-route.test.ts` | `/api/user/openrouter-key` GET/DELETE flow and configured-status response shape |
 | `tests/account-delete-route.test.ts` | `POST /api/account/delete`: auth guard, JSON/confirmation validation, RPC success/failure paths |
-| `tests/generations-route-get.test.ts` | `GET /api/generations`: auth guard, pagination parameter validation, hasMore/nextOffset metadata, and query failure mapping |
+| `tests/generations-route-get.test.ts` | `GET /api/generations`: auth guard, pagination and search-query validation, hasMore/nextOffset metadata, full-library ranked search pagination, and query failure mapping |
 | `tests/generations-route-delete.test.ts` | `DELETE /api/generations`: auth guard, delete/count error handling, deleted-count correctness |
 | `tests/auth-callback-route.test.ts` | `GET /auth/callback`: safe redirect sanitization and code-exchange behavior |
 
