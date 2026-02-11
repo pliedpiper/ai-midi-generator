@@ -58,17 +58,18 @@ export const useGenerationsPage = () => {
   const [expandedGenerationId, setExpandedGenerationId] = React.useState<string | null>(null);
   const [currentBeat, setCurrentBeat] = React.useState(0);
   const [promptQuery, setPromptQuery] = React.useState("");
+  const deferredPromptQuery = React.useDeferredValue(promptQuery);
   const [sortOption, setSortOption] = React.useState<GenerationSortOption>("newest");
   const [expandedPromptIds, setExpandedPromptIds] = React.useState<Set<string>>(
     () => new Set()
   );
 
   const visibleGenerations = React.useMemo(() => {
-    if (promptQuery.trim().length > 0) {
-      return searchGenerations(generations, promptQuery);
+    if (deferredPromptQuery.trim().length > 0) {
+      return searchGenerations(generations, deferredPromptQuery);
     }
     return sortGenerations(generations, sortOption);
-  }, [generations, promptQuery, sortOption]);
+  }, [deferredPromptQuery, generations, sortOption]);
 
   const loadGenerations = React.useCallback(async (offset: number, append: boolean) => {
     if (append) {
