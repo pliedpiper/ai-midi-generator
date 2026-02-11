@@ -2,6 +2,8 @@
 
 Generate MIDI compositions from text prompts using LLMs. Users authenticate with Supabase email/password login, configure their own OpenRouter key once, and every successful generation is auto-saved.
 
+Deployment: https://ai-midi-generator-murex.vercel.app/ (Vercel)
+
 ## Features
 
 - **Text-to-MIDI**: Describe music in natural language, get a MIDI file
@@ -18,6 +20,7 @@ Generate MIDI compositions from text prompts using LLMs. Users authenticate with
 - **Account settings**: Change email/password, manage OpenRouter key, export data, and delete account
 - **Saved history**: Replay/download/delete generations from **My Generations**
 - **Paginated history**: Load older generations on demand with server-side pagination
+- **Lazy history hydration**: History lists return lightweight metadata and load full composition JSON only when you play, expand, or download an item
 - **History discovery tools**: Search across your full saved library (server-side) by prompt/title/model/key/date with multi-word matching, relevance ranking + match highlights, plus sorting by newest/oldest, length, track count, or key
 - **Expanded visualizer**: Open any saved generation in a detailed modal with piano-roll visualization
 - **Interactive landing demo**: Public landing hero now includes a real playable preset (same playback stack as the app)

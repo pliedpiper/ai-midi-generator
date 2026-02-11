@@ -13,6 +13,14 @@ const isPublicPath = (pathname: string) =>
 const isApiPath = (pathname: string) => pathname.startsWith('/api/');
 
 export const updateSession = async (request: NextRequest) => {
+  const pathname = request.nextUrl.pathname;
+  const publicPath = isPublicPath(pathname);
+  const apiPath = isApiPath(pathname);
+
+  if (apiPath) {
+    return NextResponse.next({ request });
+  }
+
   let response = NextResponse.next({
     request
   });
@@ -39,10 +47,6 @@ export const updateSession = async (request: NextRequest) => {
   const {
     data: { user }
   } = await supabase.auth.getUser();
-
-  const pathname = request.nextUrl.pathname;
-  const publicPath = isPublicPath(pathname);
-  const apiPath = isApiPath(pathname);
 
   if (!user && !publicPath && !apiPath) {
     const redirectUrl = request.nextUrl.clone();

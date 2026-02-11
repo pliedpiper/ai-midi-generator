@@ -2,11 +2,13 @@
 
 import React from 'react';
 import { Download, Play, Square, X } from 'lucide-react';
-import type { SavedGeneration } from '@/types';
+import type { MidiComposition, SavedGeneration } from '@/types';
 import PianoRoll from './PianoRoll';
 
+type ExpandedGeneration = SavedGeneration & { composition: MidiComposition };
+
 interface ExpandedGenerationModalProps {
-  generation: SavedGeneration | null;
+  generation: ExpandedGeneration | null;
   isOpen: boolean;
   isPlaying: boolean;
   currentBeat: number;

@@ -1,15 +1,13 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import type { SavedGeneration } from '@/types';
-import { searchGenerations } from '@/utils/generationListUtils';
 
 export const runtime = 'nodejs';
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
 const SEARCH_QUERY_MAX_LENGTH = 200;
-const SEARCH_FETCH_CHUNK_SIZE = 500;
-const GENERATION_SELECT_COLUMNS = 'id, title, model, attempt_index, prefs, composition, created_at';
+const GENERATION_LIST_SELECT_COLUMNS =
+  'id, title, model, attempt_index, prefs, composition_key:composition->>key, created_at';
 
 const parsePositiveInt = (value: string, fallback: number) => {
   if (!value) {
@@ -28,38 +26,12 @@ const parsePositiveInt = (value: string, fallback: number) => {
   return parsed;
 };
 
-const fetchAllUserGenerations = async (
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string
-): Promise<{ rows: SavedGeneration[]; error: unknown }> => {
-  const rows: SavedGeneration[] = [];
-  let chunkOffset = 0;
-
-  while (true) {
-    const chunkEnd = chunkOffset + SEARCH_FETCH_CHUNK_SIZE - 1;
-    const { data, error } = await supabase
-      .from('generations')
-      .select(GENERATION_SELECT_COLUMNS)
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .range(chunkOffset, chunkEnd);
-
-    if (error) {
-      return { rows: [], error };
-    }
-
-    const chunkRows = (data ?? []) as SavedGeneration[];
-    rows.push(...chunkRows);
-
-    if (chunkRows.length < SEARCH_FETCH_CHUNK_SIZE) {
-      break;
-    }
-
-    chunkOffset += SEARCH_FETCH_CHUNK_SIZE;
-  }
-
-  return { rows, error: null };
-};
+const sanitizeSearchQuery = (raw: string) =>
+  raw
+    .replace(/[%_]/g, '')
+    .replace(/[(),]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 
 export async function GET(req: Request) {
   const supabase = await createClient();
@@ -107,36 +79,32 @@ export async function GET(req: Request) {
   const limit = requestedLimit;
   const offset = requestedOffset;
   const queryEnd = offset + limit;
+  let query = supabase
+    .from('generations')
+    .select(GENERATION_LIST_SELECT_COLUMNS)
+    .eq('user_id', user.id);
 
   if (searchQuery.length > 0) {
-    const { rows, error } = await fetchAllUserGenerations(supabase, user.id);
-    if (error) {
-      console.error('Failed to fetch generations for search:', error);
-      return NextResponse.json(
-        { error: 'Failed to fetch generations.' },
-        { status: 500 }
-      );
+    const normalizedSearch = sanitizeSearchQuery(searchQuery);
+    if (normalizedSearch.length === 0) {
+      return NextResponse.json({
+        generations: [],
+        pagination: {
+          offset,
+          limit,
+          hasMore: false,
+          nextOffset: null
+        }
+      });
     }
 
-    const ranked = searchGenerations(rows, searchQuery);
-    const generations = ranked.slice(offset, offset + limit);
-    const hasMore = offset + limit < ranked.length;
-
-    return NextResponse.json({
-      generations,
-      pagination: {
-        offset,
-        limit,
-        hasMore,
-        nextOffset: hasMore ? offset + limit : null
-      }
-    });
+    const searchPattern = `%${normalizedSearch}%`;
+    query = query.or(
+      `title.ilike.${searchPattern},model.ilike.${searchPattern},prefs->>prompt.ilike.${searchPattern},composition->>key.ilike.${searchPattern}`
+    );
   }
 
-  const { data, error } = await supabase
-    .from('generations')
-    .select(GENERATION_SELECT_COLUMNS)
-    .eq('user_id', user.id)
+  const { data, error } = await query
     .order('created_at', { ascending: false })
     .range(offset, queryEnd);
 

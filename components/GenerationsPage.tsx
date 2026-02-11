@@ -101,12 +101,12 @@ const GenerationsPage: React.FC<GenerationsPageProps> = ({ userEmail }) => {
                 </p>
                 {state.activeSearchQuery.trim().length > 0 && (
                   <p className="text-xs text-text-muted">
-                    Search results are ranked by relevance, then recency.
+                    Search results are filtered server-side and ranked by relevance.
                   </p>
                 )}
                 {state.activeSearchQuery.trim().length > 0 && state.hasMore && (
                   <p className="text-xs text-text-muted">
-                    Searching your full library. Load more to continue.
+                    Load more to keep searching older generations.
                   </p>
                 )}
               </div>
@@ -147,8 +147,12 @@ const GenerationsPage: React.FC<GenerationsPageProps> = ({ userEmail }) => {
                     onPlayToggle={(item) => {
                       void state.handlePlayToggle(item);
                     }}
-                    onDownload={state.handleDownload}
-                    onExpand={state.setExpandedGenerationId}
+                    onDownload={(item) => {
+                      void state.handleDownload(item);
+                    }}
+                    onExpand={(id) => {
+                      void state.handleExpand(id);
+                    }}
                     onDelete={(id) => {
                       void state.handleDelete(id);
                     }}
@@ -198,7 +202,7 @@ const GenerationsPage: React.FC<GenerationsPageProps> = ({ userEmail }) => {
         onStop={state.handleStopPlayback}
         onDownload={() => {
           if (state.expandedGeneration) {
-            state.handleDownload(state.expandedGeneration);
+            void state.handleDownload(state.expandedGeneration);
           }
         }}
       />

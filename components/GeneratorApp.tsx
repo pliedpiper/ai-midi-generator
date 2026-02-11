@@ -54,6 +54,8 @@ const createIdempotencyKey = () => {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 };
 
+const MAX_PARALLEL_ATTEMPTS = 2;
+
 const GeneratorApp: React.FC<GeneratorAppProps> = ({
   userEmail,
   initialHasApiKey,
@@ -142,11 +144,11 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
     resetAttempts(prefs.attemptCount);
     const idempotencyKey = createIdempotencyKey();
 
-    // Launch parallel attempts based on attemptCount
-    const attemptPromises = Array.from(
-      { length: prefs.attemptCount },
-      (_, i) => i + 1,
-    ).map(async (id) => {
+    const attemptIds = Array.from({ length: prefs.attemptCount }, (_, i) => i + 1);
+    const results: Array<{ id: number; success: boolean }> = [];
+    let nextAttemptIndex = 0;
+
+    const runAttempt = async (id: number) => {
       try {
         // Add small delay to avoid exact same microsecond timestamp seeds if logic relies on it
         await new Promise((r) => setTimeout(r, id * 100));
@@ -162,7 +164,7 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
               : a,
           ),
         );
-        return { id, data: composition, success: true };
+        return { id, success: true };
       } catch (err) {
         const message =
           err instanceof Error ? err.message : "Failed to generate JSON";
@@ -173,9 +175,20 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
         );
         return { id, success: false };
       }
-    });
+    };
 
-    const results = await Promise.all(attemptPromises);
+    const workerCount = Math.min(MAX_PARALLEL_ATTEMPTS, attemptIds.length);
+    await Promise.all(
+      Array.from({ length: workerCount }, async () => {
+        while (nextAttemptIndex < attemptIds.length) {
+          const id = attemptIds[nextAttemptIndex];
+          nextAttemptIndex += 1;
+          const result = await runAttempt(id);
+          results.push(result);
+        }
+      }),
+    );
+
     const successfulAttempts = results.filter((r) => r.success);
 
     if (successfulAttempts.length === 0) {

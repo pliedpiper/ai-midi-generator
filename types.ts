@@ -59,6 +59,9 @@ export interface SavedGeneration {
   model: string;
   attempt_index: number;
   prefs: UserPreferences;
-  composition: MidiComposition;
+  composition: MidiComposition | null;
+  composition_key?: string | null;
+  track_count?: number | null;
+  duration_beats?: number | null;
   created_at: string;
 }

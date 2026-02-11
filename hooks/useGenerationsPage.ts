@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import type { SavedGeneration, SnapOptions } from "@/types";
+import type { MidiComposition, SavedGeneration, SnapOptions } from "@/types";
 import {
   generateMidiBlob,
   getTransportBeatPosition,
@@ -10,12 +10,23 @@ import {
 } from "@/utils/midiUtils";
 import { buildMidiDownloadFilename } from "@/utils/downloadFilename";
 import {
+  searchGenerations,
   sortGenerations,
   type GenerationSortOption,
 } from "@/utils/generationListUtils";
 import { parseKeyString } from "@/utils/scaleUtils";
 
 const PAGE_SIZE = 50;
+
+const calculateDurationBeats = (composition: MidiComposition): number =>
+  composition.tracks.reduce((trackMax, track) => {
+    const noteMax = track.notes.reduce(
+      (noteEndMax, note) =>
+        Math.max(noteEndMax, note.time + Math.max(note.duration, 0.001)),
+      0
+    );
+    return Math.max(trackMax, noteMax);
+  }, 0);
 
 const getSnapOptions = (generation: SavedGeneration): SnapOptions | undefined => {
   const prefs = generation.prefs;
@@ -45,8 +56,72 @@ type GenerationPagePayload = {
   };
 };
 
+type GenerationDetailPayload = {
+  generation?: unknown;
+};
+
+type SavedGenerationWithComposition = SavedGeneration & { composition: MidiComposition };
+
+const hasComposition = (
+  generation: SavedGeneration
+): generation is SavedGenerationWithComposition =>
+  generation.composition !== null;
+
+const normalizeGeneration = (raw: unknown): SavedGeneration | null => {
+  if (!raw || typeof raw !== "object") {
+    return null;
+  }
+
+  const candidate = raw as Partial<SavedGeneration>;
+  if (
+    typeof candidate.id !== "string" ||
+    typeof candidate.title !== "string" ||
+    typeof candidate.model !== "string" ||
+    typeof candidate.attempt_index !== "number" ||
+    !candidate.prefs ||
+    typeof candidate.prefs !== "object" ||
+    typeof candidate.created_at !== "string"
+  ) {
+    return null;
+  }
+
+  const composition =
+    candidate.composition && typeof candidate.composition === "object"
+      ? (candidate.composition as MidiComposition)
+      : null;
+
+  return {
+    id: candidate.id,
+    title: candidate.title,
+    model: candidate.model,
+    attempt_index: candidate.attempt_index,
+    prefs: candidate.prefs as SavedGeneration["prefs"],
+    composition,
+    composition_key:
+      typeof candidate.composition_key === "string"
+        ? candidate.composition_key
+        : composition?.key ?? null,
+    track_count:
+      typeof candidate.track_count === "number" && Number.isFinite(candidate.track_count)
+        ? Math.max(0, Math.round(candidate.track_count))
+        : composition
+          ? composition.tracks.length
+          : null,
+    duration_beats:
+      typeof candidate.duration_beats === "number" && Number.isFinite(candidate.duration_beats)
+        ? Math.max(0, candidate.duration_beats)
+        : composition
+          ? calculateDurationBeats(composition)
+          : null,
+    created_at: candidate.created_at,
+  };
+};
+
 export const useGenerationsPage = () => {
   const requestCounterRef = React.useRef(0);
+  const detailRequestsRef = React.useRef<Map<string, Promise<SavedGeneration>>>(
+    new Map()
+  );
   const [generations, setGenerations] = React.useState<SavedGeneration[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [loadingMore, setLoadingMore] = React.useState(false);
@@ -66,7 +141,7 @@ export const useGenerationsPage = () => {
 
   const visibleGenerations = React.useMemo(() => {
     if (deferredPromptQuery.trim().length > 0) {
-      return generations;
+      return searchGenerations(generations, deferredPromptQuery);
     }
     return sortGenerations(generations, sortOption);
   }, [deferredPromptQuery, generations, sortOption]);
@@ -113,19 +188,38 @@ export const useGenerationsPage = () => {
       const data: unknown = await response.json();
       const payload = data as GenerationPagePayload;
       const items = Array.isArray(payload.generations) ? payload.generations : [];
-      const mappedItems = items as SavedGeneration[];
+      const mappedItems = items
+        .map((item) => normalizeGeneration(item))
+        .filter((item): item is SavedGeneration => item !== null);
 
       if (requestCounterRef.current !== requestId) {
         return;
       }
 
       setGenerations((prev) => {
+        const existingById = new Map(prev.map((item) => [item.id, item]));
+
+        const mergedIncoming = mappedItems.map((item) => {
+          const existing = existingById.get(item.id);
+          if (!existing) {
+            return item;
+          }
+
+          return {
+            ...item,
+            composition: item.composition ?? existing.composition,
+            composition_key: item.composition_key ?? existing.composition_key ?? null,
+            track_count: item.track_count ?? existing.track_count ?? null,
+            duration_beats: item.duration_beats ?? existing.duration_beats ?? null,
+          };
+        });
+
         if (!append) {
-          return mappedItems;
+          return mergedIncoming;
         }
 
         const seen = new Set(prev.map((item) => item.id));
-        const deduped = mappedItems.filter((item) => !seen.has(item.id));
+        const deduped = mergedIncoming.filter((item) => !seen.has(item.id));
         return [...prev, ...deduped];
       });
 
@@ -160,15 +254,17 @@ export const useGenerationsPage = () => {
   }, [deferredPromptQuery, loadGenerations]);
 
   React.useEffect(() => {
+    const detailRequests = detailRequestsRef.current;
     return () => {
       stopPlayback();
+      detailRequests.clear();
     };
   }, []);
 
   React.useEffect(() => {
     if (playingId === null) return;
     const activeGeneration = generations.find((item) => item.id === playingId);
-    if (!activeGeneration) return;
+    if (!activeGeneration?.composition) return;
 
     let animationFrame = 0;
     const tempo = activeGeneration.composition.tempo;
@@ -201,7 +297,9 @@ export const useGenerationsPage = () => {
 
   React.useEffect(() => {
     if (expandedGenerationId === null) return;
-    const hasExpandedGeneration = generations.some((item) => item.id === expandedGenerationId);
+    const hasExpandedGeneration = generations.some(
+      (item) => item.id === expandedGenerationId && item.composition
+    );
     if (!hasExpandedGeneration) {
       setExpandedGenerationId(null);
     }
@@ -217,6 +315,80 @@ export const useGenerationsPage = () => {
     }
   }, [playingId, visibleGenerations]);
 
+  const ensureCompositionLoaded = React.useCallback(
+    async (generation: SavedGeneration): Promise<SavedGeneration> => {
+      if (generation.composition) {
+        return generation;
+      }
+
+      const existingRequest = detailRequestsRef.current.get(generation.id);
+      if (existingRequest) {
+        return existingRequest;
+      }
+
+      const request = (async () => {
+        const response = await fetch(`/api/generations/${generation.id}`, {
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          const data: unknown = await response.json().catch(() => ({}));
+          const payload = data as { error?: unknown };
+          const message =
+            typeof payload.error === "string"
+              ? payload.error
+              : "Failed to load generation details.";
+          throw new Error(message);
+        }
+
+        const data: unknown = await response.json();
+        const payload = data as GenerationDetailPayload;
+        const normalized = normalizeGeneration(payload.generation);
+        if (!normalized?.composition) {
+          throw new Error("Generation details are missing composition data.");
+        }
+        const fullComposition = normalized.composition;
+
+        setGenerations((prev) =>
+          prev.map((item) =>
+            item.id === generation.id
+              ? {
+                  ...item,
+                  ...normalized,
+                  composition: fullComposition,
+                  composition_key:
+                    normalized.composition_key ?? fullComposition.key,
+                  track_count:
+                    normalized.track_count ?? fullComposition.tracks.length,
+                  duration_beats:
+                    normalized.duration_beats ??
+                    calculateDurationBeats(fullComposition),
+                }
+              : item
+          )
+        );
+
+        return {
+          ...generation,
+          ...normalized,
+          composition: fullComposition,
+          composition_key: normalized.composition_key ?? fullComposition.key,
+          track_count: normalized.track_count ?? fullComposition.tracks.length,
+          duration_beats:
+            normalized.duration_beats ?? calculateDurationBeats(fullComposition),
+        };
+      })();
+
+      detailRequestsRef.current.set(generation.id, request);
+      try {
+        return await request;
+      } finally {
+        detailRequestsRef.current.delete(generation.id);
+      }
+    },
+    []
+  );
+
   const handlePlayToggle = async (generation: SavedGeneration) => {
     if (playingId === generation.id) {
       stopPlayback();
@@ -226,8 +398,16 @@ export const useGenerationsPage = () => {
     }
 
     try {
-      await playComposition(generation.composition, getSnapOptions(generation));
-      setPlayingId(generation.id);
+      const playableGeneration = await ensureCompositionLoaded(generation);
+      if (!playableGeneration.composition) {
+        throw new Error("Generation has no composition data.");
+      }
+
+      await playComposition(
+        playableGeneration.composition,
+        getSnapOptions(playableGeneration)
+      );
+      setPlayingId(playableGeneration.id);
       setCurrentBeat(0);
     } catch (playError) {
       setError(playError instanceof Error ? playError.message : "Playback failed.");
@@ -280,21 +460,63 @@ export const useGenerationsPage = () => {
     await loadGenerations(nextOffset, true, deferredPromptQuery);
   }, [deferredPromptQuery, hasMore, loadGenerations, loadingMore, nextOffset]);
 
-  const handleDownload = (generation: SavedGeneration) => {
-    const blob = generateMidiBlob(generation.composition, getSnapOptions(generation));
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = buildMidiDownloadFilename({
-      title: generation.title || generation.composition?.title,
-      key: generation.composition?.key,
-      tempo: generation.composition?.tempo,
-      fallbackTitle: `generation-${generation.attempt_index || generation.id}`,
-    });
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
+  const handleDownload = async (generation: SavedGeneration) => {
+    try {
+      const downloadableGeneration = await ensureCompositionLoaded(generation);
+      if (!downloadableGeneration.composition) {
+        throw new Error("Generation has no composition data.");
+      }
+
+      const blob = generateMidiBlob(
+        downloadableGeneration.composition,
+        getSnapOptions(downloadableGeneration)
+      );
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = buildMidiDownloadFilename({
+        title:
+          downloadableGeneration.title ||
+          downloadableGeneration.composition?.title,
+        key: downloadableGeneration.composition?.key,
+        tempo: downloadableGeneration.composition?.tempo,
+        fallbackTitle: `generation-${
+          downloadableGeneration.attempt_index || downloadableGeneration.id
+        }`,
+      });
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (downloadError) {
+      setError(
+        downloadError instanceof Error
+          ? downloadError.message
+          : "Failed to download generation."
+      );
+    }
+  };
+
+  const handleExpand = async (generationId: string) => {
+    const generation = generations.find((item) => item.id === generationId);
+    if (!generation) {
+      return;
+    }
+
+    setError(null);
+    try {
+      const expanded = await ensureCompositionLoaded(generation);
+      if (!expanded.composition) {
+        throw new Error("Generation has no composition data.");
+      }
+      setExpandedGenerationId(expanded.id);
+    } catch (expandError) {
+      setError(
+        expandError instanceof Error
+          ? expandError.message
+          : "Failed to open generation details."
+      );
+    }
   };
 
   const togglePromptExpansion = React.useCallback((generationId: string) => {
@@ -316,7 +538,10 @@ export const useGenerationsPage = () => {
   }, []);
 
   const expandedGeneration =
-    generations.find((item) => item.id === expandedGenerationId) ?? null;
+    generations.find(
+      (item): item is SavedGenerationWithComposition =>
+        item.id === expandedGenerationId && hasComposition(item)
+    ) ?? null;
 
   return {
     loading,
@@ -337,6 +562,7 @@ export const useGenerationsPage = () => {
     setPromptQuery,
     setSortOption,
     setExpandedGenerationId,
+    handleExpand,
     handleLoadMore,
     handlePlayToggle,
     handleDelete,

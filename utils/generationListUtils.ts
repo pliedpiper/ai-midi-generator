@@ -31,6 +31,10 @@ export const getPromptText = (generation: SavedGeneration): string => {
 };
 
 export const getCompositionKey = (generation: SavedGeneration): string => {
+  if (typeof generation.composition_key === 'string' && generation.composition_key.trim().length > 0) {
+    return generation.composition_key.trim();
+  }
+
   const compositionKey = generation.composition?.key;
   if (typeof compositionKey === 'string' && compositionKey.trim().length > 0) {
     return compositionKey.trim();
@@ -45,6 +49,10 @@ export const getCompositionKey = (generation: SavedGeneration): string => {
 };
 
 export const getTrackCount = (generation: SavedGeneration): number => {
+  if (typeof generation.track_count === 'number' && Number.isFinite(generation.track_count)) {
+    return Math.max(0, Math.round(generation.track_count));
+  }
+
   const tracks = generation.composition?.tracks;
   return Array.isArray(tracks) ? tracks.length : 0;
 };
@@ -85,8 +93,16 @@ const matchesTerm = (term: string, searchableText: string, words: string[]): boo
 };
 
 export const getDurationBeats = (generation: SavedGeneration): number => {
+  if (typeof generation.duration_beats === 'number' && Number.isFinite(generation.duration_beats)) {
+    return Math.max(0, generation.duration_beats);
+  }
+
   const tracks = generation.composition?.tracks;
   if (!Array.isArray(tracks) || tracks.length === 0) {
+    const prefsDuration = generation.prefs?.durationBars;
+    if (typeof prefsDuration === 'number' && Number.isFinite(prefsDuration) && prefsDuration > 0) {
+      return prefsDuration * 4;
+    }
     return 0;
   }
 

@@ -6,6 +6,7 @@ const {
   supabaseFromMock,
   supabaseSelectMock,
   supabaseEqMock,
+  supabaseOrMock,
   supabaseOrderMock,
   supabaseRangeMock
 } = vi.hoisted(() => ({
@@ -14,6 +15,7 @@ const {
   supabaseFromMock: vi.fn(),
   supabaseSelectMock: vi.fn(),
   supabaseEqMock: vi.fn(),
+  supabaseOrMock: vi.fn(),
   supabaseOrderMock: vi.fn(),
   supabaseRangeMock: vi.fn()
 }));
@@ -29,6 +31,7 @@ beforeEach(() => {
   supabaseFromMock.mockReset();
   supabaseSelectMock.mockReset();
   supabaseEqMock.mockReset();
+  supabaseOrMock.mockReset();
   supabaseOrderMock.mockReset();
   supabaseRangeMock.mockReset();
 
@@ -36,7 +39,12 @@ beforeEach(() => {
     range: supabaseRangeMock
   });
 
+  supabaseOrMock.mockReturnValue({
+    order: supabaseOrderMock
+  });
+
   supabaseEqMock.mockReturnValue({
+    or: supabaseOrMock,
     order: supabaseOrderMock
   });
 
@@ -110,7 +118,7 @@ describe('GET /api/generations', () => {
       model: 'test-model',
       attempt_index: index + 1,
       prefs: {},
-      composition: {},
+      composition_key: 'C Major',
       created_at: `2026-01-${String(index + 1).padStart(2, '0')}T00:00:00.000Z`
     }));
     supabaseRangeMock.mockResolvedValueOnce({ data: rows, error: null });
@@ -137,7 +145,7 @@ describe('GET /api/generations', () => {
         model: 'test-model',
         attempt_index: 5,
         prefs: {},
-        composition: {},
+        composition_key: 'C Major',
         created_at: '2026-01-05T00:00:00.000Z'
       },
       {
@@ -146,7 +154,7 @@ describe('GET /api/generations', () => {
         model: 'test-model',
         attempt_index: 6,
         prefs: {},
-        composition: {},
+        composition_key: 'D Minor',
         created_at: '2026-01-04T00:00:00.000Z'
       }
     ];
@@ -167,24 +175,15 @@ describe('GET /api/generations', () => {
     expect(supabaseRangeMock).toHaveBeenCalledWith(4, 6);
   });
 
-  it('searches across full library and paginates ranked matches', async () => {
+  it('applies server-side search filters and paginates matches', async () => {
     const rows = [
-      {
-        id: 'generation-1',
-        title: 'Ambient Dawn',
-        model: 'model-a',
-        attempt_index: 1,
-        prefs: { prompt: 'soft pads and bells' },
-        composition: { key: 'C Major' },
-        created_at: '2026-01-04T00:00:00.000Z'
-      },
       {
         id: 'generation-2',
         title: 'Neon Bass',
         model: 'model-b',
         attempt_index: 2,
         prefs: { prompt: 'ambient bassline groove' },
-        composition: { key: 'A Minor' },
+        composition_key: 'A Minor',
         created_at: '2026-01-03T00:00:00.000Z'
       },
       {
@@ -193,17 +192,8 @@ describe('GET /api/generations', () => {
         model: 'ambient-model',
         attempt_index: 3,
         prefs: { prompt: 'tight sequencer pulse' },
-        composition: { key: 'E Minor' },
+        composition_key: 'E Minor',
         created_at: '2026-01-02T00:00:00.000Z'
-      },
-      {
-        id: 'generation-4',
-        title: 'Rock Study',
-        model: 'model-c',
-        attempt_index: 4,
-        prefs: { prompt: 'guitar riffs' },
-        composition: { key: 'D Major' },
-        created_at: '2026-01-01T00:00:00.000Z'
       }
     ];
     supabaseRangeMock.mockResolvedValueOnce({ data: rows, error: null });
@@ -223,7 +213,10 @@ describe('GET /api/generations', () => {
       hasMore: true,
       nextOffset: 2
     });
-    expect(supabaseRangeMock).toHaveBeenCalledWith(0, 499);
+    expect(supabaseOrMock).toHaveBeenCalledWith(
+      'title.ilike.%ambient%,model.ilike.%ambient%,prefs->>prompt.ilike.%ambient%,composition->>key.ilike.%ambient%'
+    );
+    expect(supabaseRangeMock).toHaveBeenCalledWith(1, 2);
   });
 
   it('returns 500 when query fails', async () => {
