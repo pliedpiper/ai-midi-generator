@@ -63,6 +63,7 @@ export const AVAILABLE_MODELS = [
   { id: "google/gemini-2.5-pro", name: "Gemini 2.5 Pro" },
   { id: "google/gemini-3-flash-preview", name: "Gemini 3 Flash Preview" },
   { id: "google/gemini-3-pro-preview", name: "Gemini 3 Pro Preview" },
+  { id: "z-ai/glm-5", name: "GLM 5" },
   { id: "z-ai/glm-4.7-flash", name: "GLM 4.7 Flash" },
   { id: "openai/gpt-5.2", name: "GPT-5.2" },
   { id: "openai/gpt-5.2-chat", name: "GPT-5.2 Chat" },
