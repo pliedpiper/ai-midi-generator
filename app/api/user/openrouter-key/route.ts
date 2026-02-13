@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requireAuthenticatedUser } from '@/lib/api/auth';
+import { parseJsonBodyWithLimit } from '@/lib/api/request';
 import {
   upsertEncryptedOpenRouterKey,
   validateOpenRouterApiKey
@@ -12,14 +14,11 @@ const MAX_BODY_SIZE = 2_000;
 
 export async function GET() {
   const supabase = await createClient();
-  const {
-    data: { user },
-    error: userError
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+  const authResult = await requireAuthenticatedUser(supabase, 'Unauthorized.');
+  if (authResult.ok === false) {
+    return authResult.response;
   }
+  const user = authResult.user;
 
   try {
     const { data, error } = await supabase
@@ -47,27 +46,18 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const supabase = await createClient();
-  const {
-    data: { user },
-    error: userError
-  } = await supabase.auth.getUser();
+  const authResult = await requireAuthenticatedUser(supabase, 'Unauthorized.');
+  if (authResult.ok === false) {
+    return authResult.response;
+  }
+  const user = authResult.user;
 
-  if (userError || !user) {
-    return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+  const parsedBody = await parseJsonBodyWithLimit<{ apiKey?: unknown }>(req, MAX_BODY_SIZE);
+  if (parsedBody.ok === false) {
+    return parsedBody.response;
   }
 
-  let body: { apiKey?: unknown };
-  try {
-    const text = await req.text();
-    if (text.length > MAX_BODY_SIZE) {
-      return NextResponse.json({ error: 'Request body too large.' }, { status: 413 });
-    }
-    body = JSON.parse(text);
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 });
-  }
-
-  const validationResult = validateOpenRouterApiKey(body.apiKey);
+  const validationResult = validateOpenRouterApiKey(parsedBody.data.apiKey);
   if (validationResult.valid === false) {
     return NextResponse.json({ error: validationResult.error }, { status: 400 });
   }
@@ -100,14 +90,11 @@ export async function POST(req: Request) {
 
 export async function DELETE() {
   const supabase = await createClient();
-  const {
-    data: { user },
-    error: userError
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+  const authResult = await requireAuthenticatedUser(supabase, 'Unauthorized.');
+  if (authResult.ok === false) {
+    return authResult.response;
   }
+  const user = authResult.user;
 
   try {
     const { error } = await supabase

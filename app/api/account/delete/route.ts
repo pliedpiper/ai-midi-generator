@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requireAuthenticatedUser } from '@/lib/api/auth';
+import { parseJsonBodyWithLimit } from '@/lib/api/request';
 
 export const runtime = 'nodejs';
 
@@ -12,26 +14,17 @@ type DeleteAccountBody = {
 
 export async function POST(req: Request) {
   const supabase = await createClient();
-  const {
-    data: { user },
-    error: userError
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+  const authResult = await requireAuthenticatedUser(supabase, 'Unauthorized.');
+  if (authResult.ok === false) {
+    return authResult.response;
   }
 
-  let body: DeleteAccountBody;
-  try {
-    const text = await req.text();
-    if (text.length > MAX_BODY_SIZE) {
-      return NextResponse.json({ error: 'Request body too large.' }, { status: 413 });
-    }
-    body = JSON.parse(text);
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 });
+  const parsedBody = await parseJsonBodyWithLimit<DeleteAccountBody>(req, MAX_BODY_SIZE);
+  if (parsedBody.ok === false) {
+    return parsedBody.response;
   }
 
+  const body = parsedBody.data;
   if (typeof body.confirmation !== 'string' || body.confirmation.trim() !== REQUIRED_CONFIRMATION) {
     return NextResponse.json(
       { error: `Type ${REQUIRED_CONFIRMATION} to confirm account deletion.` },

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requireAuthenticatedUser } from '@/lib/api/auth';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -15,14 +16,11 @@ export async function GET(
   }
 
   const supabase = await createClient();
-  const {
-    data: { user },
-    error: userError
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+  const authResult = await requireAuthenticatedUser(supabase, 'Unauthorized.');
+  if (authResult.ok === false) {
+    return authResult.response;
   }
+  const user = authResult.user;
 
   const { data, error } = await supabase
     .from('generations')
@@ -56,14 +54,11 @@ export async function DELETE(
   }
 
   const supabase = await createClient();
-  const {
-    data: { user },
-    error: userError
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+  const authResult = await requireAuthenticatedUser(supabase, 'Unauthorized.');
+  if (authResult.ok === false) {
+    return authResult.response;
   }
+  const user = authResult.user;
 
   const { error } = await supabase
     .from('generations')

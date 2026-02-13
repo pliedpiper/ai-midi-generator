@@ -3,6 +3,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { getErrorMessageFromResponse, parseJsonSafely } from "@/utils/http";
 
 interface UseAccountSettingsParams {
   userEmail: string;
@@ -164,10 +165,10 @@ export const useAccountSettings = ({
       });
 
       if (!response.ok) {
-        const data: unknown = await response.json().catch(() => ({}));
-        const payload = data as { error?: unknown };
-        const message =
-          typeof payload.error === "string" ? payload.error : "Failed to save API key.";
+        const message = await getErrorMessageFromResponse(
+          response,
+          "Failed to save API key."
+        );
         throw new Error(message);
       }
 
@@ -197,10 +198,10 @@ export const useAccountSettings = ({
       const response = await fetch("/api/user/openrouter-key", { method: "DELETE" });
 
       if (!response.ok) {
-        const data: unknown = await response.json().catch(() => ({}));
-        const payload = data as { error?: unknown };
-        const message =
-          typeof payload.error === "string" ? payload.error : "Failed to remove API key.";
+        const message = await getErrorMessageFromResponse(
+          response,
+          "Failed to remove API key."
+        );
         throw new Error(message);
       }
 
@@ -226,16 +227,17 @@ export const useAccountSettings = ({
       });
 
       if (!response.ok) {
-        const data: unknown = await response.json().catch(() => ({}));
-        const payload = data as { error?: unknown };
-        const message =
-          typeof payload.error === "string"
-            ? payload.error
-            : "Failed to export account data.";
+        const message = await getErrorMessageFromResponse(
+          response,
+          "Failed to export account data."
+        );
         throw new Error(message);
       }
 
-      const payload = await response.json();
+      const payload = await parseJsonSafely<unknown>(response);
+      if (payload === null) {
+        throw new Error("Failed to export account data.");
+      }
       const blob = new Blob([JSON.stringify(payload, null, 2)], {
         type: "application/json",
       });
@@ -269,15 +271,19 @@ export const useAccountSettings = ({
     try {
       const response = await fetch("/api/generations", { method: "DELETE" });
 
-      const data: unknown = await response.json().catch(() => ({}));
-      const payload = data as { error?: unknown; deletedCount?: unknown };
+      const payload = await parseJsonSafely<{ error?: unknown; deletedCount?: unknown }>(
+        response
+      );
       if (!response.ok) {
         const message =
-          typeof payload.error === "string" ? payload.error : "Failed to delete generations.";
+          typeof payload?.error === "string"
+            ? payload.error
+            : "Failed to delete generations.";
         throw new Error(message);
       }
 
-      const deletedCount = typeof payload.deletedCount === "number" ? payload.deletedCount : 0;
+      const deletedCount =
+        typeof payload?.deletedCount === "number" ? payload.deletedCount : 0;
       setDeleteAllMessage(
         `Deleted ${deletedCount} saved generation${deletedCount === 1 ? "" : "s"}.`
       );
@@ -308,10 +314,10 @@ export const useAccountSettings = ({
       });
 
       if (!response.ok) {
-        const data: unknown = await response.json().catch(() => ({}));
-        const payload = data as { error?: unknown };
-        const message =
-          typeof payload.error === "string" ? payload.error : "Failed to delete account.";
+        const message = await getErrorMessageFromResponse(
+          response,
+          "Failed to delete account."
+        );
         throw new Error(message);
       }
 

@@ -33,6 +33,18 @@ export function beatsToSeconds(beats: number, tempo: number): number {
   return beats * (60 / tempo);
 }
 
+export const calculateCompositionMaxBeat = (
+  composition: Pick<MidiComposition, 'tracks'>
+): number =>
+  composition.tracks.reduce((trackMax, track) => {
+    const noteMax = track.notes.reduce(
+      (noteEndMax, note) =>
+        Math.max(noteEndMax, note.time + Math.max(note.duration, MIN_DURATION)),
+      0
+    );
+    return Math.max(trackMax, noteMax);
+  }, 0);
+
 export const normalizeVelocity = (value: number | undefined): number => {
   if (typeof value !== 'number' || !Number.isFinite(value)) return DEFAULT_VELOCITY;
   const scaled = value > 1 ? value / 127 : value;
@@ -275,4 +287,38 @@ export const getTransportBeatPosition = (tempo: number): number => {
   }
 
   return seconds / (60 / safeTempo);
+};
+
+type PlaybackBeatMonitorInput = {
+  tempo: number;
+  maxBeat: number;
+  onBeat: (beat: number) => void;
+  onComplete: () => void;
+  completionPaddingBeats?: number;
+};
+
+export const startPlaybackBeatMonitor = ({
+  tempo,
+  maxBeat,
+  onBeat,
+  onComplete,
+  completionPaddingBeats = 0.05
+}: PlaybackBeatMonitorInput): (() => void) => {
+  let animationFrame = 0;
+  const safeMaxBeat = Number.isFinite(maxBeat) && maxBeat > 0 ? maxBeat : 0;
+
+  const updateBeat = () => {
+    const beat = getTransportBeatPosition(tempo);
+    onBeat(beat);
+
+    if (beat >= safeMaxBeat + completionPaddingBeats) {
+      onComplete();
+      return;
+    }
+
+    animationFrame = requestAnimationFrame(updateBeat);
+  };
+
+  animationFrame = requestAnimationFrame(updateBeat);
+  return () => cancelAnimationFrame(animationFrame);
 };

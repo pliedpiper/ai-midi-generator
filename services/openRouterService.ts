@@ -1,4 +1,5 @@
 import { MidiComposition, UserPreferences } from '../types';
+import { getErrorMessageFromResponse, parseJsonSafely } from '@/utils/http';
 
 export const generateAttempt = async (
   id: number,
@@ -15,19 +16,14 @@ export const generateAttempt = async (
   });
 
   if (!response.ok) {
-    let message = 'Failed to generate MIDI composition.';
-    try {
-      const errorBody = await response.json();
-      if (typeof errorBody?.error === 'string') {
-        message = errorBody.error;
-      }
-    } catch {
-      // Ignore JSON parse failures and use fallback message.
-    }
+    const message = await getErrorMessageFromResponse(
+      response,
+      'Failed to generate MIDI composition.'
+    );
     throw new Error(message);
   }
 
-  const data = await response.json();
+  const data = await parseJsonSafely<{ composition?: unknown }>(response);
   if (!data?.composition) {
     throw new Error('Invalid response from server.');
   }
@@ -53,19 +49,14 @@ export const improvePrompt = async (
   });
 
   if (!response.ok) {
-    let message = 'Failed to improve prompt.';
-    try {
-      const errorBody = await response.json();
-      if (typeof errorBody?.error === 'string') {
-        message = errorBody.error;
-      }
-    } catch {
-      // Ignore JSON parse failures and use fallback message.
-    }
+    const message = await getErrorMessageFromResponse(
+      response,
+      'Failed to improve prompt.'
+    );
     throw new Error(message);
   }
 
-  const data = await response.json();
+  const data = await parseJsonSafely<{ prompt?: unknown }>(response);
   if (!data?.prompt || typeof data.prompt !== 'string') {
     throw new Error('Invalid response from server.');
   }

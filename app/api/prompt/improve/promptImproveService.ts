@@ -1,7 +1,10 @@
 import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { NextResponse } from 'next/server';
-import OpenAI, { APIError, APIConnectionError, APIConnectionTimeoutError } from 'openai';
+import {
+  createOpenRouterClient,
+  mapOpenRouterErrorToResponse
+} from '@/lib/api/openRouter';
 
 export const PROMPT_IMPROVER_MODEL_ID = 'google/gemini-3-flash-preview';
 export const PROMPT_IMPROVE_REQUEST_TIMEOUT_MS = 60_000;
@@ -35,12 +38,6 @@ const FALLBACK_PROMPT_TIPS = `
 `.trim();
 
 let promptTipsCache: string | null = null;
-
-const createOpenRouterClient = (apiKey: string) => new OpenAI({
-  apiKey,
-  baseURL: 'https://openrouter.ai/api/v1',
-  timeout: PROMPT_IMPROVE_REQUEST_TIMEOUT_MS
-});
 
 export type ImprovePromptRequest = {
   prompt: string;
@@ -231,7 +228,7 @@ export const improvePrompt = async (
 ): Promise<ImprovePromptResult> => {
   try {
     const tips = await loadPromptTips();
-    const client = createOpenRouterClient(apiKey);
+    const client = createOpenRouterClient(apiKey, PROMPT_IMPROVE_REQUEST_TIMEOUT_MS);
     const response = await client.chat.completions.create({
       model: PROMPT_IMPROVER_MODEL_ID,
       messages: [
@@ -275,87 +272,33 @@ export const improvePrompt = async (
     };
   } catch (error) {
     console.error('Prompt improvement failed:', error);
-
-    if (error instanceof APIConnectionTimeoutError) {
-      return {
-        ok: false,
-        response: NextResponse.json(
-          { error: 'Prompt improvement timed out. Please try again.' },
-          { status: 504 }
-        )
-      };
-    }
-
-    if (error instanceof APIConnectionError) {
-      return {
-        ok: false,
-        response: NextResponse.json(
-          { error: 'Could not reach the AI service. Check your connection.' },
-          { status: 503 }
-        )
-      };
-    }
-
-    if (error instanceof APIError) {
-      const status = error.status ?? 502;
-
-      if (status === 401) {
-        return {
-          ok: false,
-          response: NextResponse.json(
-            { error: 'Your OpenRouter API key is invalid or expired.' },
-            { status: 401 }
-          )
-        };
-      }
-
-      if (status === 402) {
-        return {
-          ok: false,
-          response: NextResponse.json(
-            { error: 'OpenRouter credits exhausted. Add credits to continue.' },
-            { status: 402 }
-          )
-        };
-      }
-
-      if (status === 404) {
-        return {
-          ok: false,
-          response: NextResponse.json(
-            { error: 'Gemini 3 Flash is unavailable right now. Please try again shortly.' },
-            { status: 404 }
-          )
-        };
-      }
-
-      if (status === 429) {
-        return {
-          ok: false,
-          response: NextResponse.json(
-            { error: 'OpenRouter rate limit reached. Please wait and retry.' },
-            { status: 429 }
-          )
-        };
-      }
-
-      if (status >= 500) {
-        return {
-          ok: false,
-          response: NextResponse.json(
-            { error: 'AI service is temporarily unavailable.' },
-            { status: 503 }
-          )
-        };
-      }
-    }
-
     return {
       ok: false,
-      response: NextResponse.json(
-        { error: 'Failed to improve prompt.' },
-        { status: 502 }
-      )
+      response: mapOpenRouterErrorToResponse(error, {
+        timeoutMessage: 'Prompt improvement timed out. Please try again.',
+        connectionMessage: 'Could not reach the AI service. Check your connection.',
+        unauthorizedMessage: 'Your OpenRouter API key is invalid or expired.',
+        creditsMessage: 'OpenRouter credits exhausted. Add credits to continue.',
+        notFoundMessage: 'Gemini 3 Flash is unavailable right now. Please try again shortly.',
+        rateLimitMessage: 'OpenRouter rate limit reached. Please wait and retry.',
+        mapApiStatus: (status) => {
+          if (status >= 500) {
+            return {
+              message: 'AI service is temporarily unavailable.',
+              status: 503
+            };
+          }
+          return null;
+        },
+        fallbackApiError: () => ({
+          message: 'Failed to improve prompt.',
+          status: 502
+        }),
+        unknownError: {
+          message: 'Failed to improve prompt.',
+          status: 502
+        }
+      })
     };
   }
 };

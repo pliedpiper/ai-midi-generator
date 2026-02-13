@@ -9,12 +9,14 @@ import {
 } from "../types";
 import { generateAttempt } from "../services/openRouterService";
 import {
+  calculateCompositionMaxBeat,
   generateMidiBlob,
   stopPlayback,
   playComposition,
   PlaybackError,
-  getTransportBeatPosition,
+  startPlaybackBeatMonitor,
 } from "../utils/midiUtils";
+import { getErrorMessageFromResponse } from "@/utils/http";
 import { parseKeyString } from "../utils/scaleUtils";
 import InputForm from "./InputForm";
 import AttemptCard from "./AttemptCard";
@@ -112,11 +114,10 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
       });
 
       if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        const message =
-          typeof data?.error === "string"
-            ? data.error
-            : "Failed to save API key.";
+        const message = await getErrorMessageFromResponse(
+          response,
+          "Failed to save API key.",
+        );
         throw new Error(message);
       }
 
@@ -247,31 +248,12 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
     const activeAttempt = attempts.find((a) => a.id === playingId);
     if (!activeAttempt?.data) return;
 
-    let animationFrame: number;
-    const tempo = activeAttempt.data.tempo;
-    const maxBeat = activeAttempt.data.tracks.reduce((trackMax, track) => {
-      const noteMax = track.notes.reduce(
-        (noteEndMax, note) =>
-          Math.max(noteEndMax, note.time + Math.max(note.duration, 0.001)),
-        0,
-      );
-      return Math.max(trackMax, noteMax);
-    }, 0);
-
-    const updateBeat = () => {
-      const beat = getTransportBeatPosition(tempo);
-      setCurrentBeat(beat);
-
-      if (beat >= maxBeat + 0.05) {
-        handleStop();
-        return;
-      }
-
-      animationFrame = requestAnimationFrame(updateBeat);
-    };
-
-    animationFrame = requestAnimationFrame(updateBeat);
-    return () => cancelAnimationFrame(animationFrame);
+    return startPlaybackBeatMonitor({
+      tempo: activeAttempt.data.tempo,
+      maxBeat: calculateCompositionMaxBeat(activeAttempt.data),
+      onBeat: setCurrentBeat,
+      onComplete: handleStop,
+    });
   }, [playingId, attempts, handleStop]);
 
   React.useEffect(() => {

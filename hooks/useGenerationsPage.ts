@@ -3,9 +3,10 @@
 import React from "react";
 import type { MidiComposition, SavedGeneration, SnapOptions } from "@/types";
 import {
+  calculateCompositionMaxBeat,
   generateMidiBlob,
-  getTransportBeatPosition,
   playComposition,
+  startPlaybackBeatMonitor,
   stopPlayback,
 } from "@/utils/midiUtils";
 import { buildMidiDownloadFilename } from "@/utils/downloadFilename";
@@ -15,18 +16,9 @@ import {
   type GenerationSortOption,
 } from "@/utils/generationListUtils";
 import { parseKeyString } from "@/utils/scaleUtils";
+import { getErrorMessageFromResponse } from "@/utils/http";
 
 const PAGE_SIZE = 50;
-
-const calculateDurationBeats = (composition: MidiComposition): number =>
-  composition.tracks.reduce((trackMax, track) => {
-    const noteMax = track.notes.reduce(
-      (noteEndMax, note) =>
-        Math.max(noteEndMax, note.time + Math.max(note.duration, 0.001)),
-      0
-    );
-    return Math.max(trackMax, noteMax);
-  }, 0);
 
 const getSnapOptions = (generation: SavedGeneration): SnapOptions | undefined => {
   const prefs = generation.prefs;
@@ -109,9 +101,9 @@ const normalizeGeneration = (raw: unknown): SavedGeneration | null => {
           : null,
     duration_beats:
       typeof candidate.duration_beats === "number" && Number.isFinite(candidate.duration_beats)
-        ? Math.max(0, candidate.duration_beats)
-        : composition
-          ? calculateDurationBeats(composition)
+          ? Math.max(0, candidate.duration_beats)
+          : composition
+          ? calculateCompositionMaxBeat(composition)
           : null,
     created_at: candidate.created_at,
   };
@@ -176,12 +168,10 @@ export const useGenerationsPage = () => {
         cache: "no-store",
       });
       if (!response.ok) {
-        const data: unknown = await response.json().catch(() => ({}));
-        const payload = data as { error?: unknown };
-        const message =
-          typeof payload.error === "string"
-            ? payload.error
-            : "Failed to load generations.";
+        const message = await getErrorMessageFromResponse(
+          response,
+          "Failed to load generations."
+        );
         throw new Error(message);
       }
 
@@ -266,33 +256,16 @@ export const useGenerationsPage = () => {
     const activeGeneration = generations.find((item) => item.id === playingId);
     if (!activeGeneration?.composition) return;
 
-    let animationFrame = 0;
-    const tempo = activeGeneration.composition.tempo;
-    const maxBeat = activeGeneration.composition.tracks.reduce((trackMax, track) => {
-      const noteMax = track.notes.reduce(
-        (noteEndMax, note) =>
-          Math.max(noteEndMax, note.time + Math.max(note.duration, 0.001)),
-        0
-      );
-      return Math.max(trackMax, noteMax);
-    }, 0);
-
-    const updateBeat = () => {
-      const beat = getTransportBeatPosition(tempo);
-      setCurrentBeat(beat);
-
-      if (beat >= maxBeat + 0.05) {
+    return startPlaybackBeatMonitor({
+      tempo: activeGeneration.composition.tempo,
+      maxBeat: calculateCompositionMaxBeat(activeGeneration.composition),
+      onBeat: setCurrentBeat,
+      onComplete: () => {
         stopPlayback();
         setPlayingId(null);
         setCurrentBeat(0);
-        return;
       }
-
-      animationFrame = requestAnimationFrame(updateBeat);
-    };
-
-    animationFrame = requestAnimationFrame(updateBeat);
-    return () => cancelAnimationFrame(animationFrame);
+    });
   }, [playingId, generations]);
 
   React.useEffect(() => {
@@ -332,12 +305,10 @@ export const useGenerationsPage = () => {
         });
 
         if (!response.ok) {
-          const data: unknown = await response.json().catch(() => ({}));
-          const payload = data as { error?: unknown };
-          const message =
-            typeof payload.error === "string"
-              ? payload.error
-              : "Failed to load generation details.";
+          const message = await getErrorMessageFromResponse(
+            response,
+            "Failed to load generation details."
+          );
           throw new Error(message);
         }
 
@@ -362,7 +333,7 @@ export const useGenerationsPage = () => {
                     normalized.track_count ?? fullComposition.tracks.length,
                   duration_beats:
                     normalized.duration_beats ??
-                    calculateDurationBeats(fullComposition),
+                    calculateCompositionMaxBeat(fullComposition),
                 }
               : item
           )
@@ -375,7 +346,7 @@ export const useGenerationsPage = () => {
           composition_key: normalized.composition_key ?? fullComposition.key,
           track_count: normalized.track_count ?? fullComposition.tracks.length,
           duration_beats:
-            normalized.duration_beats ?? calculateDurationBeats(fullComposition),
+            normalized.duration_beats ?? calculateCompositionMaxBeat(fullComposition),
         };
       })();
 
@@ -425,12 +396,10 @@ export const useGenerationsPage = () => {
       });
 
       if (!response.ok) {
-        const data: unknown = await response.json().catch(() => ({}));
-        const payload = data as { error?: unknown };
-        const message =
-          typeof payload.error === "string"
-            ? payload.error
-            : "Failed to delete generation.";
+        const message = await getErrorMessageFromResponse(
+          response,
+          "Failed to delete generation."
+        );
         throw new Error(message);
       }
 
