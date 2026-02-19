@@ -14,6 +14,10 @@ import {
   writeIdempotencyComposition
 } from '@/lib/api/idempotency';
 import { generateComposition } from './generateService';
+import {
+  type GenerateRequestBody,
+  validateGenerateRequest
+} from './requestValidation';
 
 export const runtime = 'nodejs';
 
@@ -22,12 +26,6 @@ const RATE_LIMIT_MAX_REQUESTS = 10;
 const MAX_BODY_SIZE = 10_000;
 const IDEMPOTENCY_KEY_MAX_LENGTH = 120;
 const IDEMPOTENCY_WAIT_MS = 3_000;
-
-type GenerateRequestBody = {
-  id?: number;
-  prefs?: unknown;
-  idempotencyKey?: unknown;
-};
 
 export async function POST(req: Request) {
   const traceId = getTraceId(req);
@@ -76,34 +74,29 @@ export async function POST(req: Request) {
     return parsedBody.response;
   }
 
-  const { id, prefs, idempotencyKey } = parsedBody.data;
-
-  if (typeof id !== 'number' || !Number.isFinite(id) || id < 1) {
+  const validatedRequest = validateGenerateRequest(
+    parsedBody.data,
+    IDEMPOTENCY_KEY_MAX_LENGTH
+  );
+  if (validatedRequest.valid === false) {
     return NextResponse.json(
-      { error: 'id must be a positive number.' },
+      { error: validatedRequest.error },
       { status: 400 }
     );
   }
 
-  if (
-    typeof idempotencyKey !== 'string' ||
-    !idempotencyKey.trim() ||
-    idempotencyKey.trim().length > IDEMPOTENCY_KEY_MAX_LENGTH
-  ) {
-    return NextResponse.json(
-      { error: `idempotencyKey is required and must be ${IDEMPOTENCY_KEY_MAX_LENGTH} characters or less.` },
-      { status: 400 }
-    );
-  }
-
-  const normalizedIdempotencyKey = idempotencyKey.trim();
+  const { attemptIndex, prefs, normalizedIdempotencyKey } = validatedRequest;
 
   const prefsResult = validatePrefs(prefs);
   if (prefsResult.valid === false) {
     return NextResponse.json({ error: prefsResult.error }, { status: 400 });
   }
 
-  const idempotencyKeys = buildGenerateIdempotencyKeys(user.id, normalizedIdempotencyKey, id);
+  const idempotencyKeys = buildGenerateIdempotencyKeys(
+    user.id,
+    normalizedIdempotencyKey,
+    attemptIndex
+  );
 
   let cachedComposition = null;
   try {
@@ -175,7 +168,7 @@ export async function POST(req: Request) {
     const generationResult = await generateComposition({
       apiKey: keyResult.apiKey,
       traceId,
-      attemptId: id,
+      attemptIndex,
       prefs: prefsResult.normalized
     });
 
@@ -187,7 +180,7 @@ export async function POST(req: Request) {
       user_id: user.id,
       title: generationResult.title,
       model: prefsResult.normalized.model,
-      attempt_index: id,
+      attempt_index: attemptIndex,
       prefs: prefsResult.normalized,
       composition: generationResult.composition
     });

@@ -22,6 +22,7 @@ Deployment: https://ai-midi-generator-murex.vercel.app/ (Vercel)
 - **History discovery tools**: Search across your full saved library (server-side) by prompt/title/model/key/date with multi-word matching, relevance ranking + match highlights, plus sorting by newest/oldest, length, track count, or key
 - **Expanded visualizer**: Open any saved generation in a detailed modal with piano-roll visualization
 - **Interactive landing demo**: Public landing hero now includes a real playable preset (same playback stack as the app)
+- **Modular client state hooks**: Generation, history, and account flows are split into focused hook modules under `hooks/generator`, `hooks/generations`, and `hooks/account`
 
 ## Tech Stack
 
@@ -112,7 +113,8 @@ This project uses Vitest for unit/integration-style coverage and Playwright for 
 │   ├── encryption.ts    # AES-GCM key encryption/decryption
 │   └── validation.ts    # Input/output validation
 ├── services/
-│   └── openRouterService.ts  # API client
+│   ├── openRouterService.ts  # Generation/prompt API client
+│   └── openRouterKeyService.ts # OpenRouter key save client helper
 ├── tests/               # Vitest suites
 ├── docs/
 │   └── testing.md       # Testing strategy and coverage map

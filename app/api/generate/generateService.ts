@@ -11,7 +11,7 @@ import {
 export const GENERATE_REQUEST_TIMEOUT_MS = 180_000;
 const MAX_TOKENS = 16_384;
 
-const buildPrompt = (id: number, prefs: UserPreferences) => {
+const buildPrompt = (attemptIndex: number, prefs: UserPreferences) => {
   return `
 User Prompt: "${prefs.prompt}"
 Tempo: ${prefs.tempo} BPM
@@ -20,7 +20,7 @@ Time Signature: ${prefs.timeSignature}
 Length: ${prefs.durationBars} bars
 Constraints: ${prefs.constraints}
 
-Attempt Number: ${id}
+Attempt Number: ${attemptIndex}
 
 Make this version musically unique compared to other attempts.
 Do not include attempt numbers, variation labels, IDs, or random suffixes in the title.
@@ -43,7 +43,7 @@ export type GenerateResult = GenerateSuccess | GenerateFailure;
 type GenerateInput = {
   apiKey: string;
   traceId: string;
-  attemptId: number;
+  attemptIndex: number;
   prefs: UserPreferences;
 };
 
@@ -55,7 +55,7 @@ export const generateComposition = async (input: GenerateInput): Promise<Generat
       model: input.prefs.model,
       messages: [
         { role: 'system', content: SYSTEM_PROMPT_GENERATOR },
-        { role: 'user', content: buildPrompt(input.attemptId, input.prefs) }
+        { role: 'user', content: buildPrompt(input.attemptIndex, input.prefs) }
       ],
       temperature: 0.9,
       max_tokens: MAX_TOKENS
@@ -100,7 +100,7 @@ export const generateComposition = async (input: GenerateInput): Promise<Generat
     const title = finalizeGenerationTitle({
       modelTitle: compositionResult.composition.title,
       prompt: input.prefs.prompt,
-      attemptIndex: input.attemptId
+      attemptIndex: input.attemptIndex
     });
 
     return {

@@ -10,7 +10,8 @@ const generateAttemptMock = vi.hoisted(() => vi.fn());
 const generateMidiBlobMock = vi.hoisted(() => vi.fn());
 const stopPlaybackMock = vi.hoisted(() => vi.fn());
 const playCompositionMock = vi.hoisted(() => vi.fn());
-const getTransportBeatPositionMock = vi.hoisted(() => vi.fn());
+const startPlaybackBeatMonitorMock = vi.hoisted(() => vi.fn());
+const calculateCompositionMaxBeatMock = vi.hoisted(() => vi.fn());
 
 vi.mock("../services/openRouterService", () => ({
   generateAttempt: generateAttemptMock,
@@ -20,8 +21,9 @@ vi.mock("../utils/midiUtils", () => ({
   generateMidiBlob: generateMidiBlobMock,
   stopPlayback: stopPlaybackMock,
   playComposition: playCompositionMock,
+  startPlaybackBeatMonitor: startPlaybackBeatMonitorMock,
+  calculateCompositionMaxBeat: calculateCompositionMaxBeatMock,
   PlaybackError: class PlaybackError extends Error {},
-  getTransportBeatPosition: getTransportBeatPositionMock,
 }));
 
 vi.mock("../components/AppHeader", () => ({
@@ -60,12 +62,14 @@ describe("GeneratorApp UI", () => {
     generateMidiBlobMock.mockReset();
     stopPlaybackMock.mockReset();
     playCompositionMock.mockReset();
-    getTransportBeatPositionMock.mockReset();
+    startPlaybackBeatMonitorMock.mockReset();
+    calculateCompositionMaxBeatMock.mockReset();
 
     generateAttemptMock.mockResolvedValue(successfulComposition);
     generateMidiBlobMock.mockReturnValue(new Blob(["midi"], { type: "audio/midi" }));
     playCompositionMock.mockResolvedValue(undefined);
-    getTransportBeatPositionMock.mockReturnValue(0);
+    startPlaybackBeatMonitorMock.mockReturnValue(() => {});
+    calculateCompositionMaxBeatMock.mockReturnValue(4);
 
     vi.stubGlobal(
       "fetch",

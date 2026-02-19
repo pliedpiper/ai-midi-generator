@@ -65,6 +65,7 @@ Reference: `vitest.config.ts`, `playwright.config.ts`.
 | `tests/generations-item-route-get.test.ts` | `GET /api/generations/[id]`: UUID validation, auth guard, not-found handling, and per-user detail fetch |
 | `tests/generations-route-delete.test.ts` | `DELETE /api/generations`: auth guard, delete/count error handling, deleted-count correctness |
 | `tests/auth-callback-route.test.ts` | `GET /auth/callback`: safe redirect sanitization and code-exchange behavior |
+| `tests/generate-request-validation.test.ts` | `/api/generate` request-shape validation helper (`id`, `idempotencyKey`) and normalized internal payload |
 
 ### Utilities and Domain Logic
 
@@ -81,6 +82,7 @@ Reference: `vitest.config.ts`, `playwright.config.ts`.
 | `tests/encryption.test.ts` | OpenRouter key encrypt/decrypt roundtrip and malformed payload handling |
 | `tests/userSettings.test.ts` | OpenRouter key format validation rules |
 | `tests/generationListUtils.test.ts` | My Generations search relevance, highlighting, sort modes |
+| `tests/snapOptions.test.ts` | Shared scale-snapping option resolution for generation and saved-history flows |
 | `tests/redirectPath.test.ts` | Safe `next` path sanitization |
 | `tests/route.test.ts` | Legacy `extractJson` and `validateComposition` edge coverage |
 | `tests/api-generate.test.ts` | Additional `extractJson` + `validateComposition` edge-case coverage |
@@ -93,6 +95,7 @@ Reference: `vitest.config.ts`, `playwright.config.ts`.
 | `tests/generator-app.ui.test.tsx` | Generator app key-setup gating and generation-attempt orchestration |
 | `tests/landing-playback-demo.ui.test.tsx` | Landing hero interactive playback demo wiring (play/stop, cleanup, and playback error surface) |
 | `tests/openRouterService.test.ts` | Client service error mapping for generate/improve endpoints |
+| `tests/openRouterKeyService.test.ts` | Client OpenRouter key save helper request payload + error mapping |
 | `tests/signOut.test.ts` | Sign-out redirect helper behavior |
 | `tests/next-config-csp.test.ts` | CSP includes required hosts, preserves Tone `blob:` allowances, keeps `unsafe-inline` but drops `unsafe-eval` in production, supports report-only mode |
 

@@ -1,99 +1,41 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
-import {
-  AttemptResult,
-  GenerationStatus,
-  UserPreferences,
-  SnapOptions,
-} from "../types";
-import { generateAttempt } from "../services/openRouterService";
-import {
-  calculateCompositionMaxBeat,
-  generateMidiBlob,
-  stopPlayback,
-  playComposition,
-  PlaybackError,
-  startPlaybackBeatMonitor,
-} from "../utils/midiUtils";
-import { getErrorMessageFromResponse } from "@/utils/http";
-import { parseKeyString } from "../utils/scaleUtils";
-import InputForm from "./InputForm";
-import AttemptCard from "./AttemptCard";
-import ExpandedAttemptModal from "./ExpandedAttemptModal";
-import AppHeader from "./AppHeader";
+import React from "react";
+import { GenerationStatus, AttemptResult, UserPreferences } from "@/types";
+import { saveOpenRouterKey } from "@/services/openRouterKeyService";
+import { useAttemptGeneration } from "@/hooks/generator/useAttemptGeneration";
+import { useAttemptPlayback } from "@/hooks/generator/useAttemptPlayback";
+import { stopPlayback } from "@/utils/midiUtils";
+import InputForm from "@/components/InputForm";
+import AttemptCard from "@/components/AttemptCard";
+import ExpandedAttemptModal from "@/components/ExpandedAttemptModal";
+import AppHeader from "@/components/AppHeader";
 
 interface GeneratorAppProps {
   userEmail: string;
   initialHasApiKey: boolean;
 }
 
-// Helper to extract snap options from preferences
-const getSnapOptions = (
-  prefs: UserPreferences | null,
-  compositionKey?: string | null,
-): SnapOptions | undefined => {
-  if (!prefs) return undefined;
-
-  if (prefs.key === null && typeof compositionKey === "string") {
-    const parsed = parseKeyString(compositionKey);
-    if (parsed) {
-      return {
-        scaleRoot: parsed.scaleRoot,
-        scaleType: parsed.scaleType,
-      };
-    }
-  }
-
-  return { scaleRoot: prefs.scaleRoot, scaleType: prefs.scaleType };
-};
-
-const createIdempotencyKey = () => {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-
-  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-};
-
-const MAX_PARALLEL_ATTEMPTS = 2;
-
 const GeneratorApp: React.FC<GeneratorAppProps> = ({
   userEmail,
   initialHasApiKey,
 }) => {
-  const [status, setStatus] = useState<GenerationStatus>(GenerationStatus.IDLE);
-  const [attempts, setAttempts] = useState<AttemptResult[]>([]);
-  const [playingId, setPlayingId] = useState<number | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [playbackError, setPlaybackError] = useState<string | null>(null);
-  const [lastPrefs, setLastPrefs] = useState<UserPreferences | null>(null);
-  const [expandedAttemptId, setExpandedAttemptId] = useState<number | null>(
-    null,
-  );
-  const [currentBeat, setCurrentBeat] = useState(0);
-  const [hasApiKey, setHasApiKey] = useState(initialHasApiKey);
-  const [showApiKeyForm, setShowApiKeyForm] = useState(!initialHasApiKey);
-  const [apiKeyInput, setApiKeyInput] = useState("");
-  const [apiKeyError, setApiKeyError] = useState<string | null>(null);
-  const [isSavingApiKey, setIsSavingApiKey] = useState(false);
+  const [hasApiKey, setHasApiKey] = React.useState(initialHasApiKey);
+  const [showApiKeyForm, setShowApiKeyForm] = React.useState(!initialHasApiKey);
+  const [apiKeyInput, setApiKeyInput] = React.useState("");
+  const [apiKeyError, setApiKeyError] = React.useState<string | null>(null);
+  const [isSavingApiKey, setIsSavingApiKey] = React.useState(false);
+  const [expandedAttemptId, setExpandedAttemptId] = React.useState<number | null>(null);
 
-  // Initialize empty slots based on requested count
-  const resetAttempts = (count: number) => {
-    // Stop any playing audio before resetting
-    stopPlayback();
-    setAttempts(
-      Array.from({ length: count }, (_, i) => ({
-        id: i + 1,
-        status: "pending",
-      })),
-    );
-    setPlayingId(null);
-    setErrorMsg(null);
-    setPlaybackError(null);
-    setExpandedAttemptId(null);
-    setCurrentBeat(0);
-  };
+  const generation = useAttemptGeneration({
+    hasApiKey,
+    onRequireApiKey: () => setShowApiKeyForm(true),
+  });
+
+  const playback = useAttemptPlayback({
+    attempts: generation.attempts,
+    lastPrefs: generation.lastPrefs,
+  });
 
   const handleSaveApiKey = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -107,170 +49,49 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
 
     setIsSavingApiKey(true);
     try {
-      const response = await fetch("/api/user/openrouter-key", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ apiKey: normalized }),
-      });
-
-      if (!response.ok) {
-        const message = await getErrorMessageFromResponse(
-          response,
-          "Failed to save API key.",
-        );
-        throw new Error(message);
-      }
-
+      await saveOpenRouterKey(normalized);
       setHasApiKey(true);
       setShowApiKeyForm(false);
       setApiKeyInput("");
     } catch (error) {
-      setApiKeyError(
-        error instanceof Error ? error.message : "Failed to save API key.",
-      );
+      if (error instanceof Error) {
+        setApiKeyError(error.message);
+      } else {
+        setApiKeyError("Failed to save API key.");
+      }
     } finally {
       setIsSavingApiKey(false);
     }
   };
 
   const handleGenerate = async (prefs: UserPreferences) => {
-    if (!hasApiKey) {
-      setErrorMsg("Add your OpenRouter API key before generating.");
-      setShowApiKeyForm(true);
-      return;
-    }
-
-    setStatus(GenerationStatus.GENERATING);
-    setLastPrefs(prefs);
-    resetAttempts(prefs.attemptCount);
-    const idempotencyKey = createIdempotencyKey();
-
-    const attemptIds = Array.from({ length: prefs.attemptCount }, (_, i) => i + 1);
-    const results: Array<{ id: number; success: boolean }> = [];
-    let nextAttemptIndex = 0;
-
-    const runAttempt = async (id: number) => {
-      try {
-        // Add small delay to avoid exact same microsecond timestamp seeds if logic relies on it
-        await new Promise((r) => setTimeout(r, id * 100));
-
-        const composition = await generateAttempt(id, prefs, idempotencyKey);
-        const snapOptions = getSnapOptions(prefs, composition.key);
-        const blob = generateMidiBlob(composition, snapOptions);
-
-        setAttempts((prev) =>
-          prev.map((a) =>
-            a.id === id
-              ? { ...a, status: "success", data: composition, midiBlob: blob }
-              : a,
-          ),
-        );
-        return { id, success: true };
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Failed to generate JSON";
-        setAttempts((prev) =>
-          prev.map((a) =>
-            a.id === id ? { ...a, status: "failed", error: message } : a,
-          ),
-        );
-        return { id, success: false };
-      }
-    };
-
-    const workerCount = Math.min(MAX_PARALLEL_ATTEMPTS, attemptIds.length);
-    await Promise.all(
-      Array.from({ length: workerCount }, async () => {
-        while (nextAttemptIndex < attemptIds.length) {
-          const id = attemptIds[nextAttemptIndex];
-          nextAttemptIndex += 1;
-          const result = await runAttempt(id);
-          results.push(result);
-        }
-      }),
-    );
-
-    const successfulAttempts = results.filter((r) => r.success);
-
-    if (successfulAttempts.length === 0) {
-      setStatus(GenerationStatus.ERROR);
-      setErrorMsg(
-        "All generation attempts failed. Please try a simpler prompt.",
-      );
-    } else {
-      setStatus(GenerationStatus.COMPLETED);
-    }
+    playback.handleStop();
+    setExpandedAttemptId(null);
+    await generation.handleGenerate(prefs);
   };
 
-  // Handle playback with proper error handling - only set playingId after success
-  const handlePlay = useCallback(
-    async (id: number, attempt: AttemptResult) => {
-      if (!attempt.data) return;
-
-      // Clear any previous playback error
-      setPlaybackError(null);
-
-      const snapOptions = getSnapOptions(lastPrefs, attempt.data.key);
-
-      try {
-        await playComposition(attempt.data, snapOptions);
-        // Only set playingId after playback successfully starts
-        setPlayingId(id);
-        setCurrentBeat(0);
-      } catch (err) {
-        // Playback failed - ensure cleanup
-        stopPlayback();
-        setPlayingId(null);
-        setCurrentBeat(0);
-
-        const message =
-          err instanceof PlaybackError
-            ? err.message
-            : err instanceof Error
-              ? err.message
-              : "Playback failed";
-
-        setPlaybackError(message);
-      }
-    },
-    [lastPrefs],
-  );
-
-  const handleStop = useCallback(() => {
-    stopPlayback();
-    setPlayingId(null);
-    setCurrentBeat(0);
-    setPlaybackError(null);
+  React.useEffect(() => {
+    return () => {
+      stopPlayback();
+    };
   }, []);
 
   React.useEffect(() => {
-    if (playingId === null) return;
-    const activeAttempt = attempts.find((a) => a.id === playingId);
-    if (!activeAttempt?.data) return;
-
-    return startPlaybackBeatMonitor({
-      tempo: activeAttempt.data.tempo,
-      maxBeat: calculateCompositionMaxBeat(activeAttempt.data),
-      onBeat: setCurrentBeat,
-      onComplete: handleStop,
-    });
-  }, [playingId, attempts, handleStop]);
-
-  React.useEffect(() => {
     if (expandedAttemptId === null) return;
-    const hasExpandedAttempt = attempts.some(
+
+    const hasExpandedAttempt = generation.attempts.some(
       (attempt) =>
-        attempt.id === expandedAttemptId && attempt.status === "success",
+        attempt.id === expandedAttemptId && attempt.status === "success"
     );
     if (!hasExpandedAttempt) {
       setExpandedAttemptId(null);
     }
-  }, [attempts, expandedAttemptId]);
+  }, [generation.attempts, expandedAttemptId]);
 
   const expandedAttempt =
-    attempts.find(
+    generation.attempts.find(
       (attempt) =>
-        attempt.id === expandedAttemptId && attempt.status === "success",
+        attempt.id === expandedAttemptId && attempt.status === "success"
     ) ?? null;
 
   return (
@@ -340,12 +161,14 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
           {hasApiKey && (
             <section className="max-w-xl mx-auto mb-16">
               <InputForm
-                onSubmit={handleGenerate}
-                isGenerating={status === GenerationStatus.GENERATING}
+                onSubmit={(prefs) => {
+                  void handleGenerate(prefs);
+                }}
+                isGenerating={generation.status === GenerationStatus.GENERATING}
               />
-              {errorMsg && (
+              {generation.errorMsg && (
                 <div className="mt-6 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded text-red-400 text-sm font-light">
-                  {errorMsg}
+                  {generation.errorMsg}
                 </div>
               )}
             </section>
@@ -359,8 +182,7 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
             </section>
           )}
 
-          {/* Results Grid */}
-          {hasApiKey && attempts.length > 0 && (
+          {hasApiKey && generation.attempts.length > 0 && (
             <section>
               <div className="mb-6 flex items-center gap-3">
                 <div className="h-px flex-1 bg-surface-600/50" />
@@ -370,12 +192,11 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
                 <div className="h-px flex-1 bg-surface-600/50" />
               </div>
 
-              {/* Playback error display */}
-              {playbackError && (
+              {playback.playbackError && (
                 <div className="mb-4 px-4 py-3 bg-orange-500/10 border border-orange-500/20 rounded text-orange-400 text-sm font-light flex items-center gap-2">
-                  <span>Playback error: {playbackError}</span>
+                  <span>Playback error: {playback.playbackError}</span>
                   <button
-                    onClick={() => setPlaybackError(null)}
+                    onClick={() => playback.setPlaybackError(null)}
                     className="ml-auto text-orange-400 hover:text-orange-300 font-medium"
                   >
                     Dismiss
@@ -384,13 +205,15 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
               )}
 
               <div className="flex justify-center gap-4">
-                {attempts.map((attempt) => (
+                {generation.attempts.map((attempt: AttemptResult) => (
                   <AttemptCard
                     key={attempt.id}
                     attempt={attempt}
-                    isPlaying={playingId === attempt.id}
-                    onPlay={() => handlePlay(attempt.id, attempt)}
-                    onStop={handleStop}
+                    isPlaying={playback.playingId === attempt.id}
+                    onPlay={() => {
+                      void playback.handlePlay(attempt.id, attempt);
+                    }}
+                    onStop={playback.handleStop}
                     onExpand={() => setExpandedAttemptId(attempt.id)}
                   />
                 ))}
@@ -403,19 +226,19 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
       <ExpandedAttemptModal
         attempt={expandedAttempt}
         isOpen={expandedAttempt !== null}
-        isPlaying={expandedAttempt !== null && playingId === expandedAttempt.id}
+        isPlaying={expandedAttempt !== null && playback.playingId === expandedAttempt.id}
         currentBeat={
-          expandedAttempt !== null && playingId === expandedAttempt.id
-            ? currentBeat
+          expandedAttempt !== null && playback.playingId === expandedAttempt.id
+            ? playback.currentBeat
             : 0
         }
         onClose={() => setExpandedAttemptId(null)}
         onPlay={() => {
           if (expandedAttempt) {
-            handlePlay(expandedAttempt.id, expandedAttempt);
+            void playback.handlePlay(expandedAttempt.id, expandedAttempt);
           }
         }}
-        onStop={handleStop}
+        onStop={playback.handleStop}
       />
     </div>
   );
