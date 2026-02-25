@@ -69,7 +69,6 @@ export const AVAILABLE_MODELS = [
   { id: "openai/gpt-5.2", name: "GPT-5.2" },
   { id: "openai/gpt-5.2-chat", name: "GPT-5.2 Chat" },
   { id: "openai/gpt-5.2-codex", name: "GPT-5.2 Codex" },
-  { id: "openai/gpt-5.2-pro", name: "GPT-5.2 Pro" },
   { id: "openai/gpt-oss-120b:free", name: "GPT OSS 120B (free)" },
   { id: "x-ai/grok-4.1-fast", name: "Grok 4.1 Fast" },
   { id: "x-ai/grok-code-fast-1", name: "Grok Code Fast 1" },

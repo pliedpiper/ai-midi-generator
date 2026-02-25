@@ -97,6 +97,8 @@ describe("GeneratorApp UI", () => {
     await waitFor(() => {
       expect(screen.getByPlaceholderText(/An upbeat 8-bit video game loop/i)).toBeTruthy();
     });
+    expect(screen.getByTestId("composer-dock")).toBeTruthy();
+    expect(screen.getByTestId("results-pane")).toBeTruthy();
 
     fireEvent.change(screen.getByPlaceholderText(/An upbeat 8-bit video game loop/i), {
       target: { value: "A short piano idea for UI test" },

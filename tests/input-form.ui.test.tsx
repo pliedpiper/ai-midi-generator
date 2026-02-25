@@ -77,8 +77,9 @@ describe("InputForm UI", () => {
 
   it("groups models by provider and filters them via search", async () => {
     const onSubmit = vi.fn();
-    render(<InputForm onSubmit={onSubmit} isGenerating={false} />);
+    render(<InputForm onSubmit={onSubmit} isGenerating={false} variant="composer" />);
 
+    fireEvent.click(screen.getByRole("button", { name: /Options/i }));
     fireEvent.click(screen.getByRole("button", { name: /Model selector/i }));
     const listbox = screen.getByRole("listbox", { name: /Model options/i });
     const initialGroups = within(listbox)
@@ -108,6 +109,23 @@ describe("InputForm UI", () => {
 
     await waitFor(() => {
       expect(screen.queryByRole("listbox", { name: /Model options/i })).toBeNull();
+    });
+  });
+
+  it("shows composer options drawer from bottom action row", async () => {
+    const onSubmit = vi.fn();
+    render(<InputForm onSubmit={onSubmit} isGenerating={false} variant="composer" />);
+
+    const optionsButton = screen.getByRole("button", { name: /Options/i });
+    expect(screen.queryByRole("button", { name: /Model selector/i })).toBeNull();
+
+    fireEvent.click(optionsButton);
+    expect(screen.getByRole("button", { name: /Model selector/i })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /Close/i }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: /Model selector/i })).toBeNull();
     });
   });
 });

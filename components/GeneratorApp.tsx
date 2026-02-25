@@ -16,6 +16,31 @@ interface GeneratorAppProps {
   initialHasApiKey: boolean;
 }
 
+const STICKY_SCROLL_THRESHOLD_PX = 120;
+const RESULTS_DOCK_GAP_PX = 24;
+const EMPTY_STATE_CAPTIONS = [
+  "Ready when you are.",
+  "Describe it. Hear it.",
+  "From words to music.",
+  "What does your idea sound like?",
+  "Type a feeling. Get a song.",
+  "What do you want to hear?",
+  "Tell us what to play.",
+  "Music from your imagination.",
+  "Say it. We'll compose it.",
+  "Natural language in. MIDI out.",
+  "Prompt-driven composition.",
+  "AI-powered music, one prompt at a time.",
+  "Every word has a melody.",
+  "The space between language and sound.",
+  "Where prompts become compositions.",
+];
+
+const getRandomCaption = () => {
+  const index = Math.floor(Math.random() * EMPTY_STATE_CAPTIONS.length);
+  return EMPTY_STATE_CAPTIONS[index] ?? EMPTY_STATE_CAPTIONS[0];
+};
+
 const GeneratorApp: React.FC<GeneratorAppProps> = ({
   userEmail,
   initialHasApiKey,
@@ -25,7 +50,14 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
   const [apiKeyInput, setApiKeyInput] = React.useState("");
   const [apiKeyError, setApiKeyError] = React.useState<string | null>(null);
   const [isSavingApiKey, setIsSavingApiKey] = React.useState(false);
-  const [expandedAttemptId, setExpandedAttemptId] = React.useState<number | null>(null);
+  const [expandedAttemptId, setExpandedAttemptId] = React.useState<number | null>(
+    null
+  );
+  const [composerDockHeight, setComposerDockHeight] = React.useState(0);
+  const [emptyStateCaption] = React.useState(getRandomCaption);
+  const resultsPaneRef = React.useRef<HTMLElement | null>(null);
+  const composerDockRef = React.useRef<HTMLDivElement | null>(null);
+  const shouldStickToBottomRef = React.useRef(true);
 
   const generation = useAttemptGeneration({
     hasApiKey,
@@ -70,6 +102,23 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
     await generation.handleGenerate(prefs);
   };
 
+  const scrollResultsToBottom = React.useCallback((behavior: ScrollBehavior = "auto") => {
+    const container = resultsPaneRef.current;
+    if (!container) {
+      return;
+    }
+
+    if (typeof container.scrollTo === "function") {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior,
+      });
+      return;
+    }
+
+    container.scrollTop = container.scrollHeight;
+  }, []);
+
   React.useEffect(() => {
     return () => {
       stopPlayback();
@@ -88,6 +137,82 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
     }
   }, [generation.attempts, expandedAttemptId]);
 
+  React.useEffect(() => {
+    if (!hasApiKey) {
+      setComposerDockHeight(0);
+      return;
+    }
+
+    const dockElement = composerDockRef.current;
+    if (!dockElement) {
+      return;
+    }
+
+    const updateDockHeight = () => {
+      setComposerDockHeight(Math.ceil(dockElement.getBoundingClientRect().height));
+    };
+
+    updateDockHeight();
+    const observer =
+      typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(() => updateDockHeight())
+        : null;
+    observer?.observe(dockElement);
+    window.addEventListener("resize", updateDockHeight);
+
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", updateDockHeight);
+    };
+  }, [hasApiKey]);
+
+  React.useEffect(() => {
+    if (!hasApiKey) {
+      return;
+    }
+
+    const container = resultsPaneRef.current;
+    if (!container) {
+      return;
+    }
+
+    const handleScroll = () => {
+      const distanceFromBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight;
+      shouldStickToBottomRef.current =
+        distanceFromBottom <= STICKY_SCROLL_THRESHOLD_PX;
+    };
+
+    handleScroll();
+    container.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      container.removeEventListener("scroll", handleScroll);
+    };
+  }, [hasApiKey]);
+
+  React.useEffect(() => {
+    if (!hasApiKey || generation.status !== GenerationStatus.GENERATING) {
+      return;
+    }
+
+    shouldStickToBottomRef.current = true;
+    requestAnimationFrame(() => scrollResultsToBottom());
+  }, [generation.status, hasApiKey, scrollResultsToBottom]);
+
+  React.useEffect(() => {
+    if (!hasApiKey || !shouldStickToBottomRef.current) {
+      return;
+    }
+
+    requestAnimationFrame(() => scrollResultsToBottom());
+  }, [
+    composerDockHeight,
+    generation.attempts,
+    generation.errorMsg,
+    hasApiKey,
+    scrollResultsToBottom,
+  ]);
+
   const expandedAttempt =
     generation.attempts.find(
       (attempt) =>
@@ -103,138 +228,171 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
 
       <AppHeader userEmail={userEmail} variant="compact" />
 
-      <main className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 pb-10 pt-28 sm:px-6 md:px-8 md:pt-32">
-        <div className="mx-auto w-full max-w-5xl">
-          {showApiKeyForm && (
-            <section className="mx-auto mb-10 max-w-xl">
-              <div className="rounded-3xl border border-surface-600/70 bg-surface-800/80 p-6 backdrop-blur-xl">
-                <h2 className="text-lg font-medium mb-2">
-                  {hasApiKey
-                    ? "Update OpenRouter API Key"
-                    : "Add OpenRouter API Key"}
-                </h2>
-                <p className="text-sm text-text-secondary mb-4">
-                  {hasApiKey
-                    ? "Replace the API key used for generation on your account."
-                    : "Generation is disabled until you add your OpenRouter API key."}
-                </p>
+      <main className="relative mx-auto flex h-[100dvh] w-full max-w-6xl flex-col px-4 pt-28 sm:px-6 md:px-8 md:pt-32">
+        <div className="relative flex-1 overflow-hidden">
+          <div className="mx-auto h-full w-full max-w-5xl">
+            {showApiKeyForm && (
+              <section className="mx-auto mb-10 mt-2 max-w-xl">
+                <div className="rounded-3xl border border-surface-600/70 bg-surface-800/80 p-6 backdrop-blur-xl">
+                  <h2 className="mb-2 text-lg font-medium">
+                    {hasApiKey
+                      ? "Update OpenRouter API Key"
+                      : "Add OpenRouter API Key"}
+                  </h2>
+                  <p className="mb-4 text-sm text-text-secondary">
+                    {hasApiKey
+                      ? "Replace the API key used for generation on your account."
+                      : "Generation is disabled until you add your OpenRouter API key."}
+                  </p>
 
-                <form onSubmit={handleSaveApiKey} className="space-y-3">
-                  <input
-                    type="password"
-                    value={apiKeyInput}
-                    onChange={(event) => setApiKeyInput(event.target.value)}
-                    placeholder="sk-or-..."
-                    className="w-full rounded-xl border border-surface-600 bg-surface-900 px-3 py-2 text-sm text-text-primary outline-none transition-colors focus:border-accent"
-                    autoComplete="off"
-                  />
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="submit"
-                      disabled={isSavingApiKey}
-                      className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
-                        isSavingApiKey
-                          ? "bg-surface-700 text-text-muted cursor-not-allowed"
-                          : "bg-accent text-accent-foreground hover:bg-accent-hover"
-                      }`}
-                    >
-                      {isSavingApiKey ? "Saving..." : "Save key"}
-                    </button>
-                    {hasApiKey && (
+                  <form onSubmit={handleSaveApiKey} className="space-y-3">
+                    <input
+                      type="password"
+                      value={apiKeyInput}
+                      onChange={(event) => setApiKeyInput(event.target.value)}
+                      placeholder="sk-or-..."
+                      className="w-full rounded-xl border border-surface-600 bg-surface-900 px-3 py-2 text-sm text-text-primary outline-none transition-colors focus:border-accent"
+                      autoComplete="off"
+                    />
+                    <div className="flex items-center gap-2">
                       <button
-                        type="button"
-                        onClick={() => {
-                          setShowApiKeyForm(false);
-                          setApiKeyError(null);
-                          setApiKeyInput("");
-                        }}
-                        className="rounded-xl bg-surface-700 px-3 py-2 text-sm text-text-secondary transition-colors hover:bg-surface-600 hover:text-text-primary"
+                        type="submit"
+                        disabled={isSavingApiKey}
+                        className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
+                          isSavingApiKey
+                            ? "bg-surface-700 text-text-muted cursor-not-allowed"
+                            : "bg-accent text-accent-foreground hover:bg-accent-hover"
+                        }`}
                       >
-                        Cancel
+                        {isSavingApiKey ? "Saving..." : "Save key"}
                       </button>
-                    )}
+                      {hasApiKey && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowApiKeyForm(false);
+                            setApiKeyError(null);
+                            setApiKeyInput("");
+                          }}
+                          className="rounded-xl bg-surface-700 px-3 py-2 text-sm text-text-secondary transition-colors hover:bg-surface-600 hover:text-text-primary"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </div>
+                  </form>
+
+                  {apiKeyError && (
+                    <p className="mt-3 text-sm text-red-400">{apiKeyError}</p>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {!hasApiKey && !showApiKeyForm && (
+              <section className="mx-auto mt-6 max-w-xl">
+                <p className="text-sm text-text-secondary">
+                  Add your OpenRouter API key to start generating.
+                </p>
+              </section>
+            )}
+
+            {hasApiKey && (
+              <section
+                ref={resultsPaneRef}
+                data-testid="results-pane"
+                className="h-full overflow-y-auto"
+                style={{
+                  paddingBottom: Math.max(
+                    composerDockHeight + RESULTS_DOCK_GAP_PX,
+                    72
+                  ),
+                }}
+              >
+                {generation.attempts.length === 0 ? (
+                  <div className="flex min-h-full items-center justify-center pb-20 pt-8">
+                    <p className="text-center text-4xl font-light tracking-tight text-text-secondary/90">
+                      {emptyStateCaption}
+                    </p>
                   </div>
-                </form>
+                ) : (
+                  <section className="pt-2">
+                    <div className="mb-6 flex items-center gap-3">
+                      <div className="h-px flex-1 bg-surface-600/50" />
+                      <span className="font-mono text-xs text-text-muted uppercase tracking-widest">
+                        Results
+                      </span>
+                      <div className="h-px flex-1 bg-surface-600/50" />
+                    </div>
 
-                {apiKeyError && (
-                  <p className="mt-3 text-sm text-red-400">{apiKeyError}</p>
+                    {playback.playbackError && (
+                      <div className="mb-4 flex items-center gap-2 rounded-xl border border-orange-500/25 bg-orange-500/10 px-4 py-3 text-sm font-light text-orange-400">
+                        <span>Playback error: {playback.playbackError}</span>
+                        <button
+                          onClick={() => playback.setPlaybackError(null)}
+                          className="ml-auto text-orange-400 hover:text-orange-300 font-medium"
+                        >
+                          Dismiss
+                        </button>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+                      {generation.attempts.map((attempt: AttemptResult) => (
+                        <AttemptCard
+                          key={attempt.id}
+                          attempt={attempt}
+                          isPlaying={playback.playingId === attempt.id}
+                          onPlay={() => {
+                            void playback.handlePlay(attempt.id, attempt);
+                          }}
+                          onStop={playback.handleStop}
+                          onExpand={() => setExpandedAttemptId(attempt.id)}
+                        />
+                      ))}
+                    </div>
+                  </section>
                 )}
-              </div>
-            </section>
-          )}
 
-          {hasApiKey && (
-            <section className="mx-auto w-full max-w-4xl">
-              <div className="mt-2">
-                <InputForm
-                  variant="hero"
-                  onSubmit={(prefs) => {
-                    void handleGenerate(prefs);
-                  }}
-                  isGenerating={generation.status === GenerationStatus.GENERATING}
-                />
-              </div>
-              {generation.errorMsg && (
-                <div className="mt-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-light text-red-400">
-                  {generation.errorMsg}
-                </div>
-              )}
-            </section>
-          )}
-
-          {!hasApiKey && !showApiKeyForm && (
-            <section className="max-w-xl mx-auto">
-              <p className="text-sm text-text-secondary">
-                Add your OpenRouter API key to start generating.
-              </p>
-            </section>
-          )}
-
-          {hasApiKey && generation.attempts.length > 0 && (
-            <section className="mt-10">
-              <div className="mb-6 flex items-center gap-3">
-                <div className="h-px flex-1 bg-surface-600/50" />
-                <span className="font-mono text-xs text-text-muted uppercase tracking-widest">
-                  Results
-                </span>
-                <div className="h-px flex-1 bg-surface-600/50" />
-              </div>
-
-              {playback.playbackError && (
-                <div className="mb-4 flex items-center gap-2 rounded-xl border border-orange-500/25 bg-orange-500/10 px-4 py-3 text-sm font-light text-orange-400">
-                  <span>Playback error: {playback.playbackError}</span>
-                  <button
-                    onClick={() => playback.setPlaybackError(null)}
-                    className="ml-auto text-orange-400 hover:text-orange-300 font-medium"
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-                {generation.attempts.map((attempt: AttemptResult) => (
-                  <AttemptCard
-                    key={attempt.id}
-                    attempt={attempt}
-                    isPlaying={playback.playingId === attempt.id}
-                    onPlay={() => {
-                      void playback.handlePlay(attempt.id, attempt);
-                    }}
-                    onStop={playback.handleStop}
-                    onExpand={() => setExpandedAttemptId(attempt.id)}
-                  />
-                ))}
-              </div>
-            </section>
-          )}
+                {generation.errorMsg && (
+                  <div className="mt-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-light text-red-400">
+                    {generation.errorMsg}
+                  </div>
+                )}
+              </section>
+            )}
+          </div>
         </div>
       </main>
+
+      {hasApiKey && (
+        <div
+          ref={composerDockRef}
+          data-testid="composer-dock"
+          className="pointer-events-none fixed inset-x-0 bottom-0 z-[70]"
+          style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+        >
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-surface-900 via-surface-900/85 to-transparent" />
+          <div className="relative mx-auto w-full max-w-6xl px-4 sm:px-6 md:px-8">
+            <div className="pointer-events-auto mx-auto w-full max-w-4xl">
+              <InputForm
+                variant="composer"
+                onSubmit={(prefs) => {
+                  void handleGenerate(prefs);
+                }}
+                isGenerating={generation.status === GenerationStatus.GENERATING}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       <ExpandedAttemptModal
         attempt={expandedAttempt}
         isOpen={expandedAttempt !== null}
-        isPlaying={expandedAttempt !== null && playback.playingId === expandedAttempt.id}
+        isPlaying={
+          expandedAttempt !== null && playback.playingId === expandedAttempt.id
+        }
         currentBeat={
           expandedAttempt !== null && playback.playingId === expandedAttempt.id
             ? playback.currentBeat
