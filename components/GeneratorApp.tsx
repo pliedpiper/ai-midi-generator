@@ -54,7 +54,9 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
     null
   );
   const [composerDockHeight, setComposerDockHeight] = React.useState(0);
-  const [emptyStateCaption] = React.useState(getRandomCaption);
+  const [emptyStateCaption, setEmptyStateCaption] = React.useState(
+    EMPTY_STATE_CAPTIONS[0]
+  );
   const resultsPaneRef = React.useRef<HTMLElement | null>(null);
   const composerDockRef = React.useRef<HTMLDivElement | null>(null);
   const shouldStickToBottomRef = React.useRef(true);
@@ -117,6 +119,10 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
     }
 
     container.scrollTop = container.scrollHeight;
+  }, []);
+
+  React.useEffect(() => {
+    setEmptyStateCaption(getRandomCaption());
   }, []);
 
   React.useEffect(() => {
