@@ -594,6 +594,60 @@ const InputForm: React.FC<Props> = ({
   if (isComposer) {
     return (
       <form ref={composerFormRef} onSubmit={handleSubmit} className={formClass}>
+        {isImprovingPrompt && (
+          <svg
+            aria-hidden="true"
+            className="pointer-events-none absolute -inset-[1px] z-10 h-[calc(100%+2px)] w-[calc(100%+2px)]"
+            viewBox="0 0 1000 240"
+            preserveAspectRatio="none"
+          >
+            <rect
+              x="1.5"
+              y="1.5"
+              width="997"
+              height="237"
+              rx="28"
+              ry="28"
+              fill="none"
+              strokeWidth="1"
+              className="composer-improving-outline-base"
+              vectorEffect="non-scaling-stroke"
+            />
+            <rect
+              x="1.5"
+              y="1.5"
+              width="997"
+              height="237"
+              rx="28"
+              ry="28"
+              fill="none"
+              strokeWidth="1.15"
+              pathLength="100"
+              strokeDasharray="22 78"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              className="composer-improving-outline-trail"
+              vectorEffect="non-scaling-stroke"
+            />
+            <rect
+              x="1.5"
+              y="1.5"
+              width="997"
+              height="237"
+              rx="28"
+              ry="28"
+              fill="none"
+              strokeWidth="1.25"
+              pathLength="100"
+              strokeDasharray="8 92"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              className="composer-improving-outline-head"
+              vectorEffect="non-scaling-stroke"
+            />
+          </svg>
+        )}
+
         {showAdvanced && (
           <div
             id="advanced-controls"
