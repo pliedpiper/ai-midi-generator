@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import GeneratorApp from '@/components/GeneratorApp';
 import { createClient } from '@/lib/supabase/server';
 import { getEncryptedOpenRouterKey } from '@/lib/userSettings';
+import { getRandomEmptyStateCaption } from '@/constants';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +27,7 @@ const Page = async () => {
     <GeneratorApp
       userEmail={user.email ?? 'Logged in'}
       initialHasApiKey={hasApiKey}
+      initialEmptyStateCaption={getRandomEmptyStateCaption()}
     />
   );
 };

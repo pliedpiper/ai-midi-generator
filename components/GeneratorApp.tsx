@@ -2,6 +2,7 @@
 
 import React from "react";
 import { GenerationStatus, AttemptResult, UserPreferences } from "@/types";
+import { EMPTY_STATE_CAPTIONS } from "@/constants";
 import { saveOpenRouterKey } from "@/services/openRouterKeyService";
 import { useAttemptGeneration } from "@/hooks/generator/useAttemptGeneration";
 import { useAttemptPlayback } from "@/hooks/generator/useAttemptPlayback";
@@ -14,36 +15,16 @@ import AppHeader from "@/components/AppHeader";
 interface GeneratorAppProps {
   userEmail: string;
   initialHasApiKey: boolean;
+  initialEmptyStateCaption?: string;
 }
 
 const STICKY_SCROLL_THRESHOLD_PX = 120;
 const RESULTS_DOCK_GAP_PX = 24;
-const EMPTY_STATE_CAPTIONS = [
-  "Ready when you are.",
-  "Describe it. Hear it.",
-  "From words to music.",
-  "What does your idea sound like?",
-  "Type a feeling. Get a song.",
-  "What do you want to hear?",
-  "Tell us what to play.",
-  "Music from your imagination.",
-  "Say it. We'll compose it.",
-  "Natural language in. MIDI out.",
-  "Prompt-driven composition.",
-  "AI-powered music, one prompt at a time.",
-  "Every word has a melody.",
-  "The space between language and sound.",
-  "Where prompts become compositions.",
-];
-
-const getRandomCaption = () => {
-  const index = Math.floor(Math.random() * EMPTY_STATE_CAPTIONS.length);
-  return EMPTY_STATE_CAPTIONS[index] ?? EMPTY_STATE_CAPTIONS[0];
-};
 
 const GeneratorApp: React.FC<GeneratorAppProps> = ({
   userEmail,
   initialHasApiKey,
+  initialEmptyStateCaption,
 }) => {
   const [hasApiKey, setHasApiKey] = React.useState(initialHasApiKey);
   const [showApiKeyForm, setShowApiKeyForm] = React.useState(!initialHasApiKey);
@@ -54,9 +35,7 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
     null
   );
   const [composerDockHeight, setComposerDockHeight] = React.useState(0);
-  const [emptyStateCaption, setEmptyStateCaption] = React.useState(
-    EMPTY_STATE_CAPTIONS[0]
-  );
+  const emptyStateCaption = initialEmptyStateCaption ?? EMPTY_STATE_CAPTIONS[0];
   const resultsPaneRef = React.useRef<HTMLElement | null>(null);
   const composerDockRef = React.useRef<HTMLDivElement | null>(null);
   const shouldStickToBottomRef = React.useRef(true);
@@ -119,10 +98,6 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
     }
 
     container.scrollTop = container.scrollHeight;
-  }, []);
-
-  React.useEffect(() => {
-    setEmptyStateCaption(getRandomCaption());
   }, []);
 
   React.useEffect(() => {
