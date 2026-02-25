@@ -28,13 +28,18 @@ const AccountSettingsPage: React.FC<AccountSettingsPageProps> = ({
   });
 
   return (
-    <div className="min-h-screen bg-surface-900 text-text-primary md:flex">
-      <AppHeader userEmail={state.currentEmail} />
+    <div className="relative min-h-screen overflow-hidden bg-surface-900 text-text-primary">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgb(var(--surface-700)_/_0.5),transparent_35%),radial-gradient(circle_at_84%_12%,rgb(var(--accent)_/_0.12),transparent_30%),linear-gradient(135deg,rgb(var(--surface-900))_0%,rgb(var(--surface-800))_100%)]" />
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-surface-500/50 to-transparent" />
+      </div>
 
-      <main className="flex-1 px-4 py-8 md:px-10 md:py-10">
-        <div className="max-w-4xl mx-auto space-y-8">
-          <div>
-            <h1 className="text-2xl font-medium">Account Settings</h1>
+      <AppHeader userEmail={state.currentEmail} variant="compact" />
+
+      <main className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 pb-10 pt-28 sm:px-6 md:px-8 md:pt-32">
+        <div className="mx-auto w-full max-w-4xl space-y-8">
+          <div className="rounded-[2rem] border border-surface-600/70 bg-surface-900/55 px-5 py-7 backdrop-blur-xl sm:px-8 md:px-10">
+            <h1 className="text-3xl font-medium sm:text-4xl">Account Settings</h1>
             <p className="text-sm text-text-secondary mt-1">
               Manage your account, security preferences, and saved data.
             </p>

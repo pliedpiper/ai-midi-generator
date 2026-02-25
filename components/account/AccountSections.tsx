@@ -30,7 +30,7 @@ export const SecuritySection: React.FC<SecuritySectionProps> = ({
   password,
   email,
 }) => (
-  <section className="bg-surface-800 border border-surface-600 rounded-lg p-6">
+  <section className="rounded-2xl border border-surface-600/70 bg-surface-800/70 p-6 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.85)] backdrop-blur-sm">
     <h2 className="text-lg font-medium">Security</h2>
 
     <div className="mt-5 grid gap-6 md:grid-cols-2">
@@ -42,7 +42,7 @@ export const SecuritySection: React.FC<SecuritySectionProps> = ({
           onChange={(event) => password.setNewPassword(event.target.value)}
           placeholder="New password"
           autoComplete="new-password"
-          className="w-full bg-surface-900 border border-surface-600 rounded px-3 py-2 text-sm text-text-primary focus:border-accent outline-none transition-colors"
+          className="w-full rounded-xl border border-surface-600 bg-surface-900 px-3 py-2 text-sm text-text-primary outline-none transition-colors focus:border-accent"
           disabled={password.isUpdatingPassword}
         />
         <input
@@ -51,13 +51,13 @@ export const SecuritySection: React.FC<SecuritySectionProps> = ({
           onChange={(event) => password.setConfirmPassword(event.target.value)}
           placeholder="Confirm new password"
           autoComplete="new-password"
-          className="w-full bg-surface-900 border border-surface-600 rounded px-3 py-2 text-sm text-text-primary focus:border-accent outline-none transition-colors"
+          className="w-full rounded-xl border border-surface-600 bg-surface-900 px-3 py-2 text-sm text-text-primary outline-none transition-colors focus:border-accent"
           disabled={password.isUpdatingPassword}
         />
         <button
           type="submit"
           disabled={password.isUpdatingPassword}
-          className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+          className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
             password.isUpdatingPassword
               ? "bg-surface-700 text-text-muted cursor-not-allowed"
               : "bg-accent text-accent-foreground hover:bg-accent-hover"
@@ -82,13 +82,13 @@ export const SecuritySection: React.FC<SecuritySectionProps> = ({
           onChange={(event) => email.setEmailInput(event.target.value)}
           placeholder="new-email@example.com"
           autoComplete="email"
-          className="w-full bg-surface-900 border border-surface-600 rounded px-3 py-2 text-sm text-text-primary focus:border-accent outline-none transition-colors"
+          className="w-full rounded-xl border border-surface-600 bg-surface-900 px-3 py-2 text-sm text-text-primary outline-none transition-colors focus:border-accent"
           disabled={email.isUpdatingEmail}
         />
         <button
           type="submit"
           disabled={email.isUpdatingEmail}
-          className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+          className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
             email.isUpdatingEmail
               ? "bg-surface-700 text-text-muted cursor-not-allowed"
               : "bg-accent text-accent-foreground hover:bg-accent-hover"
@@ -109,7 +109,7 @@ export const OpenRouterKeySection: React.FC<OpenRouterKeySectionProps> = ({
   formattedUpdatedAt,
   openRouterKey,
 }) => (
-  <section className="bg-surface-800 border border-surface-600 rounded-lg p-6">
+  <section className="rounded-2xl border border-surface-600/70 bg-surface-800/70 p-6 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.85)] backdrop-blur-sm">
     <h2 className="text-lg font-medium">OpenRouter Key</h2>
     <p className="text-sm text-text-secondary mt-1">
       Status: {openRouterKey.keyConfigured ? "Configured" : "Not configured"}
@@ -124,7 +124,7 @@ export const OpenRouterKeySection: React.FC<OpenRouterKeySectionProps> = ({
         value={openRouterKey.apiKeyInput}
         onChange={(event) => openRouterKey.setApiKeyInput(event.target.value)}
         placeholder="sk-or-..."
-        className="w-full md:max-w-lg bg-surface-900 border border-surface-600 rounded px-3 py-2 text-sm text-text-primary focus:border-accent outline-none transition-colors"
+        className="w-full rounded-xl border border-surface-600 bg-surface-900 px-3 py-2 text-sm text-text-primary outline-none transition-colors focus:border-accent md:max-w-lg"
         autoComplete="off"
         disabled={openRouterKey.isSavingApiKey || openRouterKey.isRemovingApiKey}
       />
@@ -132,7 +132,7 @@ export const OpenRouterKeySection: React.FC<OpenRouterKeySectionProps> = ({
         <button
           type="submit"
           disabled={openRouterKey.isSavingApiKey || openRouterKey.isRemovingApiKey}
-          className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+          className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
             openRouterKey.isSavingApiKey || openRouterKey.isRemovingApiKey
               ? "bg-surface-700 text-text-muted cursor-not-allowed"
               : "bg-accent text-accent-foreground hover:bg-accent-hover"
@@ -148,7 +148,7 @@ export const OpenRouterKeySection: React.FC<OpenRouterKeySectionProps> = ({
             openRouterKey.isSavingApiKey ||
             openRouterKey.isRemovingApiKey
           }
-          className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+          className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
             !openRouterKey.keyConfigured ||
             openRouterKey.isSavingApiKey ||
             openRouterKey.isRemovingApiKey
@@ -171,14 +171,14 @@ export const OpenRouterKeySection: React.FC<OpenRouterKeySectionProps> = ({
 );
 
 export const DataPrivacySection: React.FC<DataPrivacySectionProps> = ({ dataPrivacy }) => (
-  <section className="bg-surface-800 border border-surface-600 rounded-lg p-6">
+  <section className="rounded-2xl border border-surface-600/70 bg-surface-800/70 p-6 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.85)] backdrop-blur-sm">
     <h2 className="text-lg font-medium">Data & Privacy</h2>
     <div className="mt-4 flex flex-wrap items-center gap-3">
       <button
         type="button"
         onClick={() => void dataPrivacy.handleExportData()}
         disabled={dataPrivacy.isExporting}
-        className={`px-4 py-2 rounded text-sm font-medium transition-colors inline-flex items-center gap-2 ${
+        className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
           dataPrivacy.isExporting
             ? "bg-surface-700 text-text-muted cursor-not-allowed"
             : "bg-surface-700 text-text-secondary hover:bg-surface-600 hover:text-text-primary"
@@ -196,7 +196,7 @@ export const DataPrivacySection: React.FC<DataPrivacySectionProps> = ({ dataPriv
         type="button"
         onClick={() => void dataPrivacy.handleDeleteAllGenerations()}
         disabled={dataPrivacy.isDeletingAll}
-        className={`px-4 py-2 rounded text-sm font-medium transition-colors inline-flex items-center gap-2 ${
+        className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
           dataPrivacy.isDeletingAll
             ? "bg-surface-700 text-text-muted cursor-not-allowed"
             : "bg-surface-700 text-text-secondary hover:bg-red-500/20 hover:text-red-300"
@@ -226,7 +226,7 @@ export const DataPrivacySection: React.FC<DataPrivacySectionProps> = ({ dataPriv
 export const DeleteAccountSection: React.FC<DeleteAccountSectionProps> = ({
   deleteAccount,
 }) => (
-  <section className="bg-red-500/5 border border-red-500/30 rounded-lg p-6">
+  <section className="rounded-2xl border border-red-500/35 bg-red-500/5 p-6 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.85)] backdrop-blur-sm">
     <h2 className="text-lg font-medium text-red-300">Delete Account</h2>
     <p className="text-sm text-red-200/80 mt-1">
       This permanently removes your account, OpenRouter key, and saved generations.
@@ -238,13 +238,13 @@ export const DeleteAccountSection: React.FC<DeleteAccountSectionProps> = ({
         value={deleteAccount.deleteAccountConfirmation}
         onChange={(event) => deleteAccount.setDeleteAccountConfirmation(event.target.value)}
         placeholder="Type DELETE to confirm"
-        className="w-full md:max-w-sm bg-surface-900 border border-red-500/40 rounded px-3 py-2 text-sm text-text-primary focus:border-red-400 outline-none transition-colors"
+        className="w-full rounded-xl border border-red-500/40 bg-surface-900 px-3 py-2 text-sm text-text-primary outline-none transition-colors focus:border-red-400 md:max-w-sm"
         disabled={deleteAccount.isDeletingAccount}
       />
       <button
         type="submit"
         disabled={deleteAccount.isDeletingAccount}
-        className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+        className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
           deleteAccount.isDeletingAccount
             ? "bg-surface-700 text-text-muted cursor-not-allowed"
             : "bg-red-500/20 text-red-200 hover:bg-red-500/30"

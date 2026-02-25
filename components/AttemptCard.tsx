@@ -47,7 +47,7 @@ const AttemptCard: React.FC<Props> = ({ attempt, isPlaying, onPlay, onStop, onEx
 
   return (
     <div
-      className={`group flex flex-col w-44 bg-surface-800 rounded border border-surface-600 transition-colors ${
+      className={`group flex h-full min-h-[16rem] flex-col rounded-2xl border border-surface-600/70 bg-surface-800/70 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.85)] backdrop-blur-sm transition-colors ${
         canExpand ? 'cursor-pointer hover:border-surface-500' : ''
       }`}
       onClick={handleCardClick}
@@ -63,7 +63,7 @@ const AttemptCard: React.FC<Props> = ({ attempt, isPlaying, onPlay, onStop, onEx
       aria-label={canExpand ? `Open expanded output ${attempt.id}` : undefined}
     >
       {/* Header */}
-      <div className="px-4 py-3 border-b border-surface-700 flex justify-between items-center">
+      <div className="flex items-center justify-between border-b border-surface-700/80 px-4 py-3">
         <span className="font-mono text-xs text-text-muted uppercase tracking-wider">
           #{attempt.id}
         </span>
@@ -81,16 +81,16 @@ const AttemptCard: React.FC<Props> = ({ attempt, isPlaying, onPlay, onStop, onEx
       </div>
 
       {/* Content */}
-      <div className="flex-1 p-4 flex flex-col">
+      <div className="flex flex-1 flex-col p-4">
         {attempt.status === 'success' && attempt.data ? (
           <>
             {/* Title */}
-            <h4 className="text-sm font-medium text-text-primary mb-3 line-clamp-2">
+            <h4 className="mb-3 line-clamp-2 text-sm font-medium text-text-primary">
               {attempt.data.title || 'Untitled'}
             </h4>
 
             {/* Metadata */}
-            <div className="space-y-1.5 mb-4">
+            <div className="mb-4 space-y-1.5">
               <div className="flex justify-between font-mono text-[10px]">
                 <span className="text-text-muted uppercase tracking-wider">Key</span>
                 <span className="text-text-secondary">{attempt.data.key}</span>
@@ -108,13 +108,13 @@ const AttemptCard: React.FC<Props> = ({ attempt, isPlaying, onPlay, onStop, onEx
             <div className="flex-1" />
 
             {/* Actions */}
-            <div className="flex gap-2 mt-auto">
+            <div className="mt-auto flex gap-2">
               <button
                 onClick={(event) => {
                   event.stopPropagation();
                   handlePlayToggle();
                 }}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded text-xs font-medium transition-colors ${
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-medium transition-colors ${
                   isPlaying
                     ? 'bg-accent/15 text-accent'
                     : 'bg-surface-700 text-text-secondary hover:text-text-primary hover:bg-surface-600'
@@ -138,7 +138,7 @@ const AttemptCard: React.FC<Props> = ({ attempt, isPlaying, onPlay, onStop, onEx
                   href={downloadUrl}
                   download={downloadFilename}
                   onClick={(event) => event.stopPropagation()}
-                  className="flex items-center justify-center w-9 rounded bg-surface-700 text-text-secondary hover:text-text-primary hover:bg-surface-600 transition-colors"
+                  className="flex w-9 items-center justify-center rounded-xl bg-surface-700 text-text-secondary transition-colors hover:bg-surface-600 hover:text-text-primary"
                   title="Download"
                 >
                   <Download size={14} />
@@ -150,7 +150,7 @@ const AttemptCard: React.FC<Props> = ({ attempt, isPlaying, onPlay, onStop, onEx
                   event.stopPropagation();
                   onExpand();
                 }}
-                className="flex items-center justify-center w-9 rounded bg-surface-700 text-text-secondary hover:text-text-primary hover:bg-surface-600 transition-colors"
+                className="flex w-9 items-center justify-center rounded-xl bg-surface-700 text-text-secondary transition-colors hover:bg-surface-600 hover:text-text-primary"
                 title="Expand"
                 aria-label={`Expand output ${attempt.id}`}
               >

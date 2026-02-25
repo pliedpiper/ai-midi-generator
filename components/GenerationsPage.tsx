@@ -44,13 +44,18 @@ const GenerationsPage: React.FC<GenerationsPageProps> = ({ userEmail }) => {
   const state = useGenerationsPage();
 
   return (
-    <div className="min-h-screen bg-surface-900 text-text-primary md:flex">
-      <AppHeader userEmail={userEmail} />
+    <div className="relative min-h-screen overflow-hidden bg-surface-900 text-text-primary">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_0%,rgb(var(--surface-700)_/_0.5),transparent_35%),radial-gradient(circle_at_88%_14%,rgb(var(--accent)_/_0.12),transparent_32%),linear-gradient(135deg,rgb(var(--surface-900))_0%,rgb(var(--surface-800))_100%)]" />
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-surface-500/50 to-transparent" />
+      </div>
 
-      <main className="flex-1 px-4 py-8 md:px-10 md:py-10">
-        <div className="max-w-6xl mx-auto">
-          <div className="mb-6">
-            <h1 className="text-2xl font-medium">My Generations</h1>
+      <AppHeader userEmail={userEmail} variant="compact" />
+
+      <main className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 pb-10 pt-28 sm:px-6 md:px-8 md:pt-32">
+        <div className="mx-auto w-full max-w-5xl">
+          <div className="mb-6 rounded-[2rem] border border-surface-600/70 bg-surface-900/55 px-5 py-7 backdrop-blur-xl sm:px-8 md:px-10">
+            <h1 className="text-3xl font-medium sm:text-4xl">My Generations</h1>
             <p className="text-sm text-text-secondary mt-1">
               Saved outputs are attached to your account and available across sessions.
             </p>
@@ -67,7 +72,7 @@ const GenerationsPage: React.FC<GenerationsPageProps> = ({ userEmail }) => {
                   value={state.promptQuery}
                   onChange={(event) => state.setPromptQuery(event.target.value)}
                   placeholder="Search title, prompt, model, key, or date..."
-                  className="w-full bg-surface-800 border border-surface-600 rounded pl-9 pr-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:border-accent outline-none transition-colors"
+                  className="w-full rounded-xl border border-surface-600 bg-surface-800 pl-9 pr-3 py-2 text-sm text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-accent"
                 />
               </label>
 
@@ -79,7 +84,7 @@ const GenerationsPage: React.FC<GenerationsPageProps> = ({ userEmail }) => {
                     state.setSortOption(event.target.value as GenerationSortOption)
                   }
                   disabled={state.promptQuery.trim().length > 0}
-                  className={`w-full border rounded px-3 py-2 text-sm outline-none transition-colors ${
+                  className={`w-full rounded-xl border px-3 py-2 text-sm outline-none transition-colors ${
                     state.promptQuery.trim().length > 0
                       ? "bg-surface-700 border-surface-600 text-text-muted cursor-not-allowed"
                       : "bg-surface-800 border-surface-600 text-text-primary focus:border-accent"
@@ -114,22 +119,22 @@ const GenerationsPage: React.FC<GenerationsPageProps> = ({ userEmail }) => {
           </div>
 
           {state.error && (
-            <div className="mb-4 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded text-red-400 text-sm">
+            <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
               {state.error}
             </div>
           )}
 
           {state.loading ? (
-            <div className="flex items-center gap-2 text-text-secondary text-sm">
+            <div className="flex items-center gap-2 rounded-xl border border-surface-600/70 bg-surface-800/60 px-4 py-3 text-sm text-text-secondary">
               <Loader2 size={16} className="animate-spin" />
               Loading generations...
             </div>
           ) : state.generations.length === 0 ? (
-            <div className="px-4 py-6 border border-surface-600 rounded bg-surface-800 text-sm text-text-secondary">
+            <div className="rounded-2xl border border-surface-600/70 bg-surface-800/60 px-4 py-6 text-sm text-text-secondary backdrop-blur-sm">
               No saved generations yet.
             </div>
           ) : state.visibleGenerations.length === 0 ? (
-            <div className="px-4 py-6 border border-surface-600 rounded bg-surface-800 text-sm text-text-secondary">
+            <div className="rounded-2xl border border-surface-600/70 bg-surface-800/60 px-4 py-6 text-sm text-text-secondary backdrop-blur-sm">
               No generations match that prompt search.
             </div>
           ) : (
@@ -169,10 +174,10 @@ const GenerationsPage: React.FC<GenerationsPageProps> = ({ userEmail }) => {
                       void state.handleLoadMore();
                     }}
                     disabled={state.loadingMore}
-                    className={`rounded border px-4 py-2 text-sm transition-colors ${
+                    className={`rounded-xl border px-4 py-2 text-sm transition-colors ${
                       state.loadingMore
                         ? "cursor-not-allowed border-surface-600 bg-surface-700 text-text-muted"
-                        : "border-surface-600 bg-surface-800 text-text-primary hover:border-surface-500 hover:bg-surface-700"
+                      : "border-surface-600 bg-surface-800 text-text-primary hover:border-surface-500 hover:bg-surface-700"
                     }`}
                   >
                     {state.loadingMore

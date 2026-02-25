@@ -19,6 +19,7 @@ import { signOutAndRedirect } from "@/lib/auth/signOut";
 
 interface AppHeaderProps {
   userEmail: string;
+  variant?: "sidebar" | "compact";
 }
 
 const SIDEBAR_COLLAPSE_STORAGE_KEY = "ai-midi-sidebar-collapsed";
@@ -35,7 +36,10 @@ const applyTheme = (theme: ThemeMode) => {
   document.documentElement.setAttribute("data-theme", theme);
 };
 
-const AppHeader: React.FC<AppHeaderProps> = ({ userEmail }) => {
+const AppHeader: React.FC<AppHeaderProps> = ({
+  userEmail,
+  variant = "sidebar",
+}) => {
   const pathname = usePathname();
   const router = useRouter();
   const [isSigningOut, setIsSigningOut] = React.useState(false);
@@ -111,6 +115,141 @@ const AppHeader: React.FC<AppHeaderProps> = ({ userEmail }) => {
 
   const themeToggleLabel =
     themeMode === "dark" ? "Switch to light theme" : "Switch to dark theme";
+
+  if (variant === "compact") {
+    return (
+      <header className="pointer-events-none absolute inset-x-0 top-0 z-40">
+        <div className="mx-auto flex w-full max-w-6xl items-start justify-between px-4 pt-4 sm:px-6 md:px-8 md:pt-6">
+          <Link
+            href="/"
+            className="pointer-events-auto rounded-2xl border border-surface-600/60 bg-surface-900/70 px-4 py-3 backdrop-blur-xl transition-colors hover:border-surface-500/70"
+          >
+            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">
+              AI MIDI
+            </p>
+            <p className="mt-1 text-sm font-medium text-text-primary">
+              Composer
+            </p>
+          </Link>
+
+          <div className="pointer-events-auto flex flex-col items-end gap-2">
+            <div className="hidden items-center gap-2 sm:flex">
+              <nav className="items-center gap-1 rounded-2xl border border-surface-600/60 bg-surface-900/70 p-1 backdrop-blur-xl sm:flex">
+                {desktopNavItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = pathname === item.href;
+
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-[11px] font-mono uppercase tracking-[0.14em] transition-colors ${
+                        isActive
+                          ? "bg-surface-700 text-text-primary"
+                          : "text-text-secondary hover:bg-surface-800 hover:text-text-primary"
+                      }`}
+                    >
+                      <Icon size={13} />
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </nav>
+
+              <div className="flex items-center gap-1 rounded-2xl border border-surface-600/60 bg-surface-900/70 p-1 backdrop-blur-xl">
+                <button
+                  type="button"
+                  onClick={handleThemeToggle}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-text-secondary transition-colors hover:bg-surface-700 hover:text-text-primary"
+                  aria-label={themeToggleLabel}
+                  title={themeToggleLabel}
+                >
+                  {themeMode === "dark" ? <Sun size={15} /> : <Moon size={15} />}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  disabled={isSigningOut}
+                  className={`inline-flex h-9 w-9 items-center justify-center rounded-xl transition-colors ${
+                    isSigningOut
+                      ? "cursor-not-allowed bg-surface-700 text-text-muted"
+                      : "text-text-secondary hover:bg-surface-700 hover:text-text-primary"
+                  }`}
+                  aria-label="Sign out"
+                  title="Sign out"
+                >
+                  {isSigningOut ? (
+                    <Loader2 size={15} className="animate-spin" />
+                  ) : (
+                    <LogOut size={15} />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1 rounded-2xl border border-surface-600/60 bg-surface-900/70 p-1 backdrop-blur-xl sm:hidden">
+              <button
+                type="button"
+                onClick={handleThemeToggle}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-text-secondary transition-colors hover:bg-surface-700 hover:text-text-primary"
+                aria-label={themeToggleLabel}
+                title={themeToggleLabel}
+              >
+                {themeMode === "dark" ? <Sun size={15} /> : <Moon size={15} />}
+              </button>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                disabled={isSigningOut}
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-xl transition-colors ${
+                  isSigningOut
+                    ? "cursor-not-allowed bg-surface-700 text-text-muted"
+                    : "text-text-secondary hover:bg-surface-700 hover:text-text-primary"
+                }`}
+                aria-label="Sign out"
+                title="Sign out"
+              >
+                {isSigningOut ? (
+                  <Loader2 size={15} className="animate-spin" />
+                ) : (
+                  <LogOut size={15} />
+                )}
+              </button>
+            </div>
+
+            <nav className="flex items-center gap-1 rounded-2xl border border-surface-600/60 bg-surface-900/70 p-1 backdrop-blur-xl sm:hidden">
+              {desktopNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href;
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`inline-flex h-9 w-9 items-center justify-center rounded-xl transition-colors ${
+                      isActive
+                        ? "bg-surface-700 text-text-primary"
+                        : "text-text-secondary hover:bg-surface-800 hover:text-text-primary"
+                    }`}
+                    aria-label={item.label}
+                    title={item.label}
+                  >
+                    <Icon size={14} />
+                  </Link>
+                );
+              })}
+            </nav>
+
+            {signOutError && (
+              <p className="max-w-xs rounded-xl border border-red-500/35 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                {signOutError}
+              </p>
+            )}
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <>
