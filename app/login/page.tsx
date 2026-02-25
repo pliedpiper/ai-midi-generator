@@ -135,7 +135,7 @@ const LoginPage: React.FC = () => {
             className={`w-full py-3 rounded font-medium transition-colors flex items-center justify-center gap-2 ${
               loading
                 ? 'bg-surface-700 text-text-muted cursor-not-allowed'
-                : 'bg-accent text-surface-900 hover:bg-accent-hover'
+                : 'bg-accent text-accent-foreground hover:bg-accent-hover'
             }`}
           >
             {loading ? (

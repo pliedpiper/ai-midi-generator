@@ -284,7 +284,7 @@ const InputForm: React.FC<Props> = ({ onSubmit, isGenerating }) => {
         className={`w-full py-3.5 rounded font-medium tracking-wide transition-all ${
           isGenerating || isPromptEmpty || isImprovingPrompt
             ? 'bg-surface-700 text-text-muted cursor-not-allowed'
-            : 'bg-accent text-surface-900 hover:bg-accent-hover active:scale-[0.99]'
+            : 'bg-accent text-accent-foreground hover:bg-accent-hover active:scale-[0.99]'
         }`}
       >
         {isGenerating ? (

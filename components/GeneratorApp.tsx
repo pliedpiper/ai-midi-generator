@@ -130,7 +130,7 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
                       className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
                         isSavingApiKey
                           ? "bg-surface-700 text-text-muted cursor-not-allowed"
-                          : "bg-accent text-surface-900 hover:bg-accent-hover"
+                          : "bg-accent text-accent-foreground hover:bg-accent-hover"
                       }`}
                     >
                       {isSavingApiKey ? "Saving..." : "Save key"}

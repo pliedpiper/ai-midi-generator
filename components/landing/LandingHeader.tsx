@@ -20,7 +20,7 @@ const LandingHeader: React.FC = () => (
         </Link>
         <Link
           href="/login"
-          className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-surface-900 hover:bg-accent-hover transition-colors"
+          className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:bg-accent-hover transition-colors"
         >
           Get Started
         </Link>

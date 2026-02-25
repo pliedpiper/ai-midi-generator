@@ -26,7 +26,7 @@ const LandingVariant1: React.FC = () => (
         <div className="mt-10">
           <Link
             href="/login"
-            className="inline-block rounded-md bg-accent px-8 py-3.5 text-sm font-medium text-surface-900 hover:bg-accent-hover transition-colors"
+            className="inline-block rounded-md bg-accent px-8 py-3.5 text-sm font-medium text-accent-foreground hover:bg-accent-hover transition-colors"
           >
             Start composing
           </Link>
@@ -64,7 +64,7 @@ const LandingVariant1: React.FC = () => (
       <div className="mt-8">
         <Link
           href="/login"
-          className="inline-block rounded-md bg-accent px-8 py-3.5 text-sm font-medium text-surface-900 hover:bg-accent-hover transition-colors"
+          className="inline-block rounded-md bg-accent px-8 py-3.5 text-sm font-medium text-accent-foreground hover:bg-accent-hover transition-colors"
         >
           Start composing
         </Link>

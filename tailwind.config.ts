@@ -13,21 +13,22 @@ const config: Config = {
     extend: {
       colors: {
         surface: {
-          900: '#121212',
-          800: '#1a1a1a',
-          700: '#242424',
-          600: '#2e2e2e',
-          500: '#383838'
+          900: 'rgb(var(--surface-900) / <alpha-value>)',
+          800: 'rgb(var(--surface-800) / <alpha-value>)',
+          700: 'rgb(var(--surface-700) / <alpha-value>)',
+          600: 'rgb(var(--surface-600) / <alpha-value>)',
+          500: 'rgb(var(--surface-500) / <alpha-value>)'
         },
         text: {
-          primary: '#e5e5e5',
-          secondary: '#a3a3a3',
-          muted: '#6b6b6b'
+          primary: 'rgb(var(--text-primary) / <alpha-value>)',
+          secondary: 'rgb(var(--text-secondary) / <alpha-value>)',
+          muted: 'rgb(var(--text-muted) / <alpha-value>)'
         },
         accent: {
-          DEFAULT: '#d4a574',
-          hover: '#e0b88a',
-          muted: 'rgba(212, 165, 116, 0.15)'
+          DEFAULT: 'rgb(var(--accent) / <alpha-value>)',
+          hover: 'rgb(var(--accent-hover) / <alpha-value>)',
+          muted: 'rgb(var(--accent-muted) / <alpha-value>)',
+          foreground: 'rgb(var(--accent-foreground) / <alpha-value>)'
         }
       },
       fontFamily: {

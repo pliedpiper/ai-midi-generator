@@ -60,7 +60,7 @@ export const SecuritySection: React.FC<SecuritySectionProps> = ({
           className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
             password.isUpdatingPassword
               ? "bg-surface-700 text-text-muted cursor-not-allowed"
-              : "bg-accent text-surface-900 hover:bg-accent-hover"
+              : "bg-accent text-accent-foreground hover:bg-accent-hover"
           }`}
         >
           {password.isUpdatingPassword ? "Updating..." : "Update password"}
@@ -91,7 +91,7 @@ export const SecuritySection: React.FC<SecuritySectionProps> = ({
           className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
             email.isUpdatingEmail
               ? "bg-surface-700 text-text-muted cursor-not-allowed"
-              : "bg-accent text-surface-900 hover:bg-accent-hover"
+              : "bg-accent text-accent-foreground hover:bg-accent-hover"
           }`}
         >
           {email.isUpdatingEmail ? "Updating..." : "Update email"}
@@ -135,7 +135,7 @@ export const OpenRouterKeySection: React.FC<OpenRouterKeySectionProps> = ({
           className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
             openRouterKey.isSavingApiKey || openRouterKey.isRemovingApiKey
               ? "bg-surface-700 text-text-muted cursor-not-allowed"
-              : "bg-accent text-surface-900 hover:bg-accent-hover"
+              : "bg-accent text-accent-foreground hover:bg-accent-hover"
           }`}
         >
           {openRouterKey.isSavingApiKey ? "Saving..." : "Save key"}

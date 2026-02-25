@@ -10,6 +10,8 @@ import {
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
+  Moon,
+  Sun,
   User,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -20,6 +22,8 @@ interface AppHeaderProps {
 }
 
 const SIDEBAR_COLLAPSE_STORAGE_KEY = "ai-midi-sidebar-collapsed";
+const THEME_STORAGE_KEY = "ai-midi-theme";
+type ThemeMode = "dark" | "light";
 
 const desktopNavItems = [
   { href: "/", label: "Generate", icon: House },
@@ -27,13 +31,20 @@ const desktopNavItems = [
   { href: "/account", label: "Account", icon: User },
 ];
 
+const applyTheme = (theme: ThemeMode) => {
+  document.documentElement.setAttribute("data-theme", theme);
+};
+
 const AppHeader: React.FC<AppHeaderProps> = ({ userEmail }) => {
   const pathname = usePathname();
   const router = useRouter();
   const [isSigningOut, setIsSigningOut] = React.useState(false);
   const [signOutError, setSignOutError] = React.useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
+  const [themeMode, setThemeMode] = React.useState<ThemeMode>("dark");
   const [hasLoadedSidebarPreference, setHasLoadedSidebarPreference] =
+    React.useState(false);
+  const [hasLoadedThemePreference, setHasLoadedThemePreference] =
     React.useState(false);
 
   React.useEffect(() => {
@@ -45,6 +56,15 @@ const AppHeader: React.FC<AppHeaderProps> = ({ userEmail }) => {
   }, []);
 
   React.useEffect(() => {
+    const savedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+    const normalizedTheme: ThemeMode = savedTheme === "light" ? "light" : "dark";
+
+    setThemeMode(normalizedTheme);
+    applyTheme(normalizedTheme);
+    setHasLoadedThemePreference(true);
+  }, []);
+
+  React.useEffect(() => {
     if (!hasLoadedSidebarPreference) return;
 
     window.localStorage.setItem(
@@ -52,6 +72,13 @@ const AppHeader: React.FC<AppHeaderProps> = ({ userEmail }) => {
       isSidebarCollapsed ? "1" : "0",
     );
   }, [isSidebarCollapsed, hasLoadedSidebarPreference]);
+
+  React.useEffect(() => {
+    if (!hasLoadedThemePreference) return;
+
+    window.localStorage.setItem(THEME_STORAGE_KEY, themeMode);
+    applyTheme(themeMode);
+  }, [themeMode, hasLoadedThemePreference]);
 
   const navItemClass = (isActive: boolean, isCollapsed: boolean) =>
     `flex items-center rounded-md py-2 text-xs font-mono uppercase tracking-wider transition-colors ${
@@ -75,6 +102,15 @@ const AppHeader: React.FC<AppHeaderProps> = ({ userEmail }) => {
       setIsSigningOut(false);
     }
   };
+
+  const handleThemeToggle = () => {
+    setThemeMode((currentTheme) =>
+      currentTheme === "dark" ? "light" : "dark",
+    );
+  };
+
+  const themeToggleLabel =
+    themeMode === "dark" ? "Switch to light theme" : "Switch to dark theme";
 
   return (
     <>
@@ -161,25 +197,33 @@ const AppHeader: React.FC<AppHeaderProps> = ({ userEmail }) => {
                 </div>
               )}
 
-              <button
-                type="button"
-                onClick={() => setIsSidebarCollapsed((prev) => !prev)}
-                className={`rounded-md border border-surface-600 bg-surface-800 text-text-secondary hover:text-text-primary hover:border-surface-500 transition-colors ${
-                  isSidebarCollapsed ? "p-2" : "p-2.5"
+              <div
+                className={`flex ${
+                  isSidebarCollapsed
+                    ? "flex-col items-center gap-2"
+                    : "items-center gap-2"
                 }`}
-                aria-label={
-                  isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
-                }
-                title={
-                  isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
-                }
               >
-                {isSidebarCollapsed ? (
-                  <PanelLeftOpen size={16} />
-                ) : (
-                  <PanelLeftClose size={16} />
-                )}
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setIsSidebarCollapsed((prev) => !prev)}
+                  className={`rounded-md border border-surface-600 bg-surface-800 text-text-secondary hover:text-text-primary hover:border-surface-500 transition-colors ${
+                    isSidebarCollapsed ? "p-2" : "p-2.5"
+                  }`}
+                  aria-label={
+                    isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
+                  }
+                  title={
+                    isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
+                  }
+                >
+                  {isSidebarCollapsed ? (
+                    <PanelLeftOpen size={16} />
+                  ) : (
+                    <PanelLeftClose size={16} />
+                  )}
+                </button>
+              </div>
             </div>
 
             {isSidebarCollapsed && (
@@ -223,6 +267,19 @@ const AppHeader: React.FC<AppHeaderProps> = ({ userEmail }) => {
               <p className="truncate text-xs text-text-muted mb-3">
                 {userEmail}
               </p>
+            )}
+
+            {!isSidebarCollapsed && (
+              <button
+                type="button"
+                onClick={handleThemeToggle}
+                className="mb-2 inline-flex w-full items-center justify-center gap-2 rounded border border-surface-600 bg-surface-800 px-3 py-2 text-xs font-medium text-text-secondary transition-colors hover:border-surface-500 hover:text-text-primary"
+                aria-label={themeToggleLabel}
+                title={themeToggleLabel}
+              >
+                {themeMode === "dark" ? <Sun size={14} /> : <Moon size={14} />}
+                <span>{themeMode === "dark" ? "Light mode" : "Dark mode"}</span>
+              </button>
             )}
 
             <button
