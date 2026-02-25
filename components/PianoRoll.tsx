@@ -12,6 +12,8 @@ interface PianoRollProps {
   className?: string;
 }
 
+type ThemeMode = 'dark' | 'light';
+
 const BLACK_KEY_PITCH_CLASSES = new Set([1, 3, 6, 8, 10]);
 
 const getTrackColor = (trackIndex: number): string =>
@@ -19,6 +21,11 @@ const getTrackColor = (trackIndex: number): string =>
 
 const getTrackColorWithAlpha = (trackIndex: number, alpha: number): string =>
   `hsl(${(trackIndex * 67) % 360} 74% 62% / ${alpha})`;
+
+const getThemeMode = (): ThemeMode => {
+  if (typeof document === 'undefined') return 'dark';
+  return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+};
 
 const PianoRoll: React.FC<PianoRollProps> = ({
   composition,
@@ -30,8 +37,20 @@ const PianoRoll: React.FC<PianoRollProps> = ({
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
   const [width, setWidth] = React.useState(0);
+  const [themeMode, setThemeMode] = React.useState<ThemeMode>(() => getThemeMode());
 
   const data = React.useMemo(() => buildPianoRollData(composition), [composition]);
+
+  React.useEffect(() => {
+    const root = document.documentElement;
+    const updateTheme = () => setThemeMode(getThemeMode());
+
+    updateTheme();
+    const observer = new MutationObserver(updateTheme);
+    observer.observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+
+    return () => observer.disconnect();
+  }, []);
 
   React.useEffect(() => {
     const element = containerRef.current;
@@ -75,16 +94,34 @@ const PianoRoll: React.FC<PianoRollProps> = ({
 
     const midiToY = (midi: number): number => (pitchRange.maxMidi - midi) * noteHeight;
     const beatToX = (beat: number): number => ((beat - beatRange.startBeat) / totalBeats) * width;
+    const colors =
+      themeMode === 'light'
+        ? {
+            blackLane: 'rgba(64, 68, 74, 0.36)',
+            whiteLane: 'rgba(247, 247, 242, 0.94)',
+            octaveLine: 'rgba(153, 95, 42, 0.20)',
+            barLine: 'rgba(153, 95, 42, 0.28)',
+            beatLine: 'rgba(76, 84, 97, 0.16)',
+            noteStroke: 'rgba(24, 24, 24, 0.24)'
+          }
+        : {
+            blackLane: 'rgba(56, 64, 74, 0.54)',
+            whiteLane: 'rgba(24, 28, 34, 0.90)',
+            octaveLine: 'rgba(212, 165, 116, 0.22)',
+            barLine: 'rgba(212, 165, 116, 0.24)',
+            beatLine: 'rgba(229, 229, 229, 0.12)',
+            noteStroke: 'rgba(0, 0, 0, 0.28)'
+          };
 
     // Background pitch lanes.
     for (let midi = pitchRange.minMidi; midi <= pitchRange.maxMidi; midi++) {
       const y = midiToY(midi);
       const isBlackKey = BLACK_KEY_PITCH_CLASSES.has(midi % 12);
-      context.fillStyle = isBlackKey ? 'rgba(25, 25, 25, 0.9)' : 'rgba(30, 30, 30, 0.6)';
+      context.fillStyle = isBlackKey ? colors.blackLane : colors.whiteLane;
       context.fillRect(0, y, width, noteHeight);
 
       if (midi % 12 === 0) {
-        context.strokeStyle = 'rgba(212, 165, 116, 0.18)';
+        context.strokeStyle = colors.octaveLine;
         context.lineWidth = 1;
         context.beginPath();
         context.moveTo(0, y);
@@ -100,7 +137,7 @@ const PianoRoll: React.FC<PianoRollProps> = ({
       if (x < 0 || x > width) continue;
 
       const isBar = beat % beatsPerBar === 0;
-      context.strokeStyle = isBar ? 'rgba(212, 165, 116, 0.24)' : 'rgba(229, 229, 229, 0.09)';
+      context.strokeStyle = isBar ? colors.barLine : colors.beatLine;
       context.lineWidth = isBar ? 1.25 : 0.75;
       context.beginPath();
       context.moveTo(x, 0);
@@ -119,7 +156,7 @@ const PianoRoll: React.FC<PianoRollProps> = ({
       context.fillStyle = getTrackColorWithAlpha(note.trackIndex, alpha);
       context.fillRect(x, y, noteWidth, boxHeight);
 
-      context.strokeStyle = 'rgba(0, 0, 0, 0.35)';
+      context.strokeStyle = colors.noteStroke;
       context.lineWidth = 1;
       context.strokeRect(x, y, noteWidth, boxHeight);
     });
@@ -144,7 +181,7 @@ const PianoRoll: React.FC<PianoRollProps> = ({
       context.closePath();
       context.fill();
     }
-  }, [composition, currentBeat, data, height, isPlaying, width]);
+  }, [composition, currentBeat, data, height, isPlaying, themeMode, width]);
 
   if (data.notes.length === 0) {
     return (

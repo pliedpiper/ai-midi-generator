@@ -4,7 +4,7 @@ import React from 'react';
 import { UserPreferences } from '../types';
 import { AVAILABLE_MODELS, DEFAULT_PREFERENCES } from '../constants';
 import { parseKeyString } from '../utils/scaleUtils';
-import { ChevronDown, Loader2, Sparkles } from 'lucide-react';
+import { Check, ChevronDown, Loader2, Search, Sparkles } from 'lucide-react';
 import { improvePrompt } from '../services/openRouterService';
 
 interface Props {
@@ -13,6 +13,47 @@ interface Props {
   variant?: 'default' | 'hero';
   promptSuggestion?: string | null;
 }
+
+type ModelOption = (typeof AVAILABLE_MODELS)[number];
+type ModelGroup = {
+  providerId: string;
+  providerName: string;
+  models: ModelOption[];
+};
+
+const PROVIDER_NAME_OVERRIDES: Record<string, string> = {
+  'arcee-ai': 'Arcee AI',
+  anthropic: 'Anthropic',
+  'bytedance-seed': 'ByteDance Seed',
+  deepseek: 'DeepSeek',
+  google: 'Google',
+  mistralai: 'Mistral AI',
+  moonshotai: 'Moonshot AI',
+  nvidia: 'NVIDIA',
+  openai: 'OpenAI',
+  openrouter: 'OpenRouter',
+  qwen: 'Qwen',
+  stepfun: 'StepFun',
+  xiaomi: 'Xiaomi',
+  'x-ai': 'xAI',
+  'z-ai': 'Z AI',
+};
+
+const toTitleCase = (value: string): string =>
+  value
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+
+const getProviderName = (providerId: string): string => {
+  const override = PROVIDER_NAME_OVERRIDES[providerId];
+  if (override) {
+    return override;
+  }
+
+  return toTitleCase(providerId.replace(/[-_]+/g, ' '));
+};
 
 const InputForm: React.FC<Props> = ({
   onSubmit,
@@ -24,13 +65,71 @@ const InputForm: React.FC<Props> = ({
   const [showAdvanced, setShowAdvanced] = React.useState(false);
   const [isImprovingPrompt, setIsImprovingPrompt] = React.useState(false);
   const [improvePromptError, setImprovePromptError] = React.useState<string | null>(null);
+  const [modelSearch, setModelSearch] = React.useState('');
+  const [isModelPickerOpen, setIsModelPickerOpen] = React.useState(false);
+  const modelPickerRef = React.useRef<HTMLDivElement | null>(null);
+  const modelSearchInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const isHero = variant === 'hero';
   const isPromptEmpty = !prefs.prompt.trim();
-  const sortedAvailableModels = React.useMemo(
-    () => [...AVAILABLE_MODELS].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })),
-    []
+  const groupedModels = React.useMemo<ModelGroup[]>(() => {
+    const grouped = new Map<string, ModelGroup>();
+
+    for (const model of AVAILABLE_MODELS) {
+      const providerId = model.id.split('/')[0] ?? 'other';
+      if (!grouped.has(providerId)) {
+        grouped.set(providerId, {
+          providerId,
+          providerName: getProviderName(providerId),
+          models: [],
+        });
+      }
+      grouped.get(providerId)?.models.push(model);
+    }
+
+    return [...grouped.values()]
+      .map(group => ({
+        ...group,
+        models: [...group.models].sort((a, b) =>
+          a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+        ),
+      }))
+      .sort((a, b) =>
+        a.providerName.localeCompare(b.providerName, undefined, { sensitivity: 'base' })
+      );
+  }, []);
+
+  const filteredModelGroups = React.useMemo(() => {
+    const normalizedQuery = modelSearch.trim().toLowerCase();
+    if (!normalizedQuery) {
+      return groupedModels;
+    }
+
+    return groupedModels
+      .map(group => ({
+        ...group,
+        models: group.models.filter(model => {
+          const searchText = `${group.providerName} ${model.name} ${model.id}`.toLowerCase();
+          return searchText.includes(normalizedQuery);
+        }),
+      }))
+      .filter(group => group.models.length > 0);
+  }, [groupedModels, modelSearch]);
+
+  const visibleModelIds = React.useMemo(
+    () => filteredModelGroups.flatMap(group => group.models.map(model => model.id)),
+    [filteredModelGroups]
   );
+  const visibleModelCount = visibleModelIds.length;
+  const firstVisibleModelId = visibleModelIds[0] ?? null;
+  const selectedModel = React.useMemo(
+    () => AVAILABLE_MODELS.find(model => model.id === prefs.model) ?? AVAILABLE_MODELS[0],
+    [prefs.model]
+  );
+  const selectedProviderName = React.useMemo(() => {
+    const providerId = selectedModel?.id.split('/')[0] ?? 'other';
+    return getProviderName(providerId);
+  }, [selectedModel]);
 
   const buildSubmissionPrefs = React.useCallback((): UserPreferences => ({
     ...prefs,
@@ -53,6 +152,36 @@ const InputForm: React.FC<Props> = ({
     }));
     setImprovePromptError(null);
   }, [promptSuggestion]);
+
+  React.useEffect(() => {
+    if (!isModelPickerOpen) {
+      return;
+    }
+
+    const handlePointerDownOutside = (event: MouseEvent) => {
+      const eventTarget = event.target;
+      if (!(eventTarget instanceof Node)) {
+        return;
+      }
+
+      if (!modelPickerRef.current?.contains(eventTarget)) {
+        setIsModelPickerOpen(false);
+        setModelSearch('');
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDownOutside);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDownOutside);
+    };
+  }, [isModelPickerOpen]);
+
+  React.useEffect(() => {
+    if (!isModelPickerOpen) {
+      return;
+    }
+    modelSearchInputRef.current?.focus();
+  }, [isModelPickerOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,8 +215,14 @@ const InputForm: React.FC<Props> = ({
     }
   };
 
+  const handleSelectModel = (modelId: string) => {
+    setPrefs(currentPrefs => ({ ...currentPrefs, model: modelId }));
+    setIsModelPickerOpen(false);
+    setModelSearch('');
+  };
+
   const formClass = isHero
-    ? 'space-y-5 rounded-[1.75rem] border border-surface-600/70 bg-surface-800/70 p-4 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.8)] backdrop-blur-2xl sm:p-6 md:p-7'
+    ? `relative overflow-visible space-y-5 rounded-[1.75rem] border border-surface-600/70 bg-surface-800/70 p-4 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.8)] backdrop-blur-2xl sm:p-6 md:p-7 ${isModelPickerOpen ? 'z-[70]' : 'z-10'}`
     : 'space-y-6';
 
   const labelClass = isHero
@@ -97,10 +232,6 @@ const InputForm: React.FC<Props> = ({
   const panelClass = isHero
     ? 'w-full rounded-2xl border border-surface-600/70 bg-surface-900/60 px-4 py-4 text-text-primary placeholder-text-muted/60 outline-none transition-colors focus:border-accent focus:ring-0 resize-none font-light'
     : 'w-full bg-surface-800 border border-surface-600 rounded px-4 py-3 text-text-primary placeholder-text-muted/50 focus:border-accent focus:ring-0 outline-none transition-colors resize-none font-light';
-
-  const selectClass = isHero
-    ? 'w-full appearance-none rounded-xl border border-surface-600/70 bg-surface-900/70 px-4 py-2.5 text-text-primary outline-none transition-colors focus:border-accent focus:ring-0 cursor-pointer font-light'
-    : 'w-full appearance-none bg-surface-800 border border-surface-600 rounded px-4 py-3 text-text-primary focus:border-accent focus:ring-0 outline-none transition-colors cursor-pointer font-light';
 
   const inputClass = isHero
     ? 'w-full rounded-xl border border-surface-600/70 bg-surface-900/70 px-3 py-2 text-sm text-text-primary outline-none transition-colors focus:border-accent font-light'
@@ -164,20 +295,115 @@ const InputForm: React.FC<Props> = ({
           <label className={`mb-2 block ${labelClass}`}>
             Model
           </label>
-          <div className="relative">
-            <select
-              className={selectClass}
-              value={prefs.model}
-              onChange={e => setPrefs({ ...prefs, model: e.target.value })}
+          <div className="relative" ref={modelPickerRef}>
+            <button
+              type="button"
+              onClick={() => {
+                if (isGenerating) return;
+                setIsModelPickerOpen(current => !current);
+              }}
+              aria-haspopup="listbox"
+              aria-expanded={isModelPickerOpen}
+              aria-controls="model-options-listbox"
+              aria-label="Model selector"
               disabled={isGenerating}
+              className={`w-full rounded-xl border border-surface-600/70 bg-surface-900/70 px-4 py-2.5 text-left transition-colors ${isGenerating ? 'cursor-not-allowed text-text-muted/70' : 'cursor-pointer text-text-primary hover:border-surface-500'} ${isModelPickerOpen ? 'border-accent/70 shadow-[0_0_0_1px_rgb(var(--accent)_/_0.25)]' : ''}`}
             >
-              {sortedAvailableModels.map(model => (
-                <option key={model.id} value={model.id}>
-                  {model.name}
-                </option>
-              ))}
-            </select>
-            <ChevronDown size={16} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-text-muted" />
+              <div className="pr-6">
+                <p className="truncate text-sm font-medium">{selectedModel?.name ?? 'Select a model'}</p>
+                <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-text-muted">
+                  {selectedProviderName} {visibleModelCount > 0 ? `• ${visibleModelCount} visible` : ''}
+                </p>
+              </div>
+              <ChevronDown
+                size={16}
+                className={`pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-text-muted transition-transform ${isModelPickerOpen ? 'rotate-180' : ''}`}
+              />
+            </button>
+
+            {isModelPickerOpen && (
+              <div className="absolute bottom-full left-0 z-[80] mb-2 w-full overflow-hidden rounded-2xl border border-surface-600/70 bg-surface-900/95 shadow-[0_24px_64px_-36px_rgba(0,0,0,0.9)] backdrop-blur-xl">
+                <div className="border-b border-surface-700/80 p-3">
+                  <div className="relative">
+                    <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted/80" />
+                    <input
+                      ref={modelSearchInputRef}
+                      type="text"
+                      value={modelSearch}
+                      onChange={event => setModelSearch(event.target.value)}
+                      onKeyDown={event => {
+                        if (event.key === 'Escape') {
+                          setIsModelPickerOpen(false);
+                          setModelSearch('');
+                          return;
+                        }
+
+                        if (event.key === 'Enter' && firstVisibleModelId) {
+                          event.preventDefault();
+                          handleSelectModel(firstVisibleModelId);
+                        }
+                      }}
+                      placeholder="Search models or providers..."
+                      className="w-full rounded-xl border border-surface-600/70 bg-surface-800/80 py-2 pl-9 pr-3 text-sm text-text-primary outline-none transition-colors placeholder:text-text-muted/70 focus:border-accent"
+                      aria-label="Search models"
+                    />
+                  </div>
+                </div>
+
+                <div
+                  id="model-options-listbox"
+                  role="listbox"
+                  aria-label="Model options"
+                  className="max-h-80 overflow-y-auto p-2"
+                >
+                  {filteredModelGroups.length === 0 && (
+                    <div className="rounded-xl border border-surface-700/70 bg-surface-800/50 px-3 py-4 text-center text-sm text-text-muted">
+                      No models found for "{modelSearch.trim()}".
+                    </div>
+                  )}
+
+                  {filteredModelGroups.map(group => (
+                    <div
+                      key={group.providerId}
+                      role="group"
+                      aria-label={group.providerName}
+                      className="mb-2 last:mb-0"
+                    >
+                      <p className="px-2 pb-1 pt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-text-muted/85">
+                        {group.providerName}
+                      </p>
+                      <div className="space-y-1">
+                        {group.models.map(model => {
+                          const isSelected = model.id === prefs.model;
+                          return (
+                            <button
+                              key={model.id}
+                              type="button"
+                              role="option"
+                              aria-selected={isSelected}
+                              onClick={() => handleSelectModel(model.id)}
+                              className={`w-full rounded-xl border px-3 py-2 text-left transition-colors ${isSelected ? 'border-accent/70 bg-accent/10 text-text-primary' : 'border-transparent bg-surface-800/60 text-text-secondary hover:border-surface-600/80 hover:text-text-primary'}`}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <p className="truncate text-sm font-medium">{model.name}</p>
+                                  <p className="mt-1 truncate font-mono text-[10px] uppercase tracking-[0.11em] text-text-muted/80">
+                                    {model.id}
+                                  </p>
+                                </div>
+                                {isSelected && (
+                                  <Check size={14} className="mt-0.5 shrink-0 text-accent" />
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

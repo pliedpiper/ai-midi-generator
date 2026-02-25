@@ -103,7 +103,7 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
 
       <AppHeader userEmail={userEmail} variant="compact" />
 
-      <main className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 pb-10 pt-28 sm:px-6 md:px-8 md:pt-32">
+      <main className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 pb-10 pt-28 sm:px-6 md:px-8 md:pt-32">
         <div className="mx-auto w-full max-w-5xl">
           {showApiKeyForm && (
             <section className="mx-auto mb-10 max-w-xl">

@@ -2,7 +2,7 @@
 
 import React from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import InputForm from "@/components/InputForm";
 import { DEFAULT_PREFERENCES } from "@/constants";
 
@@ -72,6 +72,42 @@ describe("InputForm UI", () => {
     await waitFor(() => {
       expect(improvePromptMock).toHaveBeenCalledTimes(1);
       expect((promptInput as HTMLTextAreaElement).value).toBe("Improved prompt text");
+    });
+  });
+
+  it("groups models by provider and filters them via search", async () => {
+    const onSubmit = vi.fn();
+    render(<InputForm onSubmit={onSubmit} isGenerating={false} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Model selector/i }));
+    const listbox = screen.getByRole("listbox", { name: /Model options/i });
+    const initialGroups = within(listbox)
+      .getAllByRole("group")
+      .map(group => group.getAttribute("aria-label") ?? "");
+
+    expect(initialGroups.length).toBeGreaterThan(1);
+    expect(initialGroups).toEqual(
+      [...initialGroups].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }))
+    );
+
+    fireEvent.change(screen.getByLabelText(/Search models/i), { target: { value: "openai" } });
+
+    await waitFor(() => {
+      const filteredGroups = within(listbox).getAllByRole("group");
+      expect(filteredGroups).toHaveLength(1);
+      expect(filteredGroups[0]?.getAttribute("aria-label")).toBe("OpenAI");
+    });
+
+    const filteredOptions = within(listbox).getAllByRole("option");
+    expect(filteredOptions.length).toBeGreaterThan(0);
+    filteredOptions.forEach(option => {
+      expect(option.textContent?.toLowerCase().includes("openai/")).toBe(true);
+    });
+
+    fireEvent.click(filteredOptions[0]);
+
+    await waitFor(() => {
+      expect(screen.queryByRole("listbox", { name: /Model options/i })).toBeNull();
     });
   });
 });
