@@ -225,6 +225,24 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
                       ? "Replace the API key used for generation on your account."
                       : "Generation is disabled until you add your OpenRouter API key."}
                   </p>
+                  {!hasApiKey && (
+                    <div className="mb-4 rounded-xl border border-surface-600/70 bg-surface-900/50 p-3 text-sm text-text-secondary">
+                      <p className="font-medium text-text-primary">How to get an OpenRouter key</p>
+                      <ol className="mt-2 list-decimal space-y-1 pl-5">
+                        <li>Open the OpenRouter keys page.</li>
+                        <li>Sign in or create an account.</li>
+                        <li>Create a new key, then paste it here.</li>
+                      </ol>
+                      <a
+                        href="https://openrouter.ai/settings/keys"
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        className="mt-3 inline-flex text-sm font-medium text-accent transition-colors hover:text-accent-hover"
+                      >
+                        Open OpenRouter Keys
+                      </a>
+                    </div>
+                  )}
 
                   <form onSubmit={handleSaveApiKey} className="space-y-3">
                     <input
