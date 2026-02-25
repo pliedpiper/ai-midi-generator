@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { getSupabaseEnv } from './env';
 
-const PUBLIC_PATHS = new Set(['/login', '/landing']);
+const PUBLIC_PATHS = new Set(['/login', '/landing', '/reset-password']);
 
 const normalizePathname = (pathname: string) =>
   pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;

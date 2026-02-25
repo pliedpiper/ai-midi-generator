@@ -7,12 +7,15 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { getSafeNextPathFromSearch } from '@/utils/redirectPath';
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const LoginPage: React.FC = () => {
   const router = useRouter();
   const [mode, setMode] = React.useState<'sign-in' | 'sign-up'>('sign-in');
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [loading, setLoading] = React.useState(false);
+  const [isSendingReset, setIsSendingReset] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [message, setMessage] = React.useState<string | null>(null);
 
@@ -48,13 +51,31 @@ const LoginPage: React.FC = () => {
       return;
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
+
     const { data, error: signUpError } = await supabase.auth.signUp({
-      email: email.trim(),
+      email: normalizedEmail,
       password
     });
 
     if (signUpError) {
-      setError(signUpError.message);
+      const alreadyExists =
+        signUpError.message.toLowerCase().includes('already') ||
+        signUpError.message.toLowerCase().includes('registered');
+      if (alreadyExists) {
+        setError('An account with this email already exists. Sign in or reset your password.');
+        setMode('sign-in');
+      } else {
+        setError(signUpError.message);
+      }
+      setLoading(false);
+      return;
+    }
+
+    const isExistingUser = Array.isArray(data.user?.identities) && data.user.identities.length === 0;
+    if (isExistingUser) {
+      setError('An account with this email already exists. Sign in or reset your password.');
+      setMode('sign-in');
       setLoading(false);
       return;
     }
@@ -68,6 +89,38 @@ const LoginPage: React.FC = () => {
     setMessage('Account created. Check your email to confirm, then sign in.');
     setMode('sign-in');
     setLoading(false);
+  };
+
+  const handleForgotPassword = async () => {
+    const normalizedEmail = email.trim().toLowerCase();
+    setError(null);
+    setMessage(null);
+
+    if (!normalizedEmail) {
+      setError('Enter your email first, then click "Forgot password?".');
+      return;
+    }
+
+    if (!EMAIL_PATTERN.test(normalizedEmail)) {
+      setError('Enter a valid email address.');
+      return;
+    }
+
+    setIsSendingReset(true);
+    const supabase = createClient();
+    const redirectTo = `${window.location.origin}/reset-password`;
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+      redirectTo
+    });
+
+    if (resetError) {
+      setError(resetError.message);
+      setIsSendingReset(false);
+      return;
+    }
+
+    setMessage('If an account exists for this email, a reset link has been sent.');
+    setIsSendingReset(false);
   };
 
   return (
@@ -167,7 +220,7 @@ const LoginPage: React.FC = () => {
               />
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || isSendingReset}
                 className={`flex w-full items-center justify-center gap-2 rounded-xl py-3 font-medium transition-colors ${
                   loading
                     ? 'cursor-not-allowed bg-surface-700 text-text-muted'
@@ -187,6 +240,16 @@ const LoginPage: React.FC = () => {
                     ? 'Sign In'
                     : 'Create Account'}
               </button>
+              {mode === 'sign-in' && (
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  disabled={loading || isSendingReset}
+                  className="w-full rounded-xl border border-surface-600 py-2 text-xs text-text-secondary transition-colors hover:border-surface-500 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isSendingReset ? 'Sending reset email...' : 'Forgot password?'}
+                </button>
+              )}
             </form>
 
             {error && (
