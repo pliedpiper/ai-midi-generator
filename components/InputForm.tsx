@@ -253,6 +253,11 @@ const InputForm: React.FC<Props> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isPromptEmpty) return;
+    if (isComposer && showAdvanced) {
+      setShowAdvanced(false);
+      setIsModelPickerOpen(false);
+      setModelSearch("");
+    }
     onSubmit(buildSubmissionPrefs());
   };
 
@@ -636,7 +641,7 @@ const InputForm: React.FC<Props> = ({
         {showAdvanced && (
           <div
             id="advanced-controls"
-            className="absolute bottom-full left-0 right-0 z-[120] mb-3 overflow-visible rounded-[1.6rem] border border-surface-600/80 bg-surface-800/95 p-4 shadow-[0_28px_70px_-36px_rgba(0,0,0,0.95)] backdrop-blur-2xl"
+            className="absolute bottom-full left-0 right-0 z-[120] mb-3 overflow-visible rounded-[1.6rem] border border-surface-600/80 bg-surface-800 p-4 shadow-[0_28px_70px_-36px_rgba(0,0,0,0.95)]"
           >
             <div className="mb-3 flex items-center justify-between">
               <span className="font-mono text-[11px] uppercase tracking-[0.17em] text-text-muted">

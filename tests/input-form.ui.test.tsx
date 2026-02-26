@@ -128,4 +128,24 @@ describe("InputForm UI", () => {
       expect(screen.queryByRole("button", { name: /Model selector/i })).toBeNull();
     });
   });
+
+  it("closes composer options drawer after hitting generate", async () => {
+    const onSubmit = vi.fn();
+    render(<InputForm onSubmit={onSubmit} isGenerating={false} variant="composer" />);
+
+    fireEvent.change(
+      screen.getByPlaceholderText(/An upbeat 8-bit video game loop/i),
+      { target: { value: "A mellow piano motif with sparse strings." } }
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Options/i }));
+    expect(screen.getByRole("button", { name: /Model selector/i })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /Generate/i }));
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: /Model selector/i })).toBeNull();
+    });
+  });
 });
