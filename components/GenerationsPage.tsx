@@ -46,7 +46,7 @@ const GenerationsPage: React.FC<GenerationsPageProps> = ({ userEmail }) => {
   return (
     <div className="relative min-h-screen overflow-hidden bg-surface-900 text-text-primary">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_0%,rgb(var(--surface-700)_/_0.5),transparent_35%),radial-gradient(circle_at_88%_14%,rgb(var(--accent)_/_0.12),transparent_32%),linear-gradient(135deg,rgb(var(--surface-900))_0%,rgb(var(--surface-800))_100%)]" />
+        <div className="absolute inset-0 background-blob-sunset" />
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-surface-500/50 to-transparent" />
       </div>
 
