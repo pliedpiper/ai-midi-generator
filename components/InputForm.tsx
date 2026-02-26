@@ -601,25 +601,15 @@ const InputForm: React.FC<Props> = ({
             viewBox="0 0 1000 240"
             preserveAspectRatio="none"
           >
-            <rect
-              x="1.5"
-              y="1.5"
-              width="997"
-              height="237"
-              rx="28"
-              ry="28"
+            <path
+              d="M 500 1.5 H 970.5 A 28 28 0 0 1 998.5 29.5 V 210.5 A 28 28 0 0 1 970.5 238.5 H 29.5 A 28 28 0 0 1 1.5 210.5 V 29.5 A 28 28 0 0 1 29.5 1.5 Z"
               fill="none"
               strokeWidth="1"
               className="composer-improving-outline-base"
               vectorEffect="non-scaling-stroke"
             />
-            <rect
-              x="1.5"
-              y="1.5"
-              width="997"
-              height="237"
-              rx="28"
-              ry="28"
+            <path
+              d="M 500 1.5 H 970.5 A 28 28 0 0 1 998.5 29.5 V 210.5 A 28 28 0 0 1 970.5 238.5 H 29.5 A 28 28 0 0 1 1.5 210.5 V 29.5 A 28 28 0 0 1 29.5 1.5 Z"
               fill="none"
               strokeWidth="1.15"
               pathLength="100"
@@ -629,13 +619,8 @@ const InputForm: React.FC<Props> = ({
               className="composer-improving-outline-trail"
               vectorEffect="non-scaling-stroke"
             />
-            <rect
-              x="1.5"
-              y="1.5"
-              width="997"
-              height="237"
-              rx="28"
-              ry="28"
+            <path
+              d="M 500 1.5 H 970.5 A 28 28 0 0 1 998.5 29.5 V 210.5 A 28 28 0 0 1 970.5 238.5 H 29.5 A 28 28 0 0 1 1.5 210.5 V 29.5 A 28 28 0 0 1 29.5 1.5 Z"
               fill="none"
               strokeWidth="1.25"
               pathLength="100"
