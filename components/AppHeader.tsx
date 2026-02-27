@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { signOutAndRedirect } from "@/lib/auth/signOut";
+import BrandLogo from "@/components/BrandLogo";
 
 interface AppHeaderProps {
   userEmail: string;
@@ -124,12 +125,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             href="/"
             className="pointer-events-auto rounded-2xl border border-surface-600/60 bg-surface-900/70 px-4 py-3 backdrop-blur-xl transition-colors hover:border-surface-500/70"
           >
-            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">
-              AI MIDI
-            </p>
-            <p className="mt-1 text-sm font-medium text-text-primary">
-              Composer
-            </p>
+            <BrandLogo className="h-10 w-auto" priority />
           </Link>
 
           <div className="pointer-events-auto flex flex-col items-end gap-2">
@@ -257,10 +253,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         <div className="px-4 py-3">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-text-muted">
-                AI MIDI
-              </p>
-              <p className="text-sm font-medium text-text-primary">Generator</p>
+              <BrandLogo className="h-8 w-auto" />
             </div>
 
             <button
@@ -323,12 +316,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             >
               {!isSidebarCollapsed && (
                 <div>
-                  <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-accent">
-                    AI MIDI
-                  </p>
-                  <h1 className="mt-2 text-2xl font-semibold text-text-primary">
-                    Generator
-                  </h1>
+                  <BrandLogo className="h-11 w-auto" />
                   <p className="mt-3 text-sm leading-relaxed text-text-secondary">
                     Prompt, generate, and save structured MIDI ideas from a
                     single workspace.
@@ -366,9 +354,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             </div>
 
             {isSidebarCollapsed && (
-              <p className="mt-3 text-center font-mono text-[10px] uppercase tracking-[0.2em] text-accent">
-                AI
-              </p>
+              <BrandLogo className="mx-auto mt-3 h-7 w-auto" />
             )}
           </div>
 

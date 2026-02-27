@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { LogIn, Music, Sparkles } from 'lucide-react';
+import BrandLogo from '@/components/BrandLogo';
 
 const LandingHeader: React.FC = () => (
   <header className="pointer-events-none absolute inset-x-0 top-0 z-40">
@@ -8,8 +9,7 @@ const LandingHeader: React.FC = () => (
         href="/landing"
         className="pointer-events-auto rounded-2xl border border-surface-600/60 bg-surface-900/70 px-4 py-3 backdrop-blur-xl transition-colors hover:border-surface-500/70"
       >
-        <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">AI MIDI</p>
-        <p className="mt-1 text-sm font-medium text-text-primary">Generator</p>
+        <BrandLogo className="h-10 w-auto" priority />
       </Link>
 
       <div className="pointer-events-auto flex flex-col items-end gap-2">

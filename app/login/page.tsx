@@ -6,6 +6,7 @@ import { Loader2, LogIn, UserPlus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { getSafeNextPathFromSearch } from '@/utils/redirectPath';
+import BrandLogo from '@/components/BrandLogo';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -136,8 +137,7 @@ const LoginPage: React.FC = () => {
             href="/landing"
             className="pointer-events-auto rounded-2xl border border-surface-600/60 bg-surface-900/70 px-4 py-3 backdrop-blur-xl transition-colors hover:border-surface-500/70"
           >
-            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">AI MIDI</p>
-            <p className="mt-1 text-sm font-medium text-text-primary">Generator</p>
+            <BrandLogo className="h-10 w-auto" priority />
           </Link>
 
           <Link
