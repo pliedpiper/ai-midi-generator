@@ -44,14 +44,6 @@ body {
   color: rgb(var(--text-primary));
 }
 
-.background-blob-sunset {
-  background-image:
-    radial-gradient(circle at 18% 0%, rgba(198, 181, 238, 0.48), transparent 36%),
-    radial-gradient(circle at 84% 14%, rgba(246, 163, 118, 0.38), transparent 34%),
-    radial-gradient(circle at 52% 30%, rgba(242, 225, 195, 0.26), transparent 48%),
-    linear-gradient(135deg, rgb(var(--surface-900)) 0%, rgb(var(--surface-800)) 100%);
-}
-
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
