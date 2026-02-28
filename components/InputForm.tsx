@@ -599,45 +599,6 @@ const InputForm: React.FC<Props> = ({
   if (isComposer) {
     return (
       <form ref={composerFormRef} onSubmit={handleSubmit} className={formClass}>
-        {isImprovingPrompt && (
-          <svg
-            aria-hidden="true"
-            className="pointer-events-none absolute -inset-[1px] z-10 h-[calc(100%+2px)] w-[calc(100%+2px)]"
-            viewBox="0 0 1000 240"
-            preserveAspectRatio="none"
-          >
-            <path
-              d="M 500 1.5 H 970.5 A 28 28 0 0 1 998.5 29.5 V 210.5 A 28 28 0 0 1 970.5 238.5 H 29.5 A 28 28 0 0 1 1.5 210.5 V 29.5 A 28 28 0 0 1 29.5 1.5 Z"
-              fill="none"
-              strokeWidth="1"
-              className="composer-improving-outline-base"
-              vectorEffect="non-scaling-stroke"
-            />
-            <path
-              d="M 500 1.5 H 970.5 A 28 28 0 0 1 998.5 29.5 V 210.5 A 28 28 0 0 1 970.5 238.5 H 29.5 A 28 28 0 0 1 1.5 210.5 V 29.5 A 28 28 0 0 1 29.5 1.5 Z"
-              fill="none"
-              strokeWidth="1.15"
-              pathLength="100"
-              strokeDasharray="22 78"
-              strokeLinejoin="round"
-              strokeLinecap="round"
-              className="composer-improving-outline-trail"
-              vectorEffect="non-scaling-stroke"
-            />
-            <path
-              d="M 500 1.5 H 970.5 A 28 28 0 0 1 998.5 29.5 V 210.5 A 28 28 0 0 1 970.5 238.5 H 29.5 A 28 28 0 0 1 1.5 210.5 V 29.5 A 28 28 0 0 1 29.5 1.5 Z"
-              fill="none"
-              strokeWidth="1.25"
-              pathLength="100"
-              strokeDasharray="8 92"
-              strokeLinejoin="round"
-              strokeLinecap="round"
-              className="composer-improving-outline-head"
-              vectorEffect="non-scaling-stroke"
-            />
-          </svg>
-        )}
-
         {showAdvanced && (
           <div
             id="advanced-controls"
