@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Download, Play, Square } from "lucide-react";
+import { Download } from "lucide-react";
 import type { MidiComposition } from "@/types";
 import { buildMidiDownloadFilename } from "@/utils/downloadFilename";
 import {
@@ -11,7 +11,7 @@ import {
   playComposition,
   stopPlayback,
 } from "@/utils/midiUtils";
-import PianoRoll from "@/components/PianoRoll";
+import CompositionPlaybackDetails from "@/components/CompositionPlaybackDetails";
 import { HERO_DEMO_COMPOSITION } from "./landingData";
 
 const getMaxBeat = (composition: MidiComposition): number =>
@@ -111,8 +111,6 @@ const LandingPlaybackDemo: React.FC = () => {
     []
   );
 
-  const noteCount = composition.tracks.reduce((total, track) => total + track.notes.length, 0);
-
   return (
     <div className="overflow-hidden rounded-[2rem] border border-surface-600/70 bg-surface-800/70 shadow-[0_24px_60px_-35px_rgba(0,0,0,0.9)] backdrop-blur-sm">
       <div className="flex items-center justify-between border-b border-surface-600/70 px-4 py-3 sm:px-6">
@@ -123,65 +121,26 @@ const LandingPlaybackDemo: React.FC = () => {
       </div>
 
       <div className="space-y-4 px-4 py-4 sm:px-6 sm:py-5">
-        <div className="grid grid-cols-2 gap-3 text-xs font-mono sm:grid-cols-5">
-          <div className="rounded-xl border border-surface-600 bg-surface-900 px-3 py-2">
-            <p className="text-text-muted uppercase tracking-wider">Key</p>
-            <p className="mt-1 text-text-secondary">{composition.key}</p>
-          </div>
-          <div className="rounded-xl border border-surface-600 bg-surface-900 px-3 py-2">
-            <p className="text-text-muted uppercase tracking-wider">Tempo</p>
-            <p className="mt-1 text-text-secondary">{composition.tempo} BPM</p>
-          </div>
-          <div className="rounded-xl border border-surface-600 bg-surface-900 px-3 py-2">
-            <p className="text-text-muted uppercase tracking-wider">Time</p>
-            <p className="mt-1 text-text-secondary">{composition.timeSignature.join("/")}</p>
-          </div>
-          <div className="rounded-xl border border-surface-600 bg-surface-900 px-3 py-2">
-            <p className="text-text-muted uppercase tracking-wider">Tracks</p>
-            <p className="mt-1 text-text-secondary">{composition.tracks.length}</p>
-          </div>
-          <div className="rounded-xl border border-surface-600 bg-surface-900 px-3 py-2">
-            <p className="text-text-muted uppercase tracking-wider">Notes</p>
-            <p className="mt-1 text-text-secondary">{noteCount}</p>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={isPlaying ? handleStop : handlePlay}
-            className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium transition-colors ${
-              isPlaying
-                ? "bg-accent/15 text-accent"
-                : "bg-surface-700 text-text-secondary hover:bg-surface-600 hover:text-text-primary"
-            }`}
-          >
-            {isPlaying ? <Square size={13} /> : <Play size={13} />}
-            {isPlaying ? "Stop" : "Play"}
-          </button>
-
-          {downloadUrl && (
-            <a
-              href={downloadUrl}
-              download={downloadFilename}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-surface-700 px-3 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-600 hover:text-text-primary"
-            >
-              <Download size={13} />
-              Download MIDI
-            </a>
-          )}
-
-          <span className="ml-auto text-xs font-mono text-text-muted">
-            {isPlaying ? `Beat ${Math.max(0, currentBeat).toFixed(2)}` : "Stopped"}
-          </span>
-        </div>
-
-        {playbackError && (
-          <p className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
-            Playback error: {playbackError}
-          </p>
-        )}
-
-        <PianoRoll composition={composition} currentBeat={currentBeat} isPlaying={isPlaying} height={360} />
+        <CompositionPlaybackDetails
+          composition={composition}
+          isPlaying={isPlaying}
+          currentBeat={currentBeat}
+          onPlay={handlePlay}
+          onStop={handleStop}
+          playbackError={playbackError}
+          downloadAction={
+            downloadUrl ? (
+              <a
+                href={downloadUrl}
+                download={downloadFilename}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-surface-700 px-3 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-600 hover:text-text-primary"
+              >
+                <Download size={13} />
+                Download MIDI
+              </a>
+            ) : null
+          }
+        />
       </div>
     </div>
   );

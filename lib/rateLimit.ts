@@ -1,4 +1,4 @@
-import { Redis } from '@upstash/redis';
+import { getRedisClient } from '@/lib/redis';
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -40,35 +40,6 @@ end
 
 return { allowed, remaining, ttl }
 `;
-
-let redisClient: Redis | null = null;
-
-const getRedisEnv = () => {
-  const url =
-    process.env.KV_REST_API_URL ||
-    process.env.UPSTASH_REDIS_REST_URL;
-  const token =
-    process.env.KV_REST_API_TOKEN ||
-    process.env.UPSTASH_REDIS_REST_TOKEN;
-
-  if (!url || !token) {
-    throw new Error(
-      'Redis env missing. Configure KV_REST_API_URL/KV_REST_API_TOKEN or UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN.'
-    );
-  }
-
-  return { url, token };
-};
-
-const getRedisClient = (): Redis => {
-  if (redisClient) {
-    return redisClient;
-  }
-
-  const { url, token } = getRedisEnv();
-  redisClient = new Redis({ url, token });
-  return redisClient;
-};
 
 export const checkRateLimit = async (
   identifier: string,
