@@ -336,18 +336,22 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
                       </div>
                     )}
 
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+                    <div className="flex flex-wrap justify-center gap-4">
                       {generation.attempts.map((attempt: AttemptResult) => (
-                        <AttemptCard
+                        <div
                           key={attempt.id}
-                          attempt={attempt}
-                          isPlaying={playback.playingId === attempt.id}
-                          onPlay={() => {
-                            void playback.handlePlay(attempt.id, attempt);
-                          }}
-                          onStop={playback.handleStop}
-                          onExpand={() => setExpandedAttemptId(attempt.id)}
-                        />
+                          className="w-full sm:w-[calc((100%-1rem)/2)] lg:w-[calc((100%-2rem)/3)] xl:w-[calc((100%-4rem)/5)]"
+                        >
+                          <AttemptCard
+                            attempt={attempt}
+                            isPlaying={playback.playingId === attempt.id}
+                            onPlay={() => {
+                              void playback.handlePlay(attempt.id, attempt);
+                            }}
+                            onStop={playback.handleStop}
+                            onExpand={() => setExpandedAttemptId(attempt.id)}
+                          />
+                        </div>
                       ))}
                     </div>
                   </section>

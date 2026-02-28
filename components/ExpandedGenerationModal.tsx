@@ -58,7 +58,7 @@ const ExpandedGenerationModal: React.FC<ExpandedGenerationModalProps> = ({
   );
 
   return (
-    <div className="fixed inset-0 z-50">
+    <div className="fixed inset-0 z-[140]">
       <button
         aria-label="Close expanded generation"
         onClick={onClose}
