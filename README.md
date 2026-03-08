@@ -7,7 +7,7 @@ Deployment: https://ai-midi-generator-murex.vercel.app/ (Vercel)
 ## Features
 
 - **Text-to-MIDI**: Describe music in natural language, get a MIDI file
-- **Multiple models**: Choose from GPT-5.2, Claude Sonnet/Opus, Gemini, DeepSeek, Grok, and more via OpenRouter
+- **Multiple models**: Choose from GPT-5.4, GPT-5.2, Claude Sonnet/Opus, Gemini, DeepSeek, Grok, and more via OpenRouter
 - **In-browser playback**: Listen instantly with Tone.js synthesis
 - **Variations**: Generate up to 5 variations per prompt
 - **Advanced controls**: Tempo, key, time signature, duration, and constraints

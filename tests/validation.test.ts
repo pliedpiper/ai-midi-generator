@@ -54,6 +54,18 @@ describe('validatePrefs', () => {
     }
   });
 
+  it('accepts OpenRouter GPT-5.4', () => {
+    const result = validatePrefs({
+      ...validPrefs,
+      model: 'openai/gpt-5.4',
+    });
+
+    expect(result.valid).toBe(true);
+    if (result.valid) {
+      expect(result.normalized.model).toBe('openai/gpt-5.4');
+    }
+  });
+
   it('normalizes clamps/defaults for valid payloads', () => {
     const result = validatePrefs({
       ...validPrefs,
