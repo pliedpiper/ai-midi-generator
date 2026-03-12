@@ -68,6 +68,9 @@ const InputForm: React.FC<Props> = ({
   variant = "default",
   promptSuggestion = null,
 }) => {
+  const modelListboxId = React.useId();
+  const modelSearchId = React.useId();
+  const variationsLabelId = React.useId();
   const [prefs, setPrefs] = React.useState<UserPreferences>(DEFAULT_PREFERENCES);
   const [showAdvanced, setShowAdvanced] = React.useState(false);
   const [isImprovingPrompt, setIsImprovingPrompt] = React.useState(false);
@@ -76,9 +79,11 @@ const InputForm: React.FC<Props> = ({
   );
   const [modelSearch, setModelSearch] = React.useState("");
   const [isModelPickerOpen, setIsModelPickerOpen] = React.useState(false);
+  const [activeModelId, setActiveModelId] = React.useState<string | null>(null);
   const modelPickerRef = React.useRef<HTMLDivElement | null>(null);
   const modelSearchInputRef = React.useRef<HTMLInputElement | null>(null);
   const composerFormRef = React.useRef<HTMLFormElement | null>(null);
+  const modelOptionRefs = React.useRef(new Map<string, HTMLButtonElement>());
 
   const isHero = variant === "hero";
   const isComposer = variant === "composer";
@@ -143,6 +148,63 @@ const InputForm: React.FC<Props> = ({
     const providerId = selectedModel?.id.split("/")[0] ?? "other";
     return getProviderName(providerId);
   }, [selectedModel]);
+  const activeOptionId = activeModelId ? `${modelListboxId}-${activeModelId}` : undefined;
+
+  const closeModelPicker = React.useCallback(() => {
+    setIsModelPickerOpen(false);
+    setModelSearch("");
+    setActiveModelId(null);
+  }, []);
+
+  const openModelPicker = React.useCallback(
+    (preferredModelId?: string | null) => {
+      if (isGenerating) {
+        return;
+      }
+
+      const fallbackModelId =
+        visibleModelIds.includes(prefs.model) ? prefs.model : firstVisibleModelId;
+
+      setIsModelPickerOpen(true);
+      setActiveModelId(
+        preferredModelId && visibleModelIds.includes(preferredModelId)
+          ? preferredModelId
+          : fallbackModelId
+      );
+    },
+    [firstVisibleModelId, isGenerating, prefs.model, visibleModelIds]
+  );
+
+  const moveActiveModel = React.useCallback(
+    (direction: 1 | -1) => {
+      if (visibleModelIds.length === 0) {
+        return;
+      }
+
+      setActiveModelId((currentActiveModelId) => {
+        const currentId =
+          currentActiveModelId && visibleModelIds.includes(currentActiveModelId)
+            ? currentActiveModelId
+            : visibleModelIds.includes(prefs.model)
+              ? prefs.model
+              : firstVisibleModelId;
+
+        if (!currentId) {
+          return firstVisibleModelId;
+        }
+
+        const currentIndex = visibleModelIds.indexOf(currentId);
+        if (currentIndex === -1) {
+          return firstVisibleModelId;
+        }
+
+        const nextIndex =
+          (currentIndex + direction + visibleModelIds.length) % visibleModelIds.length;
+        return visibleModelIds[nextIndex] ?? currentId;
+      });
+    },
+    [firstVisibleModelId, prefs.model, visibleModelIds]
+  );
 
   const buildSubmissionPrefs = React.useCallback(
     (): UserPreferences => ({
@@ -187,8 +249,7 @@ const InputForm: React.FC<Props> = ({
       }
 
       if (!modelPickerRef.current?.contains(eventTarget)) {
-        setIsModelPickerOpen(false);
-        setModelSearch("");
+        closeModelPicker();
       }
     };
 
@@ -196,7 +257,7 @@ const InputForm: React.FC<Props> = ({
     return () => {
       document.removeEventListener("mousedown", handlePointerDownOutside);
     };
-  }, [isModelPickerOpen]);
+  }, [closeModelPicker, isModelPickerOpen]);
 
   React.useEffect(() => {
     if (!isModelPickerOpen) {
@@ -204,6 +265,35 @@ const InputForm: React.FC<Props> = ({
     }
     modelSearchInputRef.current?.focus();
   }, [isModelPickerOpen]);
+
+  React.useEffect(() => {
+    if (!isModelPickerOpen) {
+      return;
+    }
+
+    setActiveModelId((currentActiveModelId) => {
+      if (currentActiveModelId && visibleModelIds.includes(currentActiveModelId)) {
+        return currentActiveModelId;
+      }
+
+      if (visibleModelIds.includes(prefs.model)) {
+        return prefs.model;
+      }
+
+      return firstVisibleModelId;
+    });
+  }, [firstVisibleModelId, isModelPickerOpen, prefs.model, visibleModelIds]);
+
+  React.useEffect(() => {
+    if (!isModelPickerOpen || !activeModelId) {
+      return;
+    }
+
+    const activeOption = modelOptionRefs.current.get(activeModelId);
+    if (activeOption && typeof activeOption.scrollIntoView === "function") {
+      activeOption.scrollIntoView({ block: "nearest" });
+    }
+  }, [activeModelId, isModelPickerOpen]);
 
   React.useEffect(() => {
     if (!isComposer || !showAdvanced) {
@@ -218,16 +308,14 @@ const InputForm: React.FC<Props> = ({
 
       if (!composerFormRef.current?.contains(eventTarget)) {
         setShowAdvanced(false);
-        setIsModelPickerOpen(false);
-        setModelSearch("");
+        closeModelPicker();
       }
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setShowAdvanced(false);
-        setIsModelPickerOpen(false);
-        setModelSearch("");
+        closeModelPicker();
       }
     };
 
@@ -237,7 +325,7 @@ const InputForm: React.FC<Props> = ({
       document.removeEventListener("mousedown", handlePointerDownOutside);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isComposer, showAdvanced]);
+  }, [closeModelPicker, isComposer, showAdvanced]);
 
   React.useEffect(() => {
     if (!isComposer || showAdvanced) {
@@ -245,18 +333,16 @@ const InputForm: React.FC<Props> = ({
     }
 
     if (isModelPickerOpen) {
-      setIsModelPickerOpen(false);
-      setModelSearch("");
+      closeModelPicker();
     }
-  }, [isComposer, isModelPickerOpen, showAdvanced]);
+  }, [closeModelPicker, isComposer, isModelPickerOpen, showAdvanced]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isPromptEmpty) return;
     if (isComposer && showAdvanced) {
       setShowAdvanced(false);
-      setIsModelPickerOpen(false);
-      setModelSearch("");
+      closeModelPicker();
     }
     onSubmit(buildSubmissionPrefs());
   };
@@ -289,8 +375,7 @@ const InputForm: React.FC<Props> = ({
 
   const handleSelectModel = (modelId: string) => {
     setPrefs((currentPrefs) => ({ ...currentPrefs, model: modelId }));
-    setIsModelPickerOpen(false);
-    setModelSearch("");
+    closeModelPicker();
   };
 
   const formClass = isComposer
@@ -321,11 +406,32 @@ const InputForm: React.FC<Props> = ({
         type="button"
         onClick={() => {
           if (isGenerating) return;
-          setIsModelPickerOpen((current) => !current);
+          if (isModelPickerOpen) {
+            closeModelPicker();
+            return;
+          }
+
+          openModelPicker();
+        }}
+        onKeyDown={(event) => {
+          if (isGenerating) {
+            return;
+          }
+
+          if (event.key === "ArrowDown") {
+            event.preventDefault();
+            openModelPicker(firstVisibleModelId);
+          } else if (event.key === "ArrowUp") {
+            event.preventDefault();
+            openModelPicker(visibleModelIds[visibleModelIds.length - 1] ?? firstVisibleModelId);
+          } else if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            openModelPicker();
+          }
         }}
         aria-haspopup="listbox"
         aria-expanded={isModelPickerOpen}
-        aria-controls="model-options-listbox"
+        aria-controls={modelListboxId}
         aria-label="Model selector"
         disabled={isGenerating}
         className={`w-full rounded-xl border border-surface-600/70 bg-surface-900/70 px-4 py-2.5 text-left transition-colors ${
@@ -369,29 +475,58 @@ const InputForm: React.FC<Props> = ({
               <input
                 ref={modelSearchInputRef}
                 type="text"
+                id={modelSearchId}
+                role="combobox"
                 value={modelSearch}
                 onChange={(event) => setModelSearch(event.target.value)}
                 onKeyDown={(event) => {
                   if (event.key === "Escape") {
-                    setIsModelPickerOpen(false);
-                    setModelSearch("");
+                    closeModelPicker();
                     return;
                   }
 
-                  if (event.key === "Enter" && firstVisibleModelId) {
+                  if (event.key === "ArrowDown") {
                     event.preventDefault();
-                    handleSelectModel(firstVisibleModelId);
+                    moveActiveModel(1);
+                    return;
+                  }
+
+                  if (event.key === "ArrowUp") {
+                    event.preventDefault();
+                    moveActiveModel(-1);
+                    return;
+                  }
+
+                  if (event.key === "Home") {
+                    event.preventDefault();
+                    setActiveModelId(firstVisibleModelId);
+                    return;
+                  }
+
+                  if (event.key === "End") {
+                    event.preventDefault();
+                    setActiveModelId(visibleModelIds[visibleModelIds.length - 1] ?? null);
+                    return;
+                  }
+
+                  if (event.key === "Enter" && activeModelId) {
+                    event.preventDefault();
+                    handleSelectModel(activeModelId);
                   }
                 }}
                 placeholder="Search models or providers..."
                 className="w-full rounded-xl border border-surface-600/70 bg-surface-800/80 py-2 pl-9 pr-3 text-sm text-text-primary outline-none transition-colors placeholder:text-text-muted/70 focus:border-accent"
                 aria-label="Search models"
+                aria-controls={modelListboxId}
+                aria-expanded={isModelPickerOpen}
+                aria-activedescendant={activeOptionId}
+                aria-autocomplete="list"
               />
             </div>
           </div>
 
           <div
-            id="model-options-listbox"
+            id={modelListboxId}
             role="listbox"
             aria-label="Model options"
             className="max-h-80 overflow-y-auto p-2"
@@ -415,16 +550,30 @@ const InputForm: React.FC<Props> = ({
                 <div className="space-y-1">
                   {group.models.map((model) => {
                     const isSelected = model.id === prefs.model;
+                    const isActive = model.id === activeModelId;
                     return (
                       <button
                         key={model.id}
+                        id={`${modelListboxId}-${model.id}`}
+                        ref={(node) => {
+                          if (node) {
+                            modelOptionRefs.current.set(model.id, node);
+                          } else {
+                            modelOptionRefs.current.delete(model.id);
+                          }
+                        }}
                         type="button"
                         role="option"
                         aria-selected={isSelected}
+                        tabIndex={-1}
                         onClick={() => handleSelectModel(model.id)}
+                        onMouseMove={() => setActiveModelId(model.id)}
+                        onFocus={() => setActiveModelId(model.id)}
                         className={`w-full rounded-xl border px-3 py-2 text-left transition-colors ${
                           isSelected
                             ? "border-accent/70 bg-accent/10 text-text-primary"
+                            : isActive
+                              ? "border-surface-500 bg-surface-700/80 text-text-primary"
                             : "border-transparent bg-surface-800/60 text-text-secondary hover:border-surface-600/80 hover:text-text-primary"
                         }`}
                       >
@@ -474,6 +623,8 @@ const InputForm: React.FC<Props> = ({
         />
         <input
           type="range"
+          aria-labelledby={variationsLabelId}
+          aria-valuetext={`${prefs.attemptCount} variation${prefs.attemptCount === 1 ? "" : "s"}`}
           min="1"
           max="5"
           step="1"
@@ -623,7 +774,9 @@ const InputForm: React.FC<Props> = ({
                 {renderModelPicker()}
               </div>
               <div className="sm:justify-self-end">
-                <label className={`mb-2 block ${labelClass}`}>Variations</label>
+                <label className={`mb-2 block ${labelClass}`} id={variationsLabelId}>
+                  Variations
+                </label>
                 {renderVariationsControl()}
               </div>
             </div>
@@ -781,7 +934,9 @@ const InputForm: React.FC<Props> = ({
         </div>
 
         <div className="sm:justify-self-end">
-          <label className={`mb-2 block ${labelClass}`}>Variations</label>
+          <label className={`mb-2 block ${labelClass}`} id={variationsLabelId}>
+            Variations
+          </label>
           {renderVariationsControl()}
         </div>
       </div>

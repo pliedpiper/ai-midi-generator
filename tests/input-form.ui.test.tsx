@@ -112,6 +112,44 @@ describe("InputForm UI", () => {
     });
   });
 
+  it("supports keyboard navigation when selecting a model", async () => {
+    const onSubmit = vi.fn();
+    render(<InputForm onSubmit={onSubmit} isGenerating={false} variant="composer" />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Options/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Model selector/i }));
+
+    const modelSearch = screen.getByRole("combobox", { name: /Search models/i });
+    fireEvent.change(modelSearch, { target: { value: "openrouter" } });
+
+    await waitFor(() => {
+      expect(screen.getAllByRole("option")).toHaveLength(2);
+    });
+
+    fireEvent.keyDown(modelSearch, { key: "ArrowDown" });
+    const firstActiveOptionId = modelSearch.getAttribute("aria-activedescendant");
+    expect(firstActiveOptionId).toBeTruthy();
+
+    fireEvent.keyDown(modelSearch, { key: "Enter" });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("listbox", { name: /Model options/i })).toBeNull();
+    });
+
+    expect(screen.getByRole("button", { name: /Model selector/i }).textContent).toContain(
+      "OpenRouter Free"
+    );
+  });
+
+  it("exposes an accessible name for the variations slider", () => {
+    const onSubmit = vi.fn();
+    render(<InputForm onSubmit={onSubmit} isGenerating={false} variant="composer" />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Options/i }));
+
+    expect(screen.getByRole("slider", { name: /Variations/i })).toBeTruthy();
+  });
+
   it("shows composer options drawer from bottom action row", async () => {
     const onSubmit = vi.fn();
     render(<InputForm onSubmit={onSubmit} isGenerating={false} variant="composer" />);

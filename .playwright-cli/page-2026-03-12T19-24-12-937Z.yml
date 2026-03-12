@@ -1,0 +1,108 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - banner:
+      - generic:
+        - link "AI MIDI Generator" [ref=e4] [cursor=pointer]:
+          - /url: /landing
+          - img "AI MIDI Generator" [ref=e5]
+        - generic [ref=e7]:
+          - navigation [ref=e8]:
+            - link "Demo" [ref=e9] [cursor=pointer]:
+              - /url: "#demo"
+              - img [ref=e10]
+              - generic [ref=e14]: Demo
+            - link "Features" [ref=e15] [cursor=pointer]:
+              - /url: "#features"
+              - img [ref=e16]
+              - generic [ref=e19]: Features
+          - generic [ref=e20]:
+            - link "Sign in" [ref=e21] [cursor=pointer]:
+              - /url: /login
+              - img [ref=e22]
+              - text: Sign in
+            - link "Get started" [ref=e25] [cursor=pointer]:
+              - /url: /login
+    - main [ref=e26]:
+      - generic [ref=e27]:
+        - heading "Compose complete MIDI ideas from plain language." [level=1] [ref=e28]:
+          - text: Compose complete MIDI ideas
+          - text: from plain language.
+        - paragraph [ref=e29]: Describe the vibe, instrumentation, structure, and constraints. Generate playable, editable MIDI in seconds with your choice of model.
+        - link "Start composing" [ref=e31] [cursor=pointer]:
+          - /url: /login
+      - generic [ref=e33]:
+        - generic [ref=e35]:
+          - paragraph [ref=e36]: Demo Playback
+          - heading "Glassroom Haze" [level=3] [ref=e37]
+        - generic [ref=e38]:
+          - generic [ref=e39]:
+            - generic [ref=e40]:
+              - paragraph [ref=e41]: Key
+              - paragraph [ref=e42]: E major
+            - generic [ref=e43]:
+              - paragraph [ref=e44]: Tempo
+              - paragraph [ref=e45]: 95 BPM
+            - generic [ref=e46]:
+              - paragraph [ref=e47]: Time
+              - paragraph [ref=e48]: 4/4
+            - generic [ref=e49]:
+              - paragraph [ref=e50]: Tracks
+              - paragraph [ref=e51]: "5"
+            - generic [ref=e52]:
+              - paragraph [ref=e53]: Notes
+              - paragraph [ref=e54]: "312"
+          - generic [ref=e55]:
+            - button "Play" [ref=e56] [cursor=pointer]:
+              - img [ref=e57]
+              - text: Play
+            - link "Download MIDI" [ref=e59] [cursor=pointer]:
+              - /url: blob:http://localhost:3000/ca54ac18-220d-42a3-94a2-3afb45d2d19b
+              - img [ref=e60]
+              - text: Download MIDI
+            - generic [ref=e63]: Stopped
+          - generic [ref=e64]:
+            - generic [ref=e65]:
+              - generic [ref=e66]: 312 notes
+              - generic [ref=e67]: 48.2 beats
+            - generic [ref=e70]:
+              - generic [ref=e71]: Chord Stabs
+              - generic [ref=e73]: Electric Bass
+              - generic [ref=e75]: Warm Pad
+              - generic [ref=e77]: Pulse Arp
+              - generic [ref=e79]: Lead Hook
+      - generic [ref=e81]:
+        - heading "Why creators use AI MIDI Generator" [level=2] [ref=e82]
+        - paragraph [ref=e83]: "Keep your workflow in one place: prompt, audition, iterate, and export."
+        - generic [ref=e84]:
+          - article [ref=e85]:
+            - img [ref=e86]
+            - heading "Natural Language Prompts" [level=3] [ref=e90]
+            - paragraph [ref=e91]: Describe the music you hear in your head — genre, mood, structure — and let AI translate it into MIDI.
+          - article [ref=e92]:
+            - img [ref=e93]
+            - heading "30+ AI Models" [level=3] [ref=e96]
+            - paragraph [ref=e97]: Choose from GPT, Claude, Gemini, Mistral, DeepSeek, and more. Each model brings its own creative voice.
+          - article [ref=e98]:
+            - img [ref=e99]
+            - heading "Instant MIDI Export" [level=3] [ref=e102]
+            - paragraph [ref=e103]: Download standard MIDI files ready for your DAW. Every generation is a valid .mid file with proper tracks and timing.
+          - article [ref=e104]:
+            - img [ref=e105]
+            - heading "Multi-Track Compositions" [level=3] [ref=e109]
+            - paragraph [ref=e110]: Generate up to 16 simultaneous tracks with distinct instruments, from piano and bass to strings and synths.
+          - article [ref=e111]:
+            - img [ref=e112]
+            - heading "AI Prompt Improver" [level=3] [ref=e115]
+            - paragraph [ref=e116]: Not sure how to describe what you want? The built-in prompt improver adds musical detail and structure automatically.
+          - article [ref=e117]:
+            - img [ref=e118]
+            - heading "Private & Secure" [level=3] [ref=e120]
+            - paragraph [ref=e121]: Your generations are saved to your account with end-to-end encryption on API keys. Nobody else can see your work.
+    - contentinfo [ref=e122]:
+      - generic [ref=e123]:
+        - paragraph [ref=e124]: AI MIDI Generator
+        - link "Sign in to start composing" [ref=e125] [cursor=pointer]:
+          - /url: /login
+  - button "Open Next.js Dev Tools" [ref=e131] [cursor=pointer]:
+    - img [ref=e132]
+  - alert [ref=e135]
