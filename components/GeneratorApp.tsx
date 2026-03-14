@@ -2,7 +2,6 @@
 
 import React from "react";
 import { GenerationStatus, AttemptResult, UserPreferences } from "@/types";
-import { EMPTY_STATE_CAPTIONS } from "@/constants";
 import { saveOpenRouterKey } from "@/services/openRouterKeyService";
 import { useAttemptGeneration } from "@/hooks/generator/useAttemptGeneration";
 import { useAttemptPlayback } from "@/hooks/generator/useAttemptPlayback";
@@ -15,7 +14,6 @@ import AppHeader from "@/components/AppHeader";
 interface GeneratorAppProps {
   userEmail: string;
   initialHasApiKey: boolean;
-  initialEmptyStateCaption?: string;
 }
 
 const STICKY_SCROLL_THRESHOLD_PX = 120;
@@ -24,7 +22,6 @@ const RESULTS_DOCK_GAP_PX = 24;
 const GeneratorApp: React.FC<GeneratorAppProps> = ({
   userEmail,
   initialHasApiKey,
-  initialEmptyStateCaption,
 }) => {
   const [hasApiKey, setHasApiKey] = React.useState(initialHasApiKey);
   const [showApiKeyForm, setShowApiKeyForm] = React.useState(!initialHasApiKey);
@@ -35,7 +32,6 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
     null
   );
   const [composerDockHeight, setComposerDockHeight] = React.useState(0);
-  const emptyStateCaption = initialEmptyStateCaption ?? EMPTY_STATE_CAPTIONS[0];
   const resultsPaneRef = React.useRef<HTMLElement | null>(null);
   const composerDockRef = React.useRef<HTMLDivElement | null>(null);
   const shouldStickToBottomRef = React.useRef(true);
@@ -309,11 +305,7 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
                 }}
               >
                 {generation.attempts.length === 0 ? (
-                  <div className="flex min-h-full items-center justify-center pb-20 pt-8">
-                    <p className="text-center text-4xl font-light tracking-tight text-text-secondary/90">
-                      {emptyStateCaption}
-                    </p>
-                  </div>
+                  <div className="min-h-full pb-20 pt-8" aria-hidden="true" />
                 ) : (
                   <section className="pt-2">
                     <div className="mb-6 flex items-center gap-3">

@@ -50,29 +50,6 @@ export const DEFAULT_PREFERENCES = {
   scaleType: 'major' as ScaleTypeKey
 };
 
-export const EMPTY_STATE_CAPTIONS = [
-  "Ready when you are.",
-  "Describe it. Hear it.",
-  "From words to music.",
-  "What does your idea sound like?",
-  "Type a feeling. Get a song.",
-  "What do you want to hear?",
-  "Tell us what to play.",
-  "Music from your imagination.",
-  "Say it. We'll compose it.",
-  "Natural language in. MIDI out.",
-  "Prompt-driven composition.",
-  "AI-powered music, one prompt at a time.",
-  "Every word has a melody.",
-  "The space between language and sound.",
-  "Where prompts become compositions.",
-] as const;
-
-export const getRandomEmptyStateCaption = () => {
-  const index = Math.floor(Math.random() * EMPTY_STATE_CAPTIONS.length);
-  return EMPTY_STATE_CAPTIONS[index] ?? EMPTY_STATE_CAPTIONS[0];
-};
-
 export const AVAILABLE_MODELS = [
   { id: "arcee-ai/trinity-large-preview:free", name: "Arcee Trinity Large Preview (free)" },
   { id: "bytedance-seed/seed-1.6-flash", name: "ByteDance Seed 1.6 Flash" },
