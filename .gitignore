@@ -25,6 +25,7 @@ dist-ssr
 
 # Playwright
 .playwright-mcp/
+.playwright-cli/
 
 # Next.js
 .next/
