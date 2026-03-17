@@ -100,6 +100,8 @@ The API route implements comprehensive validation:
 3. **Model Allowlist**
    Only models defined in `AVAILABLE_MODELS` (from `constants.ts`) are accepted:
    - `openai/gpt-5.4`
+   - `openai/gpt-5.4-mini`
+   - `openai/gpt-5.4-nano`
    - `openai/gpt-5.2-chat`
    - `anthropic/claude-sonnet-4.5`
    - `xiaomi/mimo-v2-flash:free`

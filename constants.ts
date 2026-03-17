@@ -67,6 +67,8 @@ export const AVAILABLE_MODELS = [
   { id: "z-ai/glm-5", name: "GLM 5" },
   { id: "z-ai/glm-4.7-flash", name: "GLM 4.7 Flash" },
   { id: "openai/gpt-5.4", name: "GPT-5.4" },
+  { id: "openai/gpt-5.4-mini", name: "GPT-5.4 Mini" },
+  { id: "openai/gpt-5.4-nano", name: "GPT-5.4 Nano" },
   { id: "openai/gpt-5.2", name: "GPT-5.2" },
   { id: "openai/gpt-5.2-chat", name: "GPT-5.2 Chat" },
   { id: "openai/gpt-5.2-codex", name: "GPT-5.2 Codex" },
