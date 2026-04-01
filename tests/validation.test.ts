@@ -66,25 +66,31 @@ describe('validatePrefs', () => {
     }
   });
 
-  it('accepts OpenRouter GPT-5.4 Mini and GPT-5.4 Nano', () => {
-    const miniResult = validatePrefs({
+  it('accepts Claude Sonnet 4.6', () => {
+    const result = validatePrefs({
       ...validPrefs,
-      model: 'openai/gpt-5.4-mini',
+      model: 'anthropic/claude-sonnet-4.6',
     });
 
-    expect(miniResult.valid).toBe(true);
-    if (miniResult.valid) {
-      expect(miniResult.normalized.model).toBe('openai/gpt-5.4-mini');
+    expect(result.valid).toBe(true);
+    if (result.valid) {
+      expect(result.normalized.model).toBe('anthropic/claude-sonnet-4.6');
     }
+  });
 
-    const nanoResult = validatePrefs({
-      ...validPrefs,
-      model: 'openai/gpt-5.4-nano',
-    });
+  it('accepts OpenRouter GPT-5.4 Mini and GPT-5.4 Nano', () => {
+    for (const model of ['openai/gpt-5.4-mini', 'openai/gpt-5.4-nano'] as const) {
+      const result = validatePrefs({
+        ...validPrefs,
+        model,
+      });
 
-    expect(nanoResult.valid).toBe(true);
-    if (nanoResult.valid) {
-      expect(nanoResult.normalized.model).toBe('openai/gpt-5.4-nano');
+      expect(result.valid).toBe(true);
+      if (!result.valid) {
+        throw new Error(result.error);
+      }
+
+      expect(result.normalized.model).toBe(model);
     }
   });
 

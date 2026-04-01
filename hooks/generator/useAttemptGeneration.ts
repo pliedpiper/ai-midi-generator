@@ -8,7 +8,6 @@ import {
 } from "@/types";
 import { generateAttempt } from "@/services/openRouterService";
 import { generateMidiBlob, stopPlayback } from "@/utils/midiUtils";
-import { resolveSnapOptions } from "@/utils/snapOptions";
 
 const MAX_PARALLEL_ATTEMPTS = 2;
 
@@ -64,11 +63,7 @@ export const useAttemptGeneration = ({
         await new Promise((resolve) => setTimeout(resolve, attemptId * 100));
 
         const composition = await generateAttempt(attemptId, prefs, idempotencyKey);
-        const snapOptions = resolveSnapOptions({
-          prefs,
-          compositionKey: composition.key,
-        });
-        const blob = generateMidiBlob(composition, snapOptions);
+        const blob = generateMidiBlob(composition);
 
         setAttempts((prev) =>
           prev.map((attempt) =>

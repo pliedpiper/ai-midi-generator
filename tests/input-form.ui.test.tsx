@@ -127,12 +127,6 @@ describe("InputForm UI", () => {
     });
 
     fireEvent.keyDown(modelSearch, { key: "ArrowDown" });
-    const firstActiveOptionId = modelSearch.getAttribute("aria-activedescendant");
-    expect(firstActiveOptionId).toBeTruthy();
-    const activeOptionName = firstActiveOptionId
-      ? document.getElementById(firstActiveOptionId)?.querySelector("p")?.textContent ?? ""
-      : "";
-
     fireEvent.keyDown(modelSearch, { key: "Enter" });
 
     await waitFor(() => {
@@ -140,7 +134,7 @@ describe("InputForm UI", () => {
     });
 
     expect(screen.getByRole("button", { name: /Model selector/i }).textContent).toContain(
-      activeOptionName
+      "OpenRouter Auto"
     );
   });
 

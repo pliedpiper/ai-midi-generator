@@ -5,7 +5,6 @@ import type { SavedGeneration } from "@/types";
 import { generateMidiBlob, stopPlayback } from "@/utils/midiUtils";
 import { buildMidiDownloadFilename } from "@/utils/downloadFilename";
 import { getErrorMessageFromResponse } from "@/utils/http";
-import { resolveSnapOptionsForGeneration } from "@/utils/snapOptions";
 import {
   hasComposition,
   type SavedGenerationWithComposition,
@@ -114,10 +113,7 @@ export const useGenerationsPage = () => {
           throw new Error("Generation has no composition data.");
         }
 
-        const blob = generateMidiBlob(
-          downloadableGeneration.composition,
-          resolveSnapOptionsForGeneration(downloadableGeneration)
-        );
+        const blob = generateMidiBlob(downloadableGeneration.composition);
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;

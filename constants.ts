@@ -57,6 +57,7 @@ export const AVAILABLE_MODELS = [
   { id: "anthropic/claude-opus-4.5", name: "Claude Opus 4.5" },
   { id: "anthropic/claude-opus-4.6", name: "Claude Opus 4.6" },
   { id: "anthropic/claude-sonnet-4.5", name: "Claude Sonnet 4.5" },
+  { id: "anthropic/claude-sonnet-4.6", name: "Claude Sonnet 4.6" },
   { id: "deepseek/deepseek-v3.2", name: "DeepSeek V3.2" },
   { id: "google/gemini-2.5-flash", name: "Gemini 2.5 Flash" },
   { id: "google/gemini-2.5-flash-lite", name: "Gemini 2.5 Flash Lite" },
@@ -96,6 +97,9 @@ Default to interesting choices: unexpected but musical rhythms, phrasing, and te
 Do not settle for the first idea; silently compare multiple options and pick the one with the strongest identity.
 Keep the piece coherent and playable, but include at least one clearly distinctive idea (hook, groove twist, harmonic color, or arrangement contrast).
 Avoid flat dynamics and repetitive patterns that do not evolve.
+Avoid overly childish, sing-song melodies.
+Avoid predictable up-then-down or down-then-up scalar motion that resembles a smooth sine wave.
+Favor stronger melodic contour: use rhythmic motifs, repeated notes, held tones, selective leaps, and asymmetrical phrases instead of constant stepwise oscillation.
 
 Your task is to generate a musical composition based on the user's prompt and constraints.
 You MUST output strict JSON data that represents the music.

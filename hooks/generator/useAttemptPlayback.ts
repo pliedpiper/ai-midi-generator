@@ -9,7 +9,6 @@ import {
   startPlaybackBeatMonitor,
   stopPlayback,
 } from "@/utils/midiUtils";
-import { resolveSnapOptions } from "@/utils/snapOptions";
 
 type UseAttemptPlaybackInput = {
   attempts: AttemptResult[];
@@ -46,13 +45,8 @@ export const useAttemptPlayback = ({
 
       setPlaybackError(null);
 
-      const snapOptions = resolveSnapOptions({
-        prefs: lastPrefs,
-        compositionKey: attempt.data.key,
-      });
-
       try {
-        await playComposition(attempt.data, snapOptions);
+        await playComposition(attempt.data);
         setPlayingId(id);
         setCurrentBeat(0);
       } catch (error) {
@@ -70,7 +64,7 @@ export const useAttemptPlayback = ({
         setPlaybackError(message);
       }
     },
-    [lastPrefs]
+    []
   );
 
   React.useEffect(() => {

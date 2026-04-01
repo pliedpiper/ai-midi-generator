@@ -8,7 +8,6 @@ import {
   startPlaybackBeatMonitor,
   stopPlayback,
 } from "@/utils/midiUtils";
-import { resolveSnapOptionsForGeneration } from "@/utils/snapOptions";
 
 type UseGenerationsPlaybackInput = {
   generations: SavedGeneration[];
@@ -57,10 +56,7 @@ export const useGenerationsPlayback = ({
           throw new Error("Generation has no composition data.");
         }
 
-        await playComposition(
-          playableGeneration.composition,
-          resolveSnapOptionsForGeneration(playableGeneration)
-        );
+        await playComposition(playableGeneration.composition);
         setPlayingId(playableGeneration.id);
         setCurrentBeat(0);
       } catch (playError) {
