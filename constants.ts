@@ -80,6 +80,7 @@ export const AVAILABLE_MODELS = [
   { id: "mistralai/devstral-2512", name: "Mistral Devstral 2512" },
   { id: "mistralai/mistral-large-2512", name: "Mistral Large 2512" },
   { id: "mistralai/mistral-small-creative", name: "Mistral Small Creative" },
+  { id: "minimax/minimax-m2.5", name: "MiniMax M2.5" },
   { id: "xiaomi/mimo-v2-flash", name: "MiMo V2 Flash" },
   { id: "nvidia/nemotron-3-nano-30b-a3b:free", name: "Nemotron 3 Nano 30B A3B (free)" },
   { id: "openrouter/auto", name: "OpenRouter Auto" },

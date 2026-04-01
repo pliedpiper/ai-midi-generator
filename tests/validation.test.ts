@@ -78,6 +78,18 @@ describe('validatePrefs', () => {
     }
   });
 
+  it('accepts MiniMax M2.5', () => {
+    const result = validatePrefs({
+      ...validPrefs,
+      model: 'minimax/minimax-m2.5',
+    });
+
+    expect(result.valid).toBe(true);
+    if (result.valid) {
+      expect(result.normalized.model).toBe('minimax/minimax-m2.5');
+    }
+  });
+
   it('accepts OpenRouter GPT-5.4 Mini and GPT-5.4 Nano', () => {
     for (const model of ['openai/gpt-5.4-mini', 'openai/gpt-5.4-nano'] as const) {
       const result = validatePrefs({
