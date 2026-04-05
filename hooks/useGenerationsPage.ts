@@ -2,9 +2,9 @@
 
 import React from "react";
 import type { SavedGeneration } from "@/types";
-import { generateMidiBlob, stopPlayback } from "@/utils/midiUtils";
-import { buildMidiDownloadFilename } from "@/utils/downloadFilename";
+import { stopPlayback } from "@/utils/midiUtils";
 import { getErrorMessageFromResponse } from "@/utils/http";
+import { downloadMidiComposition } from "@/utils/midiDownload";
 import {
   hasComposition,
   type SavedGenerationWithComposition,
@@ -113,23 +113,13 @@ export const useGenerationsPage = () => {
           throw new Error("Generation has no composition data.");
         }
 
-        const blob = generateMidiBlob(downloadableGeneration.composition);
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = buildMidiDownloadFilename({
-          title:
-            downloadableGeneration.title || downloadableGeneration.composition?.title,
-          key: downloadableGeneration.composition?.key,
-          tempo: downloadableGeneration.composition?.tempo,
+        await downloadMidiComposition({
+          composition: downloadableGeneration.composition,
+          title: downloadableGeneration.title,
           fallbackTitle: `generation-${
             downloadableGeneration.attempt_index || downloadableGeneration.id
           }`,
         });
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(url);
       } catch (downloadError) {
         setError(
           downloadError instanceof Error

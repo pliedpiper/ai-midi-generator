@@ -35,7 +35,8 @@ const PianoRoll: React.FC<PianoRollProps> = ({
   className = ''
 }) => {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
-  const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
+  const baseCanvasRef = React.useRef<HTMLCanvasElement | null>(null);
+  const playheadCanvasRef = React.useRef<HTMLCanvasElement | null>(null);
   const [width, setWidth] = React.useState(0);
   const [themeMode, setThemeMode] = React.useState<ThemeMode>(() => getThemeMode());
 
@@ -69,7 +70,7 @@ const PianoRoll: React.FC<PianoRollProps> = ({
   }, []);
 
   React.useEffect(() => {
-    const canvas = canvasRef.current;
+    const canvas = baseCanvasRef.current;
     if (!canvas || width <= 0) return;
 
     const dpr = window.devicePixelRatio || 1;
@@ -161,27 +162,48 @@ const PianoRoll: React.FC<PianoRollProps> = ({
       context.strokeRect(x, y, noteWidth, boxHeight);
     });
 
-    // Active playhead.
-    if (isPlaying && Number.isFinite(currentBeat)) {
-      const clampedBeat = Math.max(beatRange.startBeat, Math.min(beatRange.endBeat, currentBeat));
-      const x = beatToX(clampedBeat);
+  }, [composition, data, height, themeMode, width]);
 
-      context.strokeStyle = '#d4a574';
-      context.lineWidth = 2;
-      context.beginPath();
-      context.moveTo(x, 0);
-      context.lineTo(x, height);
-      context.stroke();
+  React.useEffect(() => {
+    const canvas = playheadCanvasRef.current;
+    if (!canvas || width <= 0) return;
 
-      context.fillStyle = '#d4a574';
-      context.beginPath();
-      context.moveTo(x - 5, 0);
-      context.lineTo(x + 5, 0);
-      context.lineTo(x, 8);
-      context.closePath();
-      context.fill();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.floor(width * dpr);
+    canvas.height = Math.floor(height * dpr);
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+
+    const context = canvas.getContext('2d');
+    if (!context) return;
+
+    context.setTransform(dpr, 0, 0, dpr, 0, 0);
+    context.clearRect(0, 0, width, height);
+
+    if (!isPlaying || !Number.isFinite(currentBeat)) {
+      return;
     }
-  }, [composition, currentBeat, data, height, isPlaying, themeMode, width]);
+
+    const { beatRange } = data;
+    const totalBeats = Math.max(beatRange.totalBeats, 1);
+    const clampedBeat = Math.max(beatRange.startBeat, Math.min(beatRange.endBeat, currentBeat));
+    const x = ((clampedBeat - beatRange.startBeat) / totalBeats) * width;
+
+    context.strokeStyle = '#d4a574';
+    context.lineWidth = 2;
+    context.beginPath();
+    context.moveTo(x, 0);
+    context.lineTo(x, height);
+    context.stroke();
+
+    context.fillStyle = '#d4a574';
+    context.beginPath();
+    context.moveTo(x - 5, 0);
+    context.lineTo(x + 5, 0);
+    context.lineTo(x, 8);
+    context.closePath();
+    context.fill();
+  }, [currentBeat, data, height, isPlaying, width]);
 
   if (data.notes.length === 0) {
     return (
@@ -206,9 +228,13 @@ const PianoRoll: React.FC<PianoRollProps> = ({
 
       <div
         ref={containerRef}
-        className="rounded border border-surface-600 bg-surface-900 overflow-hidden"
+        className="relative overflow-hidden rounded border border-surface-600 bg-surface-900"
       >
-        <canvas ref={canvasRef} />
+        <canvas ref={baseCanvasRef} />
+        <canvas
+          ref={playheadCanvasRef}
+          className="pointer-events-none absolute inset-0"
+        />
       </div>
 
       <div className="flex flex-wrap gap-2">

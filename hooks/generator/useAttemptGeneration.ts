@@ -7,7 +7,7 @@ import {
   UserPreferences,
 } from "@/types";
 import { generateAttempt } from "@/services/openRouterService";
-import { generateMidiBlob, stopPlayback } from "@/utils/midiUtils";
+import { stopPlayback } from "@/utils/midiUtils";
 
 const MAX_PARALLEL_ATTEMPTS = 2;
 
@@ -63,7 +63,6 @@ export const useAttemptGeneration = ({
         await new Promise((resolve) => setTimeout(resolve, attemptId * 100));
 
         const composition = await generateAttempt(attemptId, prefs, idempotencyKey);
-        const blob = generateMidiBlob(composition);
 
         setAttempts((prev) =>
           prev.map((attempt) =>
@@ -72,7 +71,6 @@ export const useAttemptGeneration = ({
                   ...attempt,
                   status: "success",
                   data: composition,
-                  midiBlob: blob,
                 }
               : attempt
           )

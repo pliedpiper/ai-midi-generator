@@ -10,6 +10,7 @@ import InputForm from "@/components/InputForm";
 import AttemptCard from "@/components/AttemptCard";
 import ExpandedAttemptModal from "@/components/ExpandedAttemptModal";
 import AppHeader from "@/components/AppHeader";
+import { downloadMidiComposition } from "@/utils/midiDownload";
 
 interface GeneratorAppProps {
   userEmail: string;
@@ -43,7 +44,6 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
 
   const playback = useAttemptPlayback({
     attempts: generation.attempts,
-    lastPrefs: generation.lastPrefs,
   });
 
   const handleSaveApiKey = async (event: React.FormEvent) => {
@@ -78,6 +78,23 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
     setExpandedAttemptId(null);
     await generation.handleGenerate(prefs);
   };
+
+  const handleDownloadAttempt = React.useCallback(async (attempt: AttemptResult) => {
+    if (!attempt.data) {
+      return;
+    }
+
+    try {
+      await downloadMidiComposition({
+        composition: attempt.data,
+        fallbackTitle: `attempt-${attempt.id}`,
+      });
+    } catch (error) {
+      playback.setPlaybackError(
+        error instanceof Error ? error.message : "Failed to download MIDI."
+      );
+    }
+  }, [playback]);
 
   const scrollResultsToBottom = React.useCallback((behavior: ScrollBehavior = "auto") => {
     const container = resultsPaneRef.current;
@@ -341,6 +358,9 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
                               void playback.handlePlay(attempt.id, attempt);
                             }}
                             onStop={playback.handleStop}
+                            onDownload={() => {
+                              void handleDownloadAttempt(attempt);
+                            }}
                             onExpand={() => setExpandedAttemptId(attempt.id)}
                           />
                         </div>
@@ -400,6 +420,11 @@ const GeneratorApp: React.FC<GeneratorAppProps> = ({
           }
         }}
         onStop={playback.handleStop}
+        onDownload={() => {
+          if (expandedAttempt) {
+            void handleDownloadAttempt(expandedAttempt);
+          }
+        }}
       />
     </div>
   );

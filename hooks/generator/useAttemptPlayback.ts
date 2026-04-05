@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import type { AttemptResult, UserPreferences } from "@/types";
+import type { AttemptResult } from "@/types";
 import {
   calculateCompositionMaxBeat,
   playComposition,
@@ -12,7 +12,6 @@ import {
 
 type UseAttemptPlaybackInput = {
   attempts: AttemptResult[];
-  lastPrefs: UserPreferences | null;
 };
 
 type UseAttemptPlaybackResult = {
@@ -26,7 +25,6 @@ type UseAttemptPlaybackResult = {
 
 export const useAttemptPlayback = ({
   attempts,
-  lastPrefs,
 }: UseAttemptPlaybackInput): UseAttemptPlaybackResult => {
   const [playingId, setPlayingId] = React.useState<number | null>(null);
   const [currentBeat, setCurrentBeat] = React.useState(0);

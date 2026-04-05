@@ -3,33 +3,25 @@
 import React from 'react';
 import { AttemptResult } from '../types';
 import { Play, Square, Download, AlertCircle, Check, Loader2, Expand } from 'lucide-react';
-import { buildMidiDownloadFilename } from '../utils/downloadFilename';
 
 interface Props {
   attempt: AttemptResult;
   isPlaying: boolean;
   onPlay: () => void;
   onStop: () => void;
+  onDownload: () => void;
   onExpand: () => void;
 }
 
-const AttemptCard: React.FC<Props> = ({ attempt, isPlaying, onPlay, onStop, onExpand }) => {
-  const [downloadUrl, setDownloadUrl] = React.useState<string | null>(null);
+const AttemptCard: React.FC<Props> = ({
+  attempt,
+  isPlaying,
+  onPlay,
+  onStop,
+  onDownload,
+  onExpand
+}) => {
   const canExpand = attempt.status === 'success' && Boolean(attempt.data);
-  const downloadFilename = buildMidiDownloadFilename({
-    title: attempt.data?.title,
-    key: attempt.data?.key,
-    tempo: attempt.data?.tempo,
-    fallbackTitle: `attempt-${attempt.id}`
-  });
-
-  React.useEffect(() => {
-    if (attempt.midiBlob) {
-      const url = URL.createObjectURL(attempt.midiBlob);
-      setDownloadUrl(url);
-      return () => URL.revokeObjectURL(url);
-    }
-  }, [attempt.midiBlob]);
 
   const handlePlayToggle = () => {
     if (isPlaying) {
@@ -133,16 +125,18 @@ const AttemptCard: React.FC<Props> = ({ attempt, isPlaying, onPlay, onStop, onEx
                 )}
               </button>
 
-              {downloadUrl && (
-                <a
-                  href={downloadUrl}
-                  download={downloadFilename}
-                  onClick={(event) => event.stopPropagation()}
+              {attempt.data && (
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onDownload();
+                  }}
                   className="flex w-9 items-center justify-center rounded-xl bg-surface-700 text-text-secondary transition-colors hover:bg-surface-600 hover:text-text-primary"
                   title="Download"
                 >
                   <Download size={14} />
-                </a>
+                </button>
               )}
 
               <button

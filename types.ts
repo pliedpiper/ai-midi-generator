@@ -32,7 +32,6 @@ export interface AttemptResult {
   status: 'pending' | 'success' | 'failed';
   data?: MidiComposition;
   error?: string;
-  midiBlob?: Blob; // The actual binary file
 }
 
 export interface UserPreferences {

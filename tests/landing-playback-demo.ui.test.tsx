@@ -10,6 +10,7 @@ const generateMidiBlobMock = vi.hoisted(() => vi.fn());
 const stopPlaybackMock = vi.hoisted(() => vi.fn());
 const playCompositionMock = vi.hoisted(() => vi.fn());
 const getTransportBeatPositionMock = vi.hoisted(() => vi.fn());
+const calculateCompositionMaxBeatMock = vi.hoisted(() => vi.fn());
 const createObjectURLMock = vi.hoisted(() => vi.fn(() => "blob:landing-demo"));
 const revokeObjectURLMock = vi.hoisted(() => vi.fn());
 
@@ -22,6 +23,7 @@ vi.mock("@/utils/midiUtils", () => ({
   stopPlayback: stopPlaybackMock,
   playComposition: playCompositionMock,
   getTransportBeatPosition: getTransportBeatPositionMock,
+  calculateCompositionMaxBeat: calculateCompositionMaxBeatMock,
   PlaybackError: class PlaybackError extends Error {},
 }));
 
@@ -31,12 +33,14 @@ describe("LandingPlaybackDemo UI", () => {
     stopPlaybackMock.mockReset();
     playCompositionMock.mockReset();
     getTransportBeatPositionMock.mockReset();
+    calculateCompositionMaxBeatMock.mockReset();
     createObjectURLMock.mockClear();
     revokeObjectURLMock.mockClear();
 
-    generateMidiBlobMock.mockReturnValue(new Blob(["demo"], { type: "audio/midi" }));
+    generateMidiBlobMock.mockResolvedValue(new Blob(["demo"], { type: "audio/midi" }));
     playCompositionMock.mockResolvedValue(undefined);
     getTransportBeatPositionMock.mockReturnValue(0);
+    calculateCompositionMaxBeatMock.mockReturnValue(4);
 
     vi.stubGlobal("requestAnimationFrame", vi.fn(() => 1));
     vi.stubGlobal("cancelAnimationFrame", vi.fn());

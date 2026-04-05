@@ -2,42 +2,21 @@
 
 import React from "react";
 import { Download } from "lucide-react";
-import type { MidiComposition } from "@/types";
-import { buildMidiDownloadFilename } from "@/utils/downloadFilename";
 import {
   PlaybackError,
-  generateMidiBlob,
+  calculateCompositionMaxBeat,
   getTransportBeatPosition,
   playComposition,
   stopPlayback,
 } from "@/utils/midiUtils";
+import { downloadMidiComposition } from "@/utils/midiDownload";
 import CompositionPlaybackDetails from "@/components/CompositionPlaybackDetails";
 import { HERO_DEMO_COMPOSITION } from "./landingData";
 
-const getMaxBeat = (composition: MidiComposition): number =>
-  composition.tracks.reduce((trackMax, track) => {
-    const noteMax = track.notes.reduce(
-      (noteEndMax, note) => Math.max(noteEndMax, note.time + Math.max(note.duration, 0.001)),
-      0
-    );
-    return Math.max(trackMax, noteMax);
-  }, 0);
-
 const LandingPlaybackDemo: React.FC = () => {
   const composition = HERO_DEMO_COMPOSITION;
-  const maxBeat = React.useMemo(() => getMaxBeat(composition), [composition]);
-  const downloadFilename = React.useMemo(
-    () =>
-      buildMidiDownloadFilename({
-        title: composition.title,
-        key: composition.key,
-        tempo: composition.tempo,
-        fallbackTitle: "landing-demo",
-      }),
-    [composition]
-  );
+  const maxBeat = React.useMemo(() => calculateCompositionMaxBeat(composition), [composition]);
 
-  const [downloadUrl, setDownloadUrl] = React.useState<string | null>(null);
   const [isPlaying, setIsPlaying] = React.useState(false);
   const [currentBeat, setCurrentBeat] = React.useState(0);
   const [playbackError, setPlaybackError] = React.useState<string | null>(null);
@@ -68,20 +47,6 @@ const LandingPlaybackDemo: React.FC = () => {
             : "Playback failed";
       setPlaybackError(message);
     }
-  }, [composition]);
-
-  React.useEffect(() => {
-    if (typeof URL === "undefined" || typeof URL.createObjectURL !== "function") {
-      return;
-    }
-
-    const midiBlob = generateMidiBlob(composition);
-    const url = URL.createObjectURL(midiBlob);
-    setDownloadUrl(url);
-
-    return () => {
-      URL.revokeObjectURL(url);
-    };
   }, [composition]);
 
   React.useEffect(() => {
@@ -129,16 +94,25 @@ const LandingPlaybackDemo: React.FC = () => {
           onStop={handleStop}
           playbackError={playbackError}
           downloadAction={
-            downloadUrl ? (
-              <a
-                href={downloadUrl}
-                download={downloadFilename}
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await downloadMidiComposition({
+                    composition,
+                    fallbackTitle: "landing-demo",
+                  });
+                } catch (error) {
+                  setPlaybackError(
+                    error instanceof Error ? error.message : "Failed to download MIDI."
+                  );
+                }
+              }}
                 className="inline-flex items-center gap-1.5 rounded-xl bg-surface-700 px-3 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-600 hover:text-text-primary"
-              >
-                <Download size={13} />
-                Download MIDI
-              </a>
-            ) : null
+            >
+              <Download size={13} />
+              Download MIDI
+            </button>
           }
         />
       </div>

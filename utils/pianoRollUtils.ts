@@ -138,13 +138,63 @@ export const getPitchRange = (
 };
 
 export const buildPianoRollData = (composition: MidiComposition): PianoRollData => {
-  const notes = flattenCompositionNotes(composition);
   const trackNames = composition.tracks.map((track, index) => track.name?.trim() || `Track ${index + 1}`);
+  const numerator = Array.isArray(composition?.timeSignature) && Number.isFinite(composition.timeSignature[0])
+    ? Math.max(1, Math.round(composition.timeSignature[0]))
+    : 4;
+  const notes: PianoRollNote[] = [];
+  let minMidi: number = MAX_MIDI_NOTE;
+  let maxMidi: number = MIN_MIDI_NOTE;
+  let noteEndMax = numerator;
+
+  composition.tracks.forEach((track, trackIndex) => {
+    const trackName = track.name?.trim() || `Track ${trackIndex + 1}`;
+    const trackNotes = Array.isArray(track.notes) ? track.notes : [];
+
+    trackNotes.forEach((note) => {
+      const normalizedNote: PianoRollNote = {
+        midi: clampMidi(note.midi),
+        startBeat: Number.isFinite(note.time) ? Math.max(0, note.time) : 0,
+        durationBeat:
+          Number.isFinite(note.duration) && note.duration > 0 ? note.duration : MIN_DURATION,
+        velocity: normalizeVelocity(note.velocity),
+        trackIndex,
+        trackName
+      };
+
+      minMidi = Math.min(minMidi, normalizedNote.midi);
+      maxMidi = Math.max(maxMidi, normalizedNote.midi);
+      noteEndMax = Math.max(
+        noteEndMax,
+        normalizedNote.startBeat + normalizedNote.durationBeat
+      );
+      notes.push(normalizedNote);
+    });
+  });
+
+  notes.sort((a, b) => {
+    if (a.startBeat !== b.startBeat) return a.startBeat - b.startBeat;
+    return a.midi - b.midi;
+  });
+
+  const pitchRange = notes.length
+    ? {
+        minMidi: Math.max(MIN_MIDI_NOTE, minMidi - 2),
+        maxMidi: Math.min(MAX_MIDI_NOTE, maxMidi + 2)
+      }
+    : {
+        minMidi: MIN_MIDI_NOTE,
+        maxMidi: MAX_MIDI_NOTE
+      };
 
   return {
     notes,
     trackNames,
-    beatRange: getBeatRange(composition),
-    pitchRange: getPitchRange(notes)
+    beatRange: {
+      startBeat: 0,
+      endBeat: Math.max(noteEndMax, numerator),
+      totalBeats: Math.max(Math.max(noteEndMax, numerator), 1)
+    },
+    pitchRange
   };
 };

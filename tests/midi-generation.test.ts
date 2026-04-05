@@ -3,7 +3,7 @@ import { createMidiObject } from '../utils/midiUtils';
 import type { MidiComposition } from '../types';
 
 describe('createMidiObject', () => {
-  it('converts beats to seconds and normalizes tempo/time signature', () => {
+  it('converts beats to seconds and normalizes tempo/time signature', async () => {
     const composition: MidiComposition = {
       title: 'Timing Test',
       tempo: 500,
@@ -18,7 +18,7 @@ describe('createMidiObject', () => {
       ],
     };
 
-    const midi = createMidiObject(composition);
+    const midi = await createMidiObject(composition);
 
     expect(midi.header.tempos[0].bpm).toBe(300);
     expect(
