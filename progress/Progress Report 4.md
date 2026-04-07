@@ -2,9 +2,9 @@
 
 **Name:** Kaden Barthlome
 **Reporting period:** from March 14, 2026 to April 5, 2026
-**Total hours worked on this project:**
-**Total Hours worked during this milestone report:**
-**Number of Credits enrolled:**
+**Total hours worked on this project:** 80
+**Total Hours worked during this milestone report:** 20
+**Number of Credits enrolled:** 2
 
 ---
 
@@ -12,23 +12,21 @@
 
 ### What tasks did you plan to complete during this period?
 
-My goal for this period was not to add a major new system. The last report already covered a large polish pass across the interface. After that point, I wanted to keep improving the app in a more targeted way. I planned to keep the model list current, reduce small points of friction in the generator flow, and simplify parts of the code that had become more complex than they needed to be.
+According to my original proposal, this final period was supposed to focus on export, polish, and project completion. The main goals listed for the April 5 milestone were MIDI export, WAV export, audio effects or instrument selection, user authentication and composition saving, UI refinement, and complete documentation. The proposal also described the final demo as a full workflow from prompt to generation, editing, and export.
 
-I also wanted to make the app more efficient. As the project matured, it was becoming more important to think not only about whether the features worked, but also about how much code the browser had to load and how much work the UI was doing during playback and generation.
+By the start of this reporting period, some of those goals were already partly in place. Authentication, saved generations, MIDI playback, and a piano roll visualization were already working. Because of that, my practical goal for this period became finishing the strongest parts of the application, keeping the model support current, simplifying parts of the MIDI pipeline, and improving performance and polish so the app felt more complete by the final deadline.
 
 ### What tasks did you actually complete?
 
-I completed a smaller but still meaningful milestone focused on model support, code simplification, and performance work. After the last milestone report was added on March 17, the git history shows four additional commits across three active work days: March 17, March 18, and April 1, 2026. Those committed changes added 57 lines and removed 30 lines across eight tracked files. In addition, I completed local work on April 5 that has not yet been committed but is part of the current state of the project. Compared with the repo state at the last report commit, the project now reflects 18 changed files with 304 insertions and 447 deletions.
+I completed a final milestone centered on completion work, refinement, and alignment with the parts of the proposal that proved most valuable in practice. During this period, I added GPT-5.4 mini and GPT-5.4 nano, then added Hunter Alpha, Claude Sonnet 4.6, and MiniMax M2.5. This extended the LLM side of the project beyond the original foundation by making the generator more flexible and more current with newer model choices.
 
-The first part of this period was about model support. I added GPT-5.4 mini and GPT-5.4 nano. I then added Hunter Alpha. Later, I added Claude Sonnet 4.6 and MiniMax M2.5. This kept the generator current with newer model options and made the app more flexible for comparing outputs across different providers and model sizes.
+I also simplified the MIDI snapping path. This reduced extra logic in generation and playback code and made the behavior easier to maintain. That was useful because the application had reached a point where code clarity mattered as much as adding another feature.
 
-I also simplified the MIDI snapping flow. Some of the generation and playback code had extra logic around snap handling, and I reduced that complexity. This made the code easier to follow and lowered the chance of inconsistent behavior between different parts of the app.
+The largest technical improvement in this milestone was performance work. I split the MIDI utility layer into smaller modules so playback and export code no longer had to be loaded up front on every page. I moved Tone.js playback logic and MIDI export logic behind lazy imports, changed MIDI file generation so blobs are only built when the user actually downloads, and refactored the piano roll so the static visualization and the moving playhead are drawn separately. This reduced unnecessary rendering during playback and reduced the amount of client JavaScript loaded on the main pages.
 
-The most important work in the current workspace is performance-focused. I split the MIDI utility layer into smaller modules so that the app no longer has to pull in heavy playback and MIDI export code on first load. I moved the Tone.js playback code and MIDI file export code behind lazy imports. I also changed the app so MIDI blobs are no longer created eagerly for every successful attempt. Instead, the blob is generated only when the user actually downloads a file.
+This work produced a clear build improvement. The first-load JavaScript dropped from about 253 kB to 185 kB on the main generator page, from about 250 kB to 182 kB on the generations page, and from about 188 kB to 120 kB on the landing page. That means the final milestone was not only about adding polish, but also about making the finished app leaner and more responsive.
 
-I also optimized the piano roll. Before this change, the canvas was redrawing the full background, note grid, and note boxes every time the playback beat advanced. I changed that to use a static base canvas plus a separate overlay canvas for the playhead. That means playback now updates only the moving playhead rather than repainting the whole visualization every frame.
-
-This work produced a measurable improvement in build output. After the refactor, the first-load JavaScript dropped from about 253 kB to 185 kB on the main generator page, from about 250 kB to 182 kB on the saved generations page, and from about 188 kB to 120 kB on the landing page. This milestone therefore improved both maintainability and runtime efficiency.
+When I compare the current project against the original proposal, several major goals are complete. The app is built in Next.js, uses OpenRouter for generation, uses Supabase for authentication and saved generations, supports real-time playback, includes a custom piano roll visualization, exports MIDI files, and has gone through several rounds of UI refinement and testing. The full proposal scope, however, was broader than the final build. The proposal described a full piano roll editor with drag, resize, note creation, quantization, and undo/redo, plus WAV export, audio effects, and richer transport controls such as pause and seek. The final application does not fully implement that editor-heavy scope. Instead, the project became strongest as an AI-powered MIDI generation tool with authentication, generation history, playback, visualization, MIDI export, and a more polished user experience.
 
 ---
 
@@ -36,19 +34,19 @@ This work produced a measurable improvement in build output. After the refactor,
 
 ### What new knowledge or skills did you gain during this period?
 
-I learned more about frontend performance work in a practical setting. This period made it clear that performance is not only about algorithms. It is also about when code gets loaded, how much state is recalculated, and whether the browser is repainting more than it needs to.
+I learned more about finishing work. Earlier milestones were driven by big features. This milestone was more about deciding what to strengthen, what to simplify, and what not to expand further. That required better judgment about scope, maintainability, and performance.
 
-I also learned more about code-splitting and lazy loading in a Next.js app. The MIDI features are useful, but they are also relatively heavy. Splitting that logic into smaller modules showed me how to keep advanced features without forcing every page load to pay the full cost up front.
+I also learned more about frontend performance in a practical way. This included bundle-size awareness, lazy loading, avoiding unnecessary work during rendering, and recognizing when a component structure causes extra cost even if it is functionally correct.
 
-I also learned more about render strategy for visual components. The piano roll looked correct before, but it was doing too much work during playback. Separating static drawing from dynamic drawing was a good example of how a rendering problem can often be solved by changing the structure of the component, not just by making small tweaks inside the same loop.
+I also learned more about comparing a real project against an initial plan. The proposal included a very ambitious editing system. As the semester progressed, it became clearer which parts created the most value and which parts would require much more time than expected. This milestone made that tradeoff very visible.
 
 ### What have you applied from your coursework to your project?
 
-I applied modular design again in this milestone. The MIDI code was originally grouped in one utility file, but that made it harder to optimize. By separating pure math helpers, note normalization, playback logic, and export logic, I made the project easier to reason about and easier to load efficiently.
+I applied modular design by breaking the MIDI system into smaller responsibilities instead of leaving everything inside one utility file. That made the code easier to reason about and easier to optimize.
 
-I also applied performance analysis and iterative refinement. I did not stop at noticing that the code could be faster. I checked what was actually being imported, reduced unnecessary work, and verified the result with tests and a production build.
+I also applied iterative refinement. Rather than trying to force every proposed feature into the project at the end, I improved the areas that were already core to the app: model support, playback, export, UI polish, and performance.
 
-I also applied testing practice. As I added models and changed the MIDI utility boundaries, I updated validation and UI tests and reran the full test suite. That helped me refactor with more confidence.
+I also applied testing and validation practice. As I changed models and refactored the MIDI utilities, I updated tests and reran the full suite. That helped me make larger structural changes while keeping the application stable.
 
 ---
 
@@ -56,27 +54,27 @@ I also applied testing practice. As I added models and changed the MIDI utility 
 
 ### What difficulties or mistakes did you encounter?
 
-One challenge in this period was that the project did not need a dramatic new feature as much as it needed careful refinement. That kind of work is harder to describe and sometimes harder to plan because the gains come from many small decisions rather than one obvious feature.
+The biggest challenge in this milestone was scope alignment. My proposal described a larger final editor than what the project ultimately became. Features like drag-to-edit notes, edge resizing, undo/redo, quantization controls, WAV export, and audio effects are each substantial pieces of work on their own. Trying to add all of them at the end would have risked weakening the parts of the app that were already working well.
 
-Another challenge was balancing flexibility with simplicity. The model list continued to grow, which is good for the user, but every added model increases the need for clean validation and clear UI behavior. At the same time, the MIDI and playback code needed to stay powerful without making the app heavier than necessary.
+Another challenge was that some of the most important remaining work was not flashy. Performance refactors and code simplification do not always look as dramatic as a new feature, but they matter to the final quality of the project.
 
-I also had to be careful during the performance refactor. Splitting a utility layer can easily break tests or create inconsistent behavior if different parts of the app expect the old API shape.
+I also had to balance growth of the model list with simplicity in validation and UI behavior. As more model options were added, the app needed to stay organized and predictable.
 
 ### How did you address or attempt to correct them?
 
-I addressed the model growth by making small, targeted updates instead of redesigning the whole input flow again. I added the models, updated tests, and kept the validation logic in sync.
+I addressed the scope challenge by focusing on the strongest path through the proposal rather than trying to force complete parity with every planned feature. I kept building toward the intended product direction, but I prioritized the pieces that best supported a working end-to-end system: prompt input, generation, playback, visualization, authentication, saving, MIDI export, and UI quality.
 
-For the complexity issue, I reduced duplication and moved responsibilities into smaller files. That let me keep the same user-facing behavior while simplifying the internal structure.
+I addressed the performance issue by treating it as real engineering work instead of optional cleanup. I split the utility modules, delayed heavy imports until needed, and reduced repeated rendering work in the piano roll.
 
-For the performance work, I made the changes incrementally and verified them with tooling. I ran lint, type-checking, the full Vitest suite, and a production build after the refactor. That let me confirm the project still behaved correctly while also showing that the build output improved.
+For model growth, I made smaller updates and kept tests in sync, which let the app expand without introducing large regressions.
 
 ### Describe an interesting or challenging problem you faced and how you approached solving it.
 
-The best example from this period was the piano roll playback issue. The component was working correctly, but it was doing more rendering work than necessary. Every playback tick caused the full canvas to redraw, including content that never changed during playback.
+The most interesting problem in this milestone was deciding how to treat the proposal’s original editor scope. The proposal emphasized a custom piano roll editor with note manipulation, quantization, undo/redo, and deep transport controls. In the actual project, the piano roll became a strong visualization and playback aid, but not a full DAW-style editor.
 
-I approached that by separating the problem into static and dynamic layers. The background lanes, beat grid, and note blocks only need to be drawn when the composition, theme, or size changes. The playhead is the only part that needs continuous updates. By putting those responsibilities on separate canvases, I reduced the amount of repeated drawing without changing how the feature looks to the user.
+Instead of trying to add incomplete versions of many editing features at the end, I focused on making the existing workflow better. I improved playback efficiency, reduced initial load cost, kept model support current, and refined the overall user experience. That meant the final product stayed closer to a polished AI MIDI generator than to a complete browser-based MIDI workstation.
 
-This was a good example of a software engineering lesson that goes beyond syntax: sometimes the right fix is not to optimize a loop, but to redesign the component so the loop no longer has to do unnecessary work in the first place.
+This was an important lesson in project management. A proposal should be ambitious, but the final engineering decision still has to be based on time, complexity, and what creates the strongest finished result.
 
 ---
 
@@ -84,11 +82,11 @@ This was a good example of a software engineering lesson that goes beyond syntax
 
 ### What skills or areas would you like help with to perform better on this project?
 
-I would like more guidance on advanced frontend performance profiling. I improved bundle size and rendering behavior in this milestone, but I would benefit from stronger habits around measuring runtime cost, spotting expensive imports, and identifying unnecessary renders earlier.
+I would like more guidance on estimating the cost of interactive editor features earlier in a project. The proposal-level idea of a piano roll editor made sense conceptually, but implementing a strong editing experience from scratch is a larger commitment than a basic visualization and playback system.
 
-I would also like more help with architectural decisions for medium-sized React and Next.js projects. As the app grows, I want to keep its structure clear so that future features do not slowly push it back toward a monolithic design.
+I would also like deeper help with frontend performance profiling. I made meaningful improvements in this milestone, but I would benefit from stronger habits around measuring bundle impact and render cost earlier instead of waiting until late in the project.
 
-I would also benefit from feedback on how to present progress from smaller refinement milestones. This period had real technical value, but the work was more about efficiency, simplification, and maintenance than about a large new user-facing feature.
+I would also like more feedback on how to scope independent study proposals so that they stay ambitious while leaving enough room for refinement and testing near the end.
 
 ---
 
@@ -96,11 +94,11 @@ I would also benefit from feedback on how to present progress from smaller refin
 
 ### How would you rate your performance for this milestone, and why?
 
-I would rate my work as 8.7 out of 10. This was not the biggest milestone in terms of raw feature count, but I think it was a strong period of disciplined engineering work.
+I would rate my work as 8.5 out of 10. I did not achieve every feature listed in the original proposal, especially the full editor and WAV export path. Because of that, I do not think it would be accurate to score this period as perfect completion of the planned scope.
 
-I kept the app current by adding new model options, I simplified part of the MIDI handling logic, and I made a meaningful performance improvement that reduced first-load JavaScript across the main pages. I also kept tests in step with the code and verified the project after the refactor.
+At the same time, I think this was a strong and responsible final milestone. I kept the project moving, added current model support, simplified important code paths, improved performance in measurable ways, and left the application stronger as a finished product. The app now supports a complete and useful workflow: a user can log in, enter a prompt, generate music with multiple models, play it back, visualize it in the piano roll, save generations, revisit them later, and export MIDI files.
 
-I am not rating it higher because this period was narrower in scope than the previous milestone, and some of the most valuable work was local refactoring rather than a large new feature. Still, I think this was a good milestone because it improved the quality of the project in ways that matter for the long term.
+I think that result shows solid engineering judgment even though the final build is narrower than the original proposal.
 
 ---
 
@@ -108,20 +106,18 @@ I am not rating it higher because this period was narrower in scope than the pre
 
 ### Attach or link to supporting evidence (e.g., screenshots, URLs, customer feedback, testing scripts, design diagrams, commit history, video demonstration, etc.) that demonstrates your contributions during this reporting period.
 
-The main evidence is the git history after the last milestone report commit, `a15c127`, on March 17, 2026. The repo shows four follow-up commits during this reporting period: `4743766` for GPT-5.4 mini and nano model support, `3f2b147` for the Hunter Alpha model and a related picker UI test update, `5a554e8` for Claude Sonnet 4.6 plus simplification of MIDI snap handling, and `2eebfa4` for the MiniMax M2.5 model and an added validation test.
+[GitHub Repository](https://github.com/pliedpiper/ai-midi-generator)
 
-The committed diff summary since that report shows 8 files changed, with 57 insertions and 30 deletions. The main committed files were `constants.ts`, `spec.md`, `tests/input-form.ui.test.tsx`, `tests/validation.test.ts`, `hooks/generator/useAttemptGeneration.ts`, `hooks/generator/useAttemptPlayback.ts`, `hooks/generations/useGenerationsPlayback.ts`, and `hooks/useGenerationsPage.ts`.
+The git history for this reporting period shows the following commits after the prior milestone report: `4743766` for GPT-5.4 mini and nano support, `3f2b147` for Hunter Alpha and a picker test update, `5a554e8` for Claude Sonnet 4.6 and simplified MIDI snap handling, `2eebfa4` for MiniMax M2.5 and validation updates, and `100a721` for optimizing MIDI loading and piano roll rendering.
 
-The current workspace also includes uncommitted work completed on April 5, 2026. This local refactor adds new MIDI utility modules and updates the playback and download flow in `utils/midiUtils.ts`, `utils/midiMath.ts`, `utils/midiData.ts`, `utils/midiExportImpl.ts`, `utils/midiPlaybackImpl.ts`, `utils/midiDownload.ts`, `components/PianoRoll.tsx`, `components/GeneratorApp.tsx`, `components/AttemptCard.tsx`, `components/ExpandedAttemptModal.tsx`, `components/landing/LandingPlaybackDemo.tsx`, and related test files.
+The current project state also shows where the proposal goals were achieved. The application includes Next.js architecture, OpenRouter-based LLM generation, Supabase authentication and saved generations, custom piano roll visualization, synchronized playback, MIDI export, error handling, and repeated UI refinement. The project passes `npm run lint`, `npm run typecheck`, and `npm run test:run`, with all 31 test files and 241 tests passing. A production build succeeds and reports reduced first-load JavaScript after the performance refactor.
 
-The technical evidence for this local work is strong. The full project passes `npm run lint`, `npm run typecheck`, and `npm run test:run`, with all 31 test files and 241 tests passing. A production build also succeeds and shows reduced first-load JavaScript: about 253 kB down to 185 kB on `/`, 250 kB down to 182 kB on `/generations`, and 188 kB down to 120 kB on `/landing`.
+The main files that show the final milestone work include `constants.ts`, `tests/input-form.ui.test.tsx`, `tests/validation.test.ts`, `utils/midiUtils.ts`, `utils/midiMath.ts`, `utils/midiData.ts`, `utils/midiExportImpl.ts`, `utils/midiPlaybackImpl.ts`, `utils/midiDownload.ts`, `components/PianoRoll.tsx`, `components/GeneratorApp.tsx`, `components/AttemptCard.tsx`, `components/ExpandedAttemptModal.tsx`, `components/landing/LandingPlaybackDemo.tsx`, and the related hooks for generation and playback. 
 
 ---
 
 ## 7. Additional Comments
 
-This milestone was smaller, but it was still important. The previous report focused on broad UI refinement. This one shows a shift toward maintenance, model support, and efficiency work.
+This report is probably the clearest example of the difference between a proposal and a finished project. The proposal set a broad, ambitious target that included a much deeper editor and export system. The final application took shape around the parts that proved strongest and most useful: AI-assisted generation, structured MIDI output, playback, piano roll visualization, saved history, authentication, export, and polish.
 
-That feels like a natural next step for the project. Once an application reaches a more complete state, progress is not only about adding features. It is also about keeping the tool current, simplifying code that has become awkward, and improving performance so the app stays responsive as it grows.
-
-This period helped move the project in that direction.
+I think that still represents strong progress from the original plan. The project did not fully become a browser-based MIDI editor, but it did become a functional, tested, and more polished AI MIDI generation application. That is a meaningful result, and this final milestone helped make that result more complete and more stable.
