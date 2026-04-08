@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { parseJsonBodyWithLimit } from '@/lib/api/request';
 
-const makeStreamRequest = (body: string) =>
-  new Request('http://localhost/api/test', {
+type RequestInitWithDuplex = RequestInit & {
+  duplex: 'half';
+};
+
+const makeStreamRequest = (body: string) => {
+  const init: RequestInitWithDuplex = {
     method: 'POST',
     headers: {
       'content-type': 'application/json'
@@ -18,7 +22,10 @@ const makeStreamRequest = (body: string) =>
       }
     }),
     duplex: 'half'
-  });
+  };
+
+  return new Request('http://localhost/api/test', init);
+};
 
 describe('parseJsonBodyWithLimit', () => {
   it('parses a streamed JSON body within the byte limit', async () => {
