@@ -40,12 +40,42 @@ export const parseJsonBodyWithLimit = async <T>(
   }
 
   try {
-    const text = await req.text();
-    if (text.length > maxBodySize) {
-      return {
-        ok: false,
-        response: NextResponse.json({ error: 'Request body too large.' }, { status: 413 })
-      };
+    let text = '';
+    let totalBytes = 0;
+
+    if (req.body) {
+      const reader = req.body.getReader();
+      const decoder = new TextDecoder();
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            break;
+          }
+
+          if (!value) {
+            continue;
+          }
+
+          totalBytes += value.byteLength;
+          if (totalBytes > maxBodySize) {
+            await reader.cancel('Request body too large.');
+            return {
+              ok: false,
+              response: NextResponse.json({ error: 'Request body too large.' }, { status: 413 })
+            };
+          }
+
+          text += decoder.decode(value, { stream: true });
+        }
+
+        text += decoder.decode();
+      } finally {
+        reader.releaseLock();
+      }
+    } else {
+      text = '';
     }
 
     return {
