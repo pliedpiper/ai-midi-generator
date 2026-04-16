@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AVAILABLE_MODELS } from '../constants';
+import { DEFAULT_GENERATION_STYLE_ID } from '../lib/generationStyles';
 import { generateAttempt, improvePrompt } from '../services/openRouterService';
 import type { UserPreferences } from '../types';
 
 const validPrefs: UserPreferences = {
   prompt: 'Compose something chill',
   model: AVAILABLE_MODELS[0].id,
+  styleId: DEFAULT_GENERATION_STYLE_ID,
   tempo: 120,
   key: 'C Major',
   timeSignature: '4/4',

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SavedGeneration, UserPreferences } from "@/types";
+import { DEFAULT_GENERATION_STYLE_ID } from "@/lib/generationStyles";
 import {
   resolveSnapOptions,
   resolveSnapOptionsForGeneration,
@@ -8,6 +9,7 @@ import {
 const basePrefs: UserPreferences = {
   prompt: "x",
   model: "model",
+  styleId: DEFAULT_GENERATION_STYLE_ID,
   tempo: 120,
   key: "C Major",
   timeSignature: "4/4",

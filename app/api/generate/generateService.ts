@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
-import { SYSTEM_PROMPT_GENERATOR } from '@/constants';
 import type { MidiComposition, UserPreferences } from '@/types';
 import { extractJson, validateComposition } from '@/utils/validation';
 import { finalizeGenerationTitle } from '@/utils/titleUtils';
+import {
+  DEFAULT_GENERATION_STYLE_ID,
+  getGenerationStyleById
+} from '@/lib/generationStyles';
 import {
   createOpenRouterClient,
   mapOpenRouterErrorToResponse
@@ -50,11 +53,14 @@ type GenerateInput = {
 export const generateComposition = async (input: GenerateInput): Promise<GenerateResult> => {
   try {
     const client = createOpenRouterClient(input.apiKey, GENERATE_REQUEST_TIMEOUT_MS);
+    const selectedStyle =
+      getGenerationStyleById(input.prefs.styleId) ??
+      getGenerationStyleById(DEFAULT_GENERATION_STYLE_ID);
 
     const response = await client.chat.completions.create({
       model: input.prefs.model,
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT_GENERATOR },
+        { role: 'system', content: selectedStyle?.systemPrompt ?? '' },
         { role: 'user', content: buildPrompt(input.attemptIndex, input.prefs) }
       ],
       temperature: 0.9,

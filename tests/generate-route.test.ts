@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AVAILABLE_MODELS } from '../constants';
+import {
+  DEFAULT_GENERATION_STYLE_ID,
+  getGenerationStyleById,
+} from '../lib/generationStyles';
 
 const {
   createCompletionMock,
@@ -110,6 +114,7 @@ vi.mock('@/lib/api/idempotency', () => ({
 const validPrefs = {
   prompt: 'A short piano motif',
   model: AVAILABLE_MODELS[0].id,
+  styleId: DEFAULT_GENERATION_STYLE_ID,
   tempo: 120,
   key: 'C Major',
   timeSignature: '4/4',
@@ -432,6 +437,32 @@ describe('POST /api/generate', () => {
     expect(userPrompt).toContain('Constraints:');
     expect(userPrompt).not.toContain('Advanced settings: (none provided)');
     expect(userPrompt).not.toContain('If an advanced setting is omitted');
+  });
+
+  it('uses the selected style system prompt for generation', async () => {
+    const { POST } = await import('../app/api/generate/route');
+    createCompletionMock.mockResolvedValue({
+      choices: [{ message: { content: validModelJson } }],
+    });
+
+    const requestBody = JSON.stringify({
+      id: 1,
+      idempotencyKey: 'batch-style-check',
+      prefs: {
+        ...validPrefs,
+        styleId: 'sp04',
+      },
+    });
+
+    const res = await POST(makeRequest(requestBody, { 'x-forwarded-for': '198.51.100.34' }));
+    expect(res.status).toBe(200);
+
+    const call = createCompletionMock.mock.calls[0][0];
+    const systemPrompt = (call.messages as Array<{ role: string; content: string }>)
+      .find(message => message.role === 'system')?.content ?? '';
+
+    expect(systemPrompt).toBe(getGenerationStyleById('sp04')?.systemPrompt);
+    expect(systemPrompt).toContain('Prioritize rhythmic identity before pitch detail.');
   });
 
   it('sanitizes noisy model titles before saving and returning composition', async () => {

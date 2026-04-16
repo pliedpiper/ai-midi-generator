@@ -1,4 +1,8 @@
 import { AVAILABLE_MODELS, MIDI_LIMITS, SCALE_TYPES } from '@/constants';
+import {
+  DEFAULT_GENERATION_STYLE_ID,
+  GENERATION_STYLES,
+} from '@/lib/generationStyles';
 import type { MidiComposition, UserPreferences, Note, Track } from '@/types';
 import { clampNumber } from './midiUtils';
 
@@ -10,6 +14,7 @@ export type PrefsValidationResult = ValidationError | PrefsValidationSuccess;
 export type CompositionValidationResult = ValidationError | CompositionValidationSuccess;
 
 const ALLOWED_MODEL_IDS = new Set(AVAILABLE_MODELS.map((model) => model.id));
+const ALLOWED_STYLE_IDS = new Set(GENERATION_STYLES.map((style) => style.id));
 
 const {
   MIN_TEMPO,
@@ -112,6 +117,10 @@ export const validatePrefs = (prefs: unknown): PrefsValidationResult => {
   }
 
   const tempo = clampNumber(candidate.tempo, MIN_TEMPO, MAX_TEMPO, DEFAULT_TEMPO);
+  const styleId =
+    typeof candidate.styleId === 'string' && ALLOWED_STYLE_IDS.has(candidate.styleId)
+      ? candidate.styleId
+      : DEFAULT_GENERATION_STYLE_ID;
   const key =
     typeof candidate.key === 'string' && candidate.key.trim()
       ? candidate.key.trim()
@@ -160,6 +169,7 @@ export const validatePrefs = (prefs: unknown): PrefsValidationResult => {
     normalized: {
       prompt: candidate.prompt.trim(),
       model: candidate.model,
+      styleId,
       tempo,
       key,
       timeSignature,

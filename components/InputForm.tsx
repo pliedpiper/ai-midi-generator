@@ -3,6 +3,7 @@
 import React from "react";
 import { UserPreferences } from "../types";
 import { AVAILABLE_MODELS, DEFAULT_PREFERENCES } from "../constants";
+import { GENERATION_STYLES } from "@/lib/generationStyles";
 import { parseKeyString } from "../utils/scaleUtils";
 import {
   Check,
@@ -646,6 +647,22 @@ const InputForm: React.FC<Props> = ({
     </div>
   );
 
+  const renderStyleSelect = () => (
+    <select
+      className={inputClass}
+      value={prefs.styleId}
+      onChange={(e) => setPrefs({ ...prefs, styleId: e.target.value })}
+      disabled={isGenerating}
+      aria-label="Style"
+    >
+      {GENERATION_STYLES.map((style) => (
+        <option key={style.id} value={style.id}>
+          {style.name}
+        </option>
+      ))}
+    </select>
+  );
+
   const renderAdvancedInputs = () => (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <div>
@@ -768,10 +785,14 @@ const InputForm: React.FC<Props> = ({
               </button>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
+            <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
               <div>
                 <label className={`mb-2 block ${labelClass}`}>Model</label>
                 {renderModelPicker()}
+              </div>
+              <div>
+                <label className={`mb-2 block ${labelClass}`}>Style</label>
+                {renderStyleSelect()}
               </div>
               <div className="sm:justify-self-end">
                 <label className={`mb-2 block ${labelClass}`} id={variationsLabelId}>
@@ -927,10 +948,19 @@ const InputForm: React.FC<Props> = ({
         )}
       </div>
 
-      <div className={`grid gap-4 ${isHero ? "sm:grid-cols-[minmax(0,1fr)_auto]" : ""}`}>
+      <div
+        className={`grid gap-4 ${
+          isHero ? "sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]" : "sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
+        }`}
+      >
         <div>
           <label className={`mb-2 block ${labelClass}`}>Model</label>
           {renderModelPicker()}
+        </div>
+
+        <div>
+          <label className={`mb-2 block ${labelClass}`}>Style</label>
+          {renderStyleSelect()}
         </div>
 
         <div className="sm:justify-self-end">

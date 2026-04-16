@@ -94,7 +94,7 @@ export async function POST(req: Request) {
 
   const idempotencyKeys = buildGenerateIdempotencyKeys(
     user.id,
-    normalizedIdempotencyKey,
+    `${prefsResult.normalized.styleId}:${normalizedIdempotencyKey}`,
     attemptIndex
   );
 

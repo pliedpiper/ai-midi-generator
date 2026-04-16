@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { AVAILABLE_MODELS } from '../constants';
+import { DEFAULT_GENERATION_STYLE_ID } from '../lib/generationStyles';
 import { validateComposition, validatePrefs } from '../utils/validation';
 
 const validPrefs = {
   prompt: 'Compose a bassline',
   model: AVAILABLE_MODELS[0].id,
+  styleId: DEFAULT_GENERATION_STYLE_ID,
   tempo: 120,
   key: 'C Major',
   timeSignature: '4/4',
@@ -125,6 +127,7 @@ describe('validatePrefs', () => {
       expect(result.normalized).toMatchObject({
         prompt: 'syncopated groove',
         tempo: 300,
+        styleId: DEFAULT_GENERATION_STYLE_ID,
         key: 'C Major',
         timeSignature: '4/4',
         durationBars: 1,
@@ -153,6 +156,18 @@ describe('validatePrefs', () => {
         timeSignature: '4/4',
         durationBars: 8
       });
+    }
+  });
+
+  it('falls back to the default style when styleId is invalid', () => {
+    const result = validatePrefs({
+      ...validPrefs,
+      styleId: 'not-a-style',
+    });
+
+    expect(result.valid).toBe(true);
+    if (result.valid) {
+      expect(result.normalized.styleId).toBe(DEFAULT_GENERATION_STYLE_ID);
     }
   });
 });
