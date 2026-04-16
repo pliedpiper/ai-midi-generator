@@ -5,6 +5,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import InputForm from "@/components/InputForm";
 import { DEFAULT_PREFERENCES } from "@/constants";
+import { GENERATION_STYLES } from "@/lib/generationStyles";
 
 const improvePromptMock = vi.hoisted(() => vi.fn());
 
@@ -32,6 +33,7 @@ describe("InputForm UI", () => {
     expect(submitted).toMatchObject({
       prompt: "A soft ambient piano loop.",
       model: DEFAULT_PREFERENCES.model,
+      styleId: DEFAULT_PREFERENCES.styleId,
       tempo: DEFAULT_PREFERENCES.tempo,
       key: DEFAULT_PREFERENCES.key,
       timeSignature: DEFAULT_PREFERENCES.timeSignature,
@@ -58,6 +60,23 @@ describe("InputForm UI", () => {
     expect(onSubmit).toHaveBeenCalledTimes(1);
     const submitted = onSubmit.mock.calls[0]?.[0];
     expect(submitted.tempo).toBe(142);
+  });
+
+  it("submits the selected style option", () => {
+    const onSubmit = vi.fn();
+    render(<InputForm onSubmit={onSubmit} isGenerating={false} />);
+
+    fireEvent.change(screen.getByLabelText(/Style/i), {
+      target: { value: "sp04" },
+    });
+    fireEvent.change(
+      screen.getByPlaceholderText(/An upbeat 8-bit video game loop/i),
+      { target: { value: "A syncopated synth groove." } }
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Generate/ }));
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onSubmit.mock.calls[0]?.[0].styleId).toBe("sp04");
   });
 
   it("improves prompt in-place through API helper", async () => {
@@ -121,9 +140,10 @@ describe("InputForm UI", () => {
 
     const modelSearch = screen.getByRole("combobox", { name: /Search models/i });
     fireEvent.change(modelSearch, { target: { value: "openrouter" } });
+    const listbox = screen.getByRole("listbox", { name: /Model options/i });
 
     await waitFor(() => {
-      expect(screen.getAllByRole("option")).toHaveLength(3);
+      expect(within(listbox).getAllByRole("option")).toHaveLength(3);
     });
 
     fireEvent.keyDown(modelSearch, { key: "ArrowDown" });
@@ -182,5 +202,17 @@ describe("InputForm UI", () => {
     await waitFor(() => {
       expect(screen.queryByRole("button", { name: /Model selector/i })).toBeNull();
     });
+  });
+
+  it("shows every generation style in the style dropdown", () => {
+    const onSubmit = vi.fn();
+    render(<InputForm onSubmit={onSubmit} isGenerating={false} />);
+
+    const styleSelect = screen.getByLabelText(/Style/i);
+    const optionLabels = within(styleSelect)
+      .getAllByRole("option")
+      .map((option) => option.textContent);
+
+    expect(optionLabels).toEqual(GENERATION_STYLES.map((style) => style.name));
   });
 });

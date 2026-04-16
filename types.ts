@@ -37,6 +37,7 @@ export interface AttemptResult {
 export interface UserPreferences {
   prompt: string;
   model: string;
+  styleId: string;
   tempo: number | null;
   key: string | null;
   timeSignature: string | null;

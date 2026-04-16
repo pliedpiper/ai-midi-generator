@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_GENERATION_STYLE_ID } from '../lib/generationStyles';
 import type { SavedGeneration } from '../types';
 import {
   getHighlightParts,
@@ -34,6 +35,7 @@ const createGeneration = ({
   prefs: {
     prompt,
     model,
+    styleId: DEFAULT_GENERATION_STYLE_ID,
     tempo: 120,
     key: prefsKey,
     timeSignature: '4/4',
