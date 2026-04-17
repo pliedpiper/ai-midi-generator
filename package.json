@@ -11,9 +11,7 @@
     "typecheck": "tsc --noEmit",
     "check": "npm run lint && npm run typecheck && npm run test:run",
     "test": "vitest",
-    "test:run": "vitest run",
-    "test:e2e": "playwright test",
-    "test:e2e:headed": "playwright test --headed"
+    "test:run": "vitest run"
   },
   "dependencies": {
     "@supabase/ssr": "^0.8.0",
@@ -28,7 +26,6 @@
     "tone": "^15.1.22"
   },
   "devDependencies": {
-    "@playwright/test": "^1.58.2",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^22.14.0",
     "@types/react": "^19.0.12",

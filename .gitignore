@@ -23,10 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 
-# Playwright
-.playwright-mcp/
-.playwright-cli/
-
 # Next.js
 .next/
 
@@ -35,7 +31,6 @@ dist-ssr
 
 # Test and coverage artifacts
 test-results/
-playwright-report/
 coverage/
 .eslintcache
 

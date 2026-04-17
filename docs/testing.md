@@ -34,12 +34,6 @@ Run a single test file:
 npm run test:run -- tests/generate-route.test.ts
 ```
 
-Run Playwright smoke tests (requires configured E2E env vars and target app):
-
-```bash
-npm run test:e2e
-```
-
 ## Runner Configuration
 
 - Vitest default environment is `node`.
@@ -47,9 +41,8 @@ npm run test:e2e
 - Test files match `**/*.test.ts` and `**/*.test.tsx`.
 - `@` path alias resolves to project root.
 - CI gate runs `npm run check` (lint + typecheck + Vitest).
-- Playwright smoke tests are intentionally separate from required CI checks.
 
-Reference: `vitest.config.ts`, `playwright.config.ts`.
+Reference: `vitest.config.ts`.
 
 ## Suite Map
 
@@ -99,30 +92,20 @@ Reference: `vitest.config.ts`, `playwright.config.ts`.
 | `tests/signOut.test.ts` | Sign-out redirect helper behavior |
 | `tests/next-config-csp.test.ts` | CSP includes required hosts, preserves Tone `blob:` allowances, keeps `unsafe-inline` but drops `unsafe-eval` in production, supports report-only mode |
 
-### E2E Smoke (Playwright)
-
-| File | Focus |
-|------|-------|
-| `tests/e2e/auth-generate-history.spec.ts` | Sign-in, key setup, generate flow, history page load/delete smoke |
-| `tests/e2e/playback-smoke.spec.ts` | Saved-generation play/stop toggle in real browser runtime |
-
 ## Mocking Strategy
 
 - Route tests mock OpenAI SDK, Supabase wrappers, and Redis limiter wrappers.
 - UI tests mock service and audio layers to keep behavior deterministic.
 - Playback boundary tests mock Tone internals to verify lifecycle calls without audio hardware.
-- E2E smoke tests are environment-gated and intended for staging/real integration checks.
 
 ## Remaining Gaps
 
 - Full end-to-end determinism against real OpenRouter output semantics is still inherently probabilistic.
-- Playwright smoke tests are not part of required CI and require provisioned test credentials.
 
 ## Adding New Tests
 
 1. Add route behavior to route-specific `*-route.test.ts` files.
 2. Add deterministic domain logic to utility-focused suites.
 3. Add UI interaction coverage with jsdom + Testing Library when behavior crosses component boundaries.
-4. Add browser/runtime smoke checks in Playwright for high-risk flows.
-5. Keep assertions focused on observable outcomes (status codes, headers, rendered state, normalized outputs).
-6. Update this guide whenever tests are added/removed/renamed.
+4. Keep assertions focused on observable outcomes (status codes, headers, rendered state, normalized outputs).
+5. Update this guide whenever tests are added/removed/renamed.

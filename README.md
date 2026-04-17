@@ -63,17 +63,14 @@ Then create an account/sign in and add your OpenRouter key inside the app when p
 | `npm run check` | Run lint + typecheck + tests |
 | `npm test` | Run tests in watch mode |
 | `npm run test:run` | Run tests once |
-| `npm run test:e2e` | Run Playwright smoke tests |
-| `npm run test:e2e:headed` | Run Playwright smoke tests in headed mode |
 
 ## Testing
 
-This project uses Vitest for unit/integration-style coverage and Playwright for browser-runtime smoke checks.
+This project uses Vitest for unit and integration-style coverage.
 
 - Run once: `npm run test:run`
 - Watch mode: `npm test`
 - Full local quality gate (same as CI): `npm run check`
-- Browser smoke checks: `npm run test:e2e`
 - Detailed strategy and suite map: [`docs/testing.md`](docs/testing.md)
 
 ## CI
