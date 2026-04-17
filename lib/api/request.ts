@@ -1,3 +1,4 @@
+import { isIP } from 'node:net';
 import { NextResponse } from 'next/server';
 
 type ParseSuccess<T> = {
@@ -12,10 +13,42 @@ type ParseFailure = {
 
 export type ParseBodyResult<T> = ParseSuccess<T> | ParseFailure;
 
+const FORWARDED_IP_HEADERS = [
+  'x-vercel-forwarded-for',
+  'cf-connecting-ip',
+  'fastly-client-ip',
+  'x-real-ip',
+];
+
+const normalizeIpCandidate = (value: string | null): string | null => {
+  if (!value) {
+    return null;
+  }
+
+  const candidate = value.trim();
+  return isIP(candidate) ? candidate : null;
+};
+
 export const getClientIp = (req: Request): string => {
+  for (const header of FORWARDED_IP_HEADERS) {
+    const trustedProxyIp = normalizeIpCandidate(req.headers.get(header));
+    if (trustedProxyIp) {
+      return trustedProxyIp;
+    }
+  }
+
+  // Only trust x-forwarded-for when the app is deployed behind a proxy you control.
   const forwarded = req.headers.get('x-forwarded-for');
-  const realIp = req.headers.get('x-real-ip');
-  return forwarded?.split(',')[0]?.trim() || realIp || 'unknown';
+  if (forwarded) {
+    for (const candidate of forwarded.split(',')) {
+      const normalized = normalizeIpCandidate(candidate);
+      if (normalized) {
+        return normalized;
+      }
+    }
+  }
+
+  return 'unknown';
 };
 
 export const getTraceId = (req: Request): string => {

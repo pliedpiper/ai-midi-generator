@@ -22,6 +22,11 @@ describe('extractJson', () => {
     expect(extractJson(input)).toBe('{"title": "Test"}');
   });
 
+  it('extracts the first complete JSON object when more text follows', () => {
+    const input = '{"title": "First"} trailing text {"title": "Second"}';
+    expect(extractJson(input)).toBe('{"title": "First"}');
+  });
+
   it('handles nested braces', () => {
     const input = '{"tracks": [{"notes": [{"midi": 60}]}]}';
     expect(extractJson(input)).toBe('{"tracks": [{"notes": [{"midi": 60}]}]}');
@@ -135,6 +140,30 @@ describe('validateComposition', () => {
     if (result.valid === false) {
       expect(result.error).toContain('track');
     }
+  });
+
+  it('rejects notes outside the MIDI range', () => {
+    const result = validateComposition({
+      ...validComposition,
+      tracks: [{ name: 'Piano', notes: [{ midi: -1, time: 0, duration: 1 }] }]
+    });
+    expect(result.valid).toBe(false);
+  });
+
+  it('rejects notes with negative time', () => {
+    const result = validateComposition({
+      ...validComposition,
+      tracks: [{ name: 'Piano', notes: [{ midi: 60, time: -1, duration: 1 }] }]
+    });
+    expect(result.valid).toBe(false);
+  });
+
+  it('rejects notes with zero duration', () => {
+    const result = validateComposition({
+      ...validComposition,
+      tracks: [{ name: 'Piano', notes: [{ midi: 60, time: 0, duration: 0 }] }]
+    });
+    expect(result.valid).toBe(false);
   });
 
   it('normalizes missing programNumber to 0', () => {

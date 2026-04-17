@@ -12,17 +12,26 @@ const isPublicPath = (pathname: string) =>
 
 const isApiPath = (pathname: string) => pathname.startsWith('/api/');
 
-export const updateSession = async (request: NextRequest) => {
+export const updateSession = async (
+  request: NextRequest,
+  requestHeaders: Headers = request.headers
+) => {
   const pathname = request.nextUrl.pathname;
   const publicPath = isPublicPath(pathname);
   const apiPath = isApiPath(pathname);
 
   if (apiPath) {
-    return NextResponse.next({ request });
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
   }
 
   let response = NextResponse.next({
-    request
+    request: {
+      headers: requestHeaders,
+    },
   });
 
   const { url, anonKey } = getSupabaseEnv();
@@ -35,7 +44,9 @@ export const updateSession = async (request: NextRequest) => {
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
         response = NextResponse.next({
-          request
+          request: {
+            headers: requestHeaders,
+          },
         });
         cookiesToSet.forEach(({ name, value, options }) => {
           response.cookies.set(name, value, options);

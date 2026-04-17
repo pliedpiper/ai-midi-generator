@@ -228,4 +228,40 @@ describe('validateComposition limits', () => {
       expect(result.error).toContain('Too many total notes');
     }
   });
+
+  it('rejects notes above the MIDI range', () => {
+    const result = validateComposition({
+      title: 'Bad MIDI note',
+      tempo: 120,
+      timeSignature: [4, 4],
+      key: 'C Major',
+      tracks: [{ name: 'Lead', notes: [{ midi: 200, time: 0, duration: 1 }] }],
+    });
+
+    expect(result.valid).toBe(false);
+  });
+
+  it('rejects notes with negative start times', () => {
+    const result = validateComposition({
+      title: 'Negative time',
+      tempo: 120,
+      timeSignature: [4, 4],
+      key: 'C Major',
+      tracks: [{ name: 'Lead', notes: [{ midi: 60, time: -0.5, duration: 1 }] }],
+    });
+
+    expect(result.valid).toBe(false);
+  });
+
+  it('rejects notes with zero duration', () => {
+    const result = validateComposition({
+      title: 'Zero duration',
+      tempo: 120,
+      timeSignature: [4, 4],
+      key: 'C Major',
+      tracks: [{ name: 'Lead', notes: [{ midi: 60, time: 0, duration: 0 }] }],
+    });
+
+    expect(result.valid).toBe(false);
+  });
 });

@@ -4,25 +4,25 @@ Ordered from highest-value / lowest-ambiguity work to lower-priority or verify-f
 
 ## 1. Immediate fixes
 
-1. [ ] Fix the CSP/README mismatch.
+1. [x] Fix the CSP/README mismatch.
 Update [next.config.ts](/Users/kadenbarthlome/Documents/School/2026-Spring/CS%204800/ai-midi-generator/next.config.ts) so production `script-src` no longer always includes `'unsafe-inline'`, then update [README.md](/Users/kadenbarthlome/Documents/School/2026-Spring/CS%204800/ai-midi-generator/README.md) and [tests/next-config-csp.test.ts](/Users/kadenbarthlome/Documents/School/2026-Spring/CS%204800/ai-midi-generator/tests/next-config-csp.test.ts). Best version: move to nonce-based CSP.
 
-2. [ ] Reject fractional `attemptIndex`.
+2. [x] Reject fractional `attemptIndex`.
 Add `Number.isInteger` in [app/api/generate/requestValidation.ts](/Users/kadenbarthlome/Documents/School/2026-Spring/CS%204800/ai-midi-generator/app/api/generate/requestValidation.ts) and add a test in [tests/generate-request-validation.test.ts](/Users/kadenbarthlome/Documents/School/2026-Spring/CS%204800/ai-midi-generator/tests/generate-request-validation.test.ts).
 
-3. [ ] Tighten composition note validation.
+3. [x] Tighten composition note validation.
 In [utils/validation.ts](/Users/kadenbarthlome/Documents/School/2026-Spring/CS%204800/ai-midi-generator/utils/validation.ts), validate MIDI range, `time >= 0`, and `duration > 0`. Add tests for bad note payloads.
 
-4. [ ] Make `extractJson` robust.
+4. [x] Make `extractJson` robust.
 Replace the current first-`{` / last-`}` slicing in [utils/validation.ts](/Users/kadenbarthlome/Documents/School/2026-Spring/CS%204800/ai-midi-generator/utils/validation.ts) with balanced-object extraction, or move the model call to structured JSON output if the provider supports it. Update [tests/api-generate.test.ts](/Users/kadenbarthlome/Documents/School/2026-Spring/CS%204800/ai-midi-generator/tests/api-generate.test.ts) and [tests/route.test.ts](/Users/kadenbarthlome/Documents/School/2026-Spring/CS%204800/ai-midi-generator/tests/route.test.ts).
 
-5. [ ] Add request fingerprinting to idempotency.
+5. [x] Add request fingerprinting to idempotency.
 Extend [lib/api/idempotency.ts](/Users/kadenbarthlome/Documents/School/2026-Spring/CS%204800/ai-midi-generator/lib/api/idempotency.ts) so cached results are tied to both the idempotency key and a normalized body hash. Return `409` on mismatched replays.
 
-6. [ ] Add a cheap pre-auth rate limit.
+6. [x] Add a cheap pre-auth rate limit.
 In [app/api/generate/route.ts](/Users/kadenbarthlome/Documents/School/2026-Spring/CS%204800/ai-midi-generator/app/api/generate/route.ts), add an IP bucket before auth/key resolution so abusive traffic does not get a free pass to Supabase and Redis-backed auth work.
 
-7. [ ] Harden client IP handling.
+7. [x] Harden client IP handling.
 Document the trusted-proxy assumption around `x-forwarded-for` in [lib/api/request.ts](/Users/kadenbarthlome/Documents/School/2026-Spring/CS%204800/ai-midi-generator/lib/api/request.ts), or switch to a safer deployment-specific source when available.
 
 ## 2. Security hardening

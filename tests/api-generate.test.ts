@@ -3,11 +3,10 @@ import { extractJson, validateComposition } from '../utils/validation';
 
 describe('API /api/generate validation functions', () => {
   describe('extractJson edge cases', () => {
-    it('handles multiple JSON objects - takes outer bounds', () => {
+    it('extracts the first balanced JSON object instead of slicing to the last brace', () => {
       const input = '{"a": 1} some text {"b": 2}';
-      // Should extract from first { to last }
       const result = extractJson(input);
-      expect(result).toBe('{"a": 1} some text {"b": 2}');
+      expect(result).toBe('{"a": 1}');
     });
 
     it('handles deeply nested markdown', () => {
@@ -106,6 +105,42 @@ Enjoy your music!
       };
       const result = validateComposition(composition);
       expect(result.valid).toBe(true);
+    });
+
+    it('rejects notes outside the MIDI range', () => {
+      const composition = {
+        title: 'Test',
+        tempo: 120,
+        timeSignature: [4, 4],
+        key: 'C Major',
+        tracks: [{ name: 'Track', notes: [{ midi: 128, time: 0, duration: 1 }] }]
+      };
+      const result = validateComposition(composition);
+      expect(result.valid).toBe(false);
+    });
+
+    it('rejects notes with negative time', () => {
+      const composition = {
+        title: 'Test',
+        tempo: 120,
+        timeSignature: [4, 4],
+        key: 'C Major',
+        tracks: [{ name: 'Track', notes: [{ midi: 60, time: -0.25, duration: 1 }] }]
+      };
+      const result = validateComposition(composition);
+      expect(result.valid).toBe(false);
+    });
+
+    it('rejects notes with non-positive duration', () => {
+      const composition = {
+        title: 'Test',
+        tempo: 120,
+        timeSignature: [4, 4],
+        key: 'C Major',
+        tracks: [{ name: 'Track', notes: [{ midi: 60, time: 0, duration: 0 }] }]
+      };
+      const result = validateComposition(composition);
+      expect(result.valid).toBe(false);
     });
 
     it('rejects track without name', () => {

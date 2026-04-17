@@ -1,6 +1,6 @@
 import './globals.css';
 import type { ReactNode } from 'react';
-import Script from 'next/script';
+import { headers } from 'next/headers';
 
 export const metadata = {
   title: 'AI MIDI Generator',
@@ -24,13 +24,17 @@ const themeInitScript = `
 })();
 `;
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
+
   return (
     <html lang="en" data-theme="dark" suppressHydrationWarning>
       <head>
-        <Script id="theme-init" strategy="beforeInteractive">
-          {themeInitScript}
-        </Script>
+        <script
+          id="theme-init"
+          nonce={nonce}
+          dangerouslySetInnerHTML={{ __html: themeInitScript }}
+        />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}

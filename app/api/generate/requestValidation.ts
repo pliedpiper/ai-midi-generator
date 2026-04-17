@@ -21,7 +21,10 @@ export type GenerateRequestValidationResult =
   | InvalidGenerateRequest;
 
 const isValidAttemptIndex = (value: unknown): value is number =>
-  typeof value === "number" && Number.isFinite(value) && value >= 1;
+  typeof value === "number" &&
+  Number.isFinite(value) &&
+  Number.isInteger(value) &&
+  value >= 1;
 
 const normalizeIdempotencyKey = (
   value: unknown,

@@ -14,6 +14,18 @@ describe("validateGenerateRequest", () => {
     });
   });
 
+  it("rejects fractional attempt id", () => {
+    const result = validateGenerateRequest(
+      { id: 1.5, prefs: {}, idempotencyKey: "batch-1" },
+      120
+    );
+
+    expect(result).toEqual({
+      valid: false,
+      error: "id must be a positive number.",
+    });
+  });
+
   it("rejects missing idempotency key", () => {
     const result = validateGenerateRequest({ id: 1, prefs: {} }, 120);
 

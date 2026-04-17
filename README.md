@@ -175,7 +175,7 @@ User OpenRouter keys are entered in the app after login and stored encrypted in 
 - Idempotency key required on generation requests to prevent duplicate paid model calls on client retries
 - Input validation with size limits
 - CSP headers configured for safe audio playback (including `blob:` for Tone.js)
-- Production CSP omits `'unsafe-inline'` and `'unsafe-eval'` in `script-src` by default; report-only mode is available with `CSP_REPORT_ONLY=true`
+- Production page responses use a nonce-based `script-src` and omit both `'unsafe-inline'` and `'unsafe-eval'`; non-page/static responses still receive the stricter non-inline baseline from `next.config.ts`, and report-only mode is available with `CSP_REPORT_ONLY=true`
 - Row-Level Security (RLS) policies enforce per-user data access
 - Database constraints enforce positive `attempt_index` and conservative JSON shape checks for `prefs`/`composition`
 - OpenRouter keys encrypted before database storage

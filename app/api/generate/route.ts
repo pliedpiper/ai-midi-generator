@@ -8,9 +8,10 @@ import { getClientIp, getTraceId, parseJsonBodyWithLimit } from '@/lib/api/reque
 import {
   acquireIdempotencyLock,
   buildGenerateIdempotencyKeys,
-  readIdempotencyComposition,
+  buildGenerateRequestFingerprint,
+  readIdempotencyResult,
   releaseIdempotencyLock,
-  waitForIdempotencyComposition,
+  waitForIdempotencyResult,
   writeIdempotencyComposition
 } from '@/lib/api/idempotency';
 import { generateComposition } from './generateService';
@@ -23,12 +24,30 @@ export const runtime = 'nodejs';
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 10;
+const PRE_AUTH_RATE_LIMIT_MAX_REQUESTS = 30;
 const MAX_BODY_SIZE = 10_000;
 const IDEMPOTENCY_KEY_MAX_LENGTH = 120;
 const IDEMPOTENCY_WAIT_MS = 3_000;
+const IDEMPOTENCY_MISMATCH_MESSAGE =
+  'Idempotency key has already been used with a different request payload.';
 
 export async function POST(req: Request) {
   const traceId = getTraceId(req);
+  const clientIp = getClientIp(req);
+
+  const preAuthRateLimitResult = await enforceRateLimit({
+    identifier: `generate-preauth:ip:${clientIp}`,
+    maxRequests: PRE_AUTH_RATE_LIMIT_MAX_REQUESTS,
+    windowMs: RATE_LIMIT_WINDOW_MS,
+    unavailableMessage: 'Rate limiter unavailable. Please try again shortly.',
+    tooManyMessage: 'Too many requests from this IP. Please try again later.',
+    logLabel: 'Pre-auth Redis rate limiter failed'
+  });
+
+  if (preAuthRateLimitResult.ok === false) {
+    return preAuthRateLimitResult.response;
+  }
+
   const supabase = await createSupabaseClient();
 
   const authResult = await requireAuthenticatedUser(
@@ -54,7 +73,7 @@ export async function POST(req: Request) {
 
   const rateLimitIdentifier = user.id
     ? `user:${user.id}`
-    : `ip:${getClientIp(req)}`;
+    : `ip:${clientIp}`;
 
   const rateLimitResult = await enforceRateLimit({
     identifier: rateLimitIdentifier,
@@ -92,15 +111,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: prefsResult.error }, { status: 400 });
   }
 
+  const requestFingerprint = buildGenerateRequestFingerprint(
+    attemptIndex,
+    prefsResult.normalized
+  );
+
   const idempotencyKeys = buildGenerateIdempotencyKeys(
     user.id,
     `${prefsResult.normalized.styleId}:${normalizedIdempotencyKey}`,
     attemptIndex
   );
 
-  let cachedComposition = null;
+  let cachedResult = null;
   try {
-    cachedComposition = await readIdempotencyComposition(idempotencyKeys.resultKey);
+    cachedResult = await readIdempotencyResult(
+      idempotencyKeys.resultKey,
+      requestFingerprint
+    );
   } catch (error) {
     console.error('Idempotency cache read failed:', { traceId, error });
     return NextResponse.json(
@@ -109,9 +136,16 @@ export async function POST(req: Request) {
     );
   }
 
-  if (cachedComposition) {
+  if (cachedResult?.status === 'mismatch') {
     return NextResponse.json(
-      { composition: cachedComposition },
+      { error: IDEMPOTENCY_MISMATCH_MESSAGE },
+      { status: 409 }
+    );
+  }
+
+  if (cachedResult?.status === 'hit') {
+    return NextResponse.json(
+      { composition: cachedResult.composition },
       {
         headers: {
           'X-RateLimit-Remaining': String(rateLimitResult.result.remaining),
@@ -121,9 +155,12 @@ export async function POST(req: Request) {
     );
   }
 
-  let lockAcquired = false;
+  let lockResult: Awaited<ReturnType<typeof acquireIdempotencyLock>> = 'duplicate';
   try {
-    lockAcquired = await acquireIdempotencyLock(idempotencyKeys.lockKey);
+    lockResult = await acquireIdempotencyLock(
+      idempotencyKeys.lockKey,
+      requestFingerprint
+    );
   } catch (error) {
     console.error('Idempotency lock acquire failed:', { traceId, error });
     return NextResponse.json(
@@ -132,16 +169,31 @@ export async function POST(req: Request) {
     );
   }
 
-  if (!lockAcquired) {
+  if (lockResult === 'mismatch') {
+    return NextResponse.json(
+      { error: IDEMPOTENCY_MISMATCH_MESSAGE },
+      { status: 409 }
+    );
+  }
+
+  if (lockResult !== 'acquired') {
     try {
-      const replayedComposition = await waitForIdempotencyComposition(
+      const replayedResult = await waitForIdempotencyResult(
         idempotencyKeys.resultKey,
+        requestFingerprint,
         IDEMPOTENCY_WAIT_MS
       );
 
-      if (replayedComposition) {
+      if (replayedResult.status === 'mismatch') {
         return NextResponse.json(
-          { composition: replayedComposition },
+          { error: IDEMPOTENCY_MISMATCH_MESSAGE },
+          { status: 409 }
+        );
+      }
+
+      if (replayedResult.status === 'hit') {
+        return NextResponse.json(
+          { composition: replayedResult.composition },
           {
             headers: {
               'X-RateLimit-Remaining': String(rateLimitResult.result.remaining),
@@ -196,7 +248,8 @@ export async function POST(req: Request) {
     try {
       await writeIdempotencyComposition(
         idempotencyKeys.resultKey,
-        generationResult.composition
+        generationResult.composition,
+        requestFingerprint
       );
     } catch (error) {
       console.error('Failed to write idempotency cache:', { traceId, error });

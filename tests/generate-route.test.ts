@@ -13,9 +13,9 @@ const {
   decryptSecretMock,
   createSupabaseClientMock,
   checkRateLimitMock,
-  readIdempotencyCompositionMock,
+  readIdempotencyResultMock,
   acquireIdempotencyLockMock,
-  waitForIdempotencyCompositionMock,
+  waitForIdempotencyResultMock,
   writeIdempotencyCompositionMock,
   releaseIdempotencyLockMock,
 } = vi.hoisted(() => ({
@@ -26,9 +26,9 @@ const {
   decryptSecretMock: vi.fn(),
   createSupabaseClientMock: vi.fn(),
   checkRateLimitMock: vi.fn(),
-  readIdempotencyCompositionMock: vi.fn(),
+  readIdempotencyResultMock: vi.fn(),
   acquireIdempotencyLockMock: vi.fn(),
-  waitForIdempotencyCompositionMock: vi.fn(),
+  waitForIdempotencyResultMock: vi.fn(),
   writeIdempotencyCompositionMock: vi.fn(),
   releaseIdempotencyLockMock: vi.fn(),
 }));
@@ -100,13 +100,14 @@ vi.mock('@/lib/rateLimit', () => ({
 }));
 
 vi.mock('@/lib/api/idempotency', () => ({
+  buildGenerateRequestFingerprint: vi.fn(() => 'fingerprint-123'),
   buildGenerateIdempotencyKeys: vi.fn((userId: string, key: string, attemptId: number) => ({
     lockKey: `idempotency:generate:lock:${userId}:${key}:${attemptId}`,
     resultKey: `idempotency:generate:result:${userId}:${key}:${attemptId}`
   })),
-  readIdempotencyComposition: readIdempotencyCompositionMock,
+  readIdempotencyResult: readIdempotencyResultMock,
   acquireIdempotencyLock: acquireIdempotencyLockMock,
-  waitForIdempotencyComposition: waitForIdempotencyCompositionMock,
+  waitForIdempotencyResult: waitForIdempotencyResultMock,
   writeIdempotencyComposition: writeIdempotencyCompositionMock,
   releaseIdempotencyLock: releaseIdempotencyLockMock
 }));
@@ -164,9 +165,9 @@ beforeEach(() => {
   decryptSecretMock.mockReset();
   createSupabaseClientMock.mockReset();
   checkRateLimitMock.mockReset();
-  readIdempotencyCompositionMock.mockReset();
+  readIdempotencyResultMock.mockReset();
   acquireIdempotencyLockMock.mockReset();
-  waitForIdempotencyCompositionMock.mockReset();
+  waitForIdempotencyResultMock.mockReset();
   writeIdempotencyCompositionMock.mockReset();
   releaseIdempotencyLockMock.mockReset();
 
@@ -189,9 +190,9 @@ beforeEach(() => {
     remaining: 9,
     resetIn: 60000
   });
-  readIdempotencyCompositionMock.mockResolvedValue(null);
-  acquireIdempotencyLockMock.mockResolvedValue(true);
-  waitForIdempotencyCompositionMock.mockResolvedValue(null);
+  readIdempotencyResultMock.mockResolvedValue({ status: 'miss' });
+  acquireIdempotencyLockMock.mockResolvedValue('acquired');
+  waitForIdempotencyResultMock.mockResolvedValue({ status: 'miss' });
   writeIdempotencyCompositionMock.mockResolvedValue(undefined);
   releaseIdempotencyLockMock.mockResolvedValue(undefined);
 
@@ -285,16 +286,25 @@ describe('POST /api/generate', () => {
       choices: [{ message: { content: validModelJson } }],
     });
 
-    let callCount = 0;
-    checkRateLimitMock.mockImplementation(async () => {
-      callCount += 1;
-      if (callCount <= 10) {
+    let userCallCount = 0;
+    checkRateLimitMock.mockImplementation(async (identifier: string) => {
+      if (identifier.startsWith('generate-preauth:ip:')) {
         return {
           allowed: true,
-          remaining: 10 - callCount,
+          remaining: 29,
           resetIn: 60_000
         };
       }
+
+      userCallCount += 1;
+      if (userCallCount <= 10) {
+        return {
+          allowed: true,
+          remaining: 10 - userCallCount,
+          resetIn: 60_000
+        };
+      }
+
       return {
         allowed: false,
         remaining: 0,
@@ -326,6 +336,23 @@ describe('POST /api/generate', () => {
     expect(res.status).toBe(503);
     expect(await res.json()).toEqual({ error: 'Rate limiter unavailable. Please try again shortly.' });
     expect(createCompletionMock).not.toHaveBeenCalled();
+  });
+
+  it('rate limits abusive IPs before auth or key lookup', async () => {
+    checkRateLimitMock.mockResolvedValueOnce({
+      allowed: false,
+      remaining: 0,
+      resetIn: 30_000
+    });
+    const { POST } = await import('../app/api/generate/route');
+
+    const res = await POST(makeRequest(makeValidBody(), { 'x-forwarded-for': '198.51.100.99' }));
+    expect(res.status).toBe(429);
+    expect(await res.json()).toEqual({
+      error: 'Too many requests from this IP. Please try again later.'
+    });
+    expect(supabaseGetUserMock).not.toHaveBeenCalled();
+    expect(getEncryptedOpenRouterKeyMock).not.toHaveBeenCalled();
   });
 
   it('maps OpenAI timeout/connection/API status failures', async () => {
@@ -363,12 +390,15 @@ describe('POST /api/generate', () => {
   });
 
   it('replays cached composition without issuing a provider call', async () => {
-    readIdempotencyCompositionMock.mockResolvedValueOnce({
-      title: 'Cached',
-      tempo: 120,
-      timeSignature: [4, 4],
-      key: 'C Major',
-      tracks: [{ name: 'Piano', programNumber: 0, notes: [] }]
+    readIdempotencyResultMock.mockResolvedValueOnce({
+      status: 'hit',
+      composition: {
+        title: 'Cached',
+        tempo: 120,
+        timeSignature: [4, 4],
+        key: 'C Major',
+        tracks: [{ name: 'Piano', programNumber: 0, notes: [] }]
+      }
     });
     const { POST } = await import('../app/api/generate/route');
 
@@ -380,14 +410,26 @@ describe('POST /api/generate', () => {
   });
 
   it('returns 409 when a matching request is already in progress', async () => {
-    acquireIdempotencyLockMock.mockResolvedValueOnce(false);
-    waitForIdempotencyCompositionMock.mockResolvedValueOnce(null);
+    acquireIdempotencyLockMock.mockResolvedValueOnce('duplicate');
+    waitForIdempotencyResultMock.mockResolvedValueOnce({ status: 'miss' });
     const { POST } = await import('../app/api/generate/route');
 
     const res = await POST(makeRequest(makeValidBody()));
     expect(res.status).toBe(409);
     expect(await res.json()).toEqual({
       error: 'A matching generation request is already in progress. Retry shortly.'
+    });
+    expect(createCompletionMock).not.toHaveBeenCalled();
+  });
+
+  it('returns 409 when an idempotency key is replayed with a different payload', async () => {
+    readIdempotencyResultMock.mockResolvedValueOnce({ status: 'mismatch' });
+    const { POST } = await import('../app/api/generate/route');
+
+    const res = await POST(makeRequest(makeValidBody()));
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({
+      error: 'Idempotency key has already been used with a different request payload.'
     });
     expect(createCompletionMock).not.toHaveBeenCalled();
   });

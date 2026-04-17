@@ -40,6 +40,9 @@ const isFiniteNumber = (value: unknown): value is number =>
 const isFinitePositiveNumber = (value: unknown): value is number =>
   isFiniteNumber(value) && value > 0;
 
+const isValidMidiValue = (value: unknown): value is number =>
+  isFiniteNumber(value) && Number.isInteger(value) && value >= 0 && value <= 127;
+
 const isValidTimeSignatureValue = (value: unknown): value is number =>
   isFiniteNumber(value) && Number.isInteger(value) && value > 0;
 
@@ -58,9 +61,11 @@ const isValidNoteStructure = (note: unknown): note is Note => {
 
   const candidate = note as Record<string, unknown>;
   return (
-    typeof candidate.midi === 'number' &&
-    typeof candidate.time === 'number' &&
-    typeof candidate.duration === 'number'
+    isValidMidiValue(candidate.midi) &&
+    isFiniteNumber(candidate.time) &&
+    candidate.time >= 0 &&
+    isFiniteNumber(candidate.duration) &&
+    candidate.duration > 0
   );
 };
 
@@ -81,18 +86,54 @@ export const extractJson = (content: string): string => {
   const trimmed = content.trim();
   if (!trimmed) throw new Error('Empty response from OpenRouter');
 
-  const withoutFences = trimmed
-    .replace(/^```(?:json)?/i, '')
-    .replace(/```$/i, '')
-    .trim();
+  const fencedMatch = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  const withoutFences = (fencedMatch?.[1] ?? trimmed).trim();
 
-  const start = withoutFences.indexOf('{');
-  const end = withoutFences.lastIndexOf('}');
-  if (start === -1 || end === -1 || end <= start) {
-    throw new Error('No JSON object found in model response');
+  for (let start = 0; start < withoutFences.length; start += 1) {
+    if (withoutFences[start] !== '{') {
+      continue;
+    }
+
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+
+    for (let index = start; index < withoutFences.length; index += 1) {
+      const char = withoutFences[index];
+
+      if (inString) {
+        if (escaped) {
+          escaped = false;
+        } else if (char === '\\') {
+          escaped = true;
+        } else if (char === '"') {
+          inString = false;
+        }
+        continue;
+      }
+
+      if (char === '"') {
+        inString = true;
+        continue;
+      }
+
+      if (char === '{') {
+        depth += 1;
+        continue;
+      }
+
+      if (char !== '}') {
+        continue;
+      }
+
+      depth -= 1;
+      if (depth === 0) {
+        return withoutFences.slice(start, index + 1);
+      }
+    }
   }
 
-  return withoutFences.slice(start, end + 1);
+  throw new Error('No JSON object found in model response');
 };
 
 export const validatePrefs = (prefs: unknown): PrefsValidationResult => {
