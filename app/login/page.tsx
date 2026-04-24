@@ -9,6 +9,11 @@ import { getSafeNextPathFromSearch } from '@/utils/redirectPath';
 import BrandLogo from '@/components/BrandLogo';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const SIGN_IN_FAILURE_MESSAGE = 'Unable to sign in. Check your email and password, then try again.';
+const SIGN_UP_FAILURE_MESSAGE = 'Unable to create account. Check your details and try again.';
+const SIGN_UP_NEXT_STEPS_MESSAGE =
+  'If this email can create an account, check your inbox for next steps.';
+const RESET_FAILURE_MESSAGE = 'Unable to send reset email right now. Please try again later.';
 
 const LoginPage: React.FC = () => {
   const router = useRouter();
@@ -42,7 +47,7 @@ const LoginPage: React.FC = () => {
       });
 
       if (authError) {
-        setError(authError.message);
+        setError(SIGN_IN_FAILURE_MESSAGE);
         setLoading(false);
         return;
       }
@@ -53,6 +58,11 @@ const LoginPage: React.FC = () => {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.');
+      setLoading(false);
+      return;
+    }
 
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: normalizedEmail,
@@ -60,22 +70,14 @@ const LoginPage: React.FC = () => {
     });
 
     if (signUpError) {
-      const alreadyExists =
-        signUpError.message.toLowerCase().includes('already') ||
-        signUpError.message.toLowerCase().includes('registered');
-      if (alreadyExists) {
-        setError('An account with this email already exists. Sign in or reset your password.');
-        setMode('sign-in');
-      } else {
-        setError(signUpError.message);
-      }
+      setError(SIGN_UP_FAILURE_MESSAGE);
       setLoading(false);
       return;
     }
 
     const isExistingUser = Array.isArray(data.user?.identities) && data.user.identities.length === 0;
     if (isExistingUser) {
-      setError('An account with this email already exists. Sign in or reset your password.');
+      setMessage(SIGN_UP_NEXT_STEPS_MESSAGE);
       setMode('sign-in');
       setLoading(false);
       return;
@@ -87,7 +89,7 @@ const LoginPage: React.FC = () => {
       return;
     }
 
-    setMessage('Account created. Check your email to confirm, then sign in.');
+    setMessage(SIGN_UP_NEXT_STEPS_MESSAGE);
     setMode('sign-in');
     setLoading(false);
   };
@@ -115,7 +117,7 @@ const LoginPage: React.FC = () => {
     });
 
     if (resetError) {
-      setError(resetError.message);
+      setError(RESET_FAILURE_MESSAGE);
       setIsSendingReset(false);
       return;
     }

@@ -215,6 +215,16 @@ describe('POST /api/generate', () => {
     expect(createCompletionMock).not.toHaveBeenCalled();
   });
 
+  it('rejects cross-site browser requests before auth work', async () => {
+    const { POST } = await import('../app/api/generate/route');
+
+    const res = await POST(makeRequest(makeValidBody(), { origin: 'https://evil.example' }));
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ error: 'Cross-site requests are not allowed.' });
+    expect(checkRateLimitMock).not.toHaveBeenCalled();
+    expect(supabaseGetUserMock).not.toHaveBeenCalled();
+  });
+
   it('returns 400 when user has not configured OpenRouter key', async () => {
     getEncryptedOpenRouterKeyMock.mockResolvedValueOnce(null);
     const { POST } = await import('../app/api/generate/route');

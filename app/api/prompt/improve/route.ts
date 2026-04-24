@@ -4,6 +4,7 @@ import { requireAuthenticatedUser } from '@/lib/api/auth';
 import { resolveDecryptedOpenRouterKey } from '@/lib/api/openRouterKey';
 import { enforceRateLimit } from '@/lib/api/rateLimit';
 import { getClientIp, parseJsonBodyWithLimit } from '@/lib/api/request';
+import { enforceSameOriginRequest } from '@/lib/api/csrf';
 import {
   improvePrompt,
   normalizePromptImproveRequest,
@@ -16,6 +17,11 @@ const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 10;
 
 export async function POST(req: Request) {
+  const csrfResponse = enforceSameOriginRequest(req);
+  if (csrfResponse) {
+    return csrfResponse;
+  }
+
   const supabase = await createSupabaseClient();
 
   const authResult = await requireAuthenticatedUser(

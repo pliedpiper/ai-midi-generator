@@ -5,6 +5,7 @@ import { requireAuthenticatedUser } from '@/lib/api/auth';
 import { resolveDecryptedOpenRouterKey } from '@/lib/api/openRouterKey';
 import { enforceRateLimit } from '@/lib/api/rateLimit';
 import { getClientIp, getTraceId, parseJsonBodyWithLimit } from '@/lib/api/request';
+import { enforceSameOriginRequest } from '@/lib/api/csrf';
 import {
   acquireIdempotencyLock,
   buildGenerateIdempotencyKeys,
@@ -32,6 +33,11 @@ const IDEMPOTENCY_MISMATCH_MESSAGE =
   'Idempotency key has already been used with a different request payload.';
 
 export async function POST(req: Request) {
+  const csrfResponse = enforceSameOriginRequest(req);
+  if (csrfResponse) {
+    return csrfResponse;
+  }
+
   const traceId = getTraceId(req);
   const clientIp = getClientIp(req);
 

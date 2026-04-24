@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { requireAuthenticatedUser } from '@/lib/api/auth';
 import { parseJsonBodyWithLimit } from '@/lib/api/request';
+import { enforceSameOriginRequest } from '@/lib/api/csrf';
 
 export const runtime = 'nodejs';
 
@@ -13,6 +14,11 @@ type DeleteAccountBody = {
 };
 
 export async function POST(req: Request) {
+  const csrfResponse = enforceSameOriginRequest(req);
+  if (csrfResponse) {
+    return csrfResponse;
+  }
+
   const supabase = await createClient();
   const authResult = await requireAuthenticatedUser(supabase, 'Unauthorized.');
   if (authResult.ok === false) {

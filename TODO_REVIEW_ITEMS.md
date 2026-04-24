@@ -27,7 +27,7 @@ Document the trusted-proxy assumption around `x-forwarded-for` in [lib/api/reque
 
 ## 2. Security hardening
 
-8. [ ] Add CSRF defense-in-depth for state-changing routes.
+8. [x] Add CSRF defense-in-depth for state-changing routes.
 Create a small helper that validates `Origin` / `Sec-Fetch-Site` for `POST` / `DELETE` routes such as:
 [app/api/generate/route.ts](/Users/kadenbarthlome/Documents/School/2026-Spring/CS%204800/ai-midi-generator/app/api/generate/route.ts)
 [app/api/prompt/improve/route.ts](/Users/kadenbarthlome/Documents/School/2026-Spring/CS%204800/ai-midi-generator/app/api/prompt/improve/route.ts)

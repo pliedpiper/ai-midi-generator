@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { requireAuthenticatedUser } from '@/lib/api/auth';
+import { enforceSameOriginRequest } from '@/lib/api/csrf';
 
 export const runtime = 'nodejs';
 
@@ -129,7 +130,12 @@ export async function GET(req: Request) {
   });
 }
 
-export async function DELETE() {
+export async function DELETE(req: Request) {
+  const csrfResponse = enforceSameOriginRequest(req);
+  if (csrfResponse) {
+    return csrfResponse;
+  }
+
   const supabase = await createClient();
   const authResult = await requireAuthenticatedUser(supabase, 'Unauthorized.');
   if (authResult.ok === false) {

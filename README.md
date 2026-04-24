@@ -68,8 +68,11 @@ Copy [`.env.example`](.env.example) to `.env.local` and fill in:
 | `UPSTASH_REDIS_REST_TOKEN` | Yes* | Fallback Redis token |
 | `CSP_REPORT_ONLY` | No | When `true`, serves CSP in report-only mode |
 | `CSP_REPORT_URI` | No | Optional report endpoint included in CSP |
+| `TRUSTED_PROXY_IP_HEADERS` | No | Comma-separated proxy IP headers to trust when self-hosting behind an edge layer |
 
 `*` For Supabase client auth, provide either `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` or `NEXT_PUBLIC_SUPABASE_ANON_KEY`. For Redis, provide either the `KV_*` pair or the `UPSTASH_*` pair.
+
+On Vercel, IP rate limiting uses `x-vercel-forwarded-for` automatically. For self-hosted deployments, set `TRUSTED_PROXY_IP_HEADERS` only to headers your proxy strips and replaces, such as `x-forwarded-for`.
 
 ## Scripts
 

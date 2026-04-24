@@ -104,6 +104,29 @@ describe('validatePrefs', () => {
     }
   });
 
+  it('accepts recent Chinese model releases', () => {
+    const recentChineseModels = [
+      'deepseek/deepseek-v4-pro',
+      'deepseek/deepseek-v4-flash',
+      'moonshotai/kimi-k2.6',
+      'xiaomi/mimo-v2.5-pro',
+    ] as const;
+
+    for (const model of recentChineseModels) {
+      const result = validatePrefs({
+        ...validPrefs,
+        model,
+      });
+
+      expect(result.valid).toBe(true);
+      if (!result.valid) {
+        throw new Error(result.error);
+      }
+
+      expect(result.normalized.model).toBe(model);
+    }
+  });
+
   it('accepts OpenRouter GPT-5.4 Mini and GPT-5.4 Nano', () => {
     for (const model of ['openai/gpt-5.4-mini', 'openai/gpt-5.4-nano'] as const) {
       const result = validatePrefs({

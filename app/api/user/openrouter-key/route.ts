@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { requireAuthenticatedUser } from '@/lib/api/auth';
 import { parseJsonBodyWithLimit } from '@/lib/api/request';
+import { enforceSameOriginRequest } from '@/lib/api/csrf';
 import {
   upsertEncryptedOpenRouterKey,
   validateOpenRouterApiKey
@@ -45,6 +46,11 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const csrfResponse = enforceSameOriginRequest(req);
+  if (csrfResponse) {
+    return csrfResponse;
+  }
+
   const supabase = await createClient();
   const authResult = await requireAuthenticatedUser(supabase, 'Unauthorized.');
   if (authResult.ok === false) {
@@ -88,7 +94,12 @@ export async function POST(req: Request) {
   }
 }
 
-export async function DELETE() {
+export async function DELETE(req: Request) {
+  const csrfResponse = enforceSameOriginRequest(req);
+  if (csrfResponse) {
+    return csrfResponse;
+  }
+
   const supabase = await createClient();
   const authResult = await requireAuthenticatedUser(supabase, 'Unauthorized.');
   if (authResult.ok === false) {

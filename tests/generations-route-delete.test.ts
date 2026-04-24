@@ -22,6 +22,8 @@ vi.mock('@/lib/supabase/server', () => ({
   createClient: createSupabaseClientMock
 }));
 
+const makeRequest = () => new Request('http://localhost/api/generations', { method: 'DELETE' });
+
 beforeEach(() => {
   vi.resetModules();
   supabaseGetUserMock.mockReset();
@@ -71,7 +73,7 @@ describe('DELETE /api/generations', () => {
     supabaseGetUserMock.mockResolvedValueOnce({ data: { user: null }, error: null });
     const { DELETE } = await import('../app/api/generations/route');
 
-    const res = await DELETE();
+    const res = await DELETE(makeRequest());
     expect(res.status).toBe(401);
     expect(await res.json()).toEqual({ error: 'Unauthorized.' });
   });
@@ -80,7 +82,7 @@ describe('DELETE /api/generations', () => {
     countEqMock.mockResolvedValueOnce({ count: null, error: { message: 'count failed' } });
     const { DELETE } = await import('../app/api/generations/route');
 
-    const res = await DELETE();
+    const res = await DELETE(makeRequest());
     expect(res.status).toBe(500);
     expect(await res.json()).toEqual({ error: 'Failed to delete generations.' });
     expect(deleteEqMock).not.toHaveBeenCalled();
@@ -90,7 +92,7 @@ describe('DELETE /api/generations', () => {
     deleteEqMock.mockResolvedValueOnce({ error: { message: 'delete failed' } });
     const { DELETE } = await import('../app/api/generations/route');
 
-    const res = await DELETE();
+    const res = await DELETE(makeRequest());
     expect(res.status).toBe(500);
     expect(await res.json()).toEqual({ error: 'Failed to delete generations.' });
   });
@@ -98,7 +100,7 @@ describe('DELETE /api/generations', () => {
   it('deletes all generations and returns deleted count', async () => {
     const { DELETE } = await import('../app/api/generations/route');
 
-    const res = await DELETE();
+    const res = await DELETE(makeRequest());
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ deleted: true, deletedCount: 3 });
     expect(supabaseFromMock).toHaveBeenCalledWith('generations');

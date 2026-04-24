@@ -41,6 +41,9 @@ vi.mock('@/utils/encryption', () => ({
   encryptSecret: (value: string) => `encrypted:${value}`
 }));
 
+const makeDeleteRequest = () =>
+  new Request('http://localhost/api/user/openrouter-key', { method: 'DELETE' });
+
 beforeEach(() => {
   vi.resetModules();
   createSupabaseClientMock.mockReset();
@@ -122,7 +125,7 @@ describe('/api/user/openrouter-key route', () => {
   it('DELETE removes stored key for current user', async () => {
     const { DELETE } = await import('../app/api/user/openrouter-key/route');
 
-    const res = await DELETE();
+    const res = await DELETE(makeDeleteRequest());
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ configured: false, removed: true });
     expect(supabaseFromMock).toHaveBeenCalledWith('user_settings');
@@ -134,7 +137,7 @@ describe('/api/user/openrouter-key route', () => {
     eqForDeleteMock.mockResolvedValueOnce({ error: { message: 'failed' } });
     const { DELETE } = await import('../app/api/user/openrouter-key/route');
 
-    const res = await DELETE();
+    const res = await DELETE(makeDeleteRequest());
     expect(res.status).toBe(500);
     expect(await res.json()).toEqual({ error: 'Failed to remove API key.' });
   });
