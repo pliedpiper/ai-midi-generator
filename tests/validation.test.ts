@@ -80,6 +80,18 @@ describe('validatePrefs', () => {
     }
   });
 
+  it('accepts Claude Opus 4.7', () => {
+    const result = validatePrefs({
+      ...validPrefs,
+      model: 'anthropic/claude-opus-4.7',
+    });
+
+    expect(result.valid).toBe(true);
+    if (result.valid) {
+      expect(result.normalized.model).toBe('anthropic/claude-opus-4.7');
+    }
+  });
+
   it('accepts MiniMax M2.5', () => {
     const result = validatePrefs({
       ...validPrefs,
