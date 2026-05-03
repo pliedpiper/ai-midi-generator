@@ -68,6 +68,22 @@ describe('validatePrefs', () => {
     }
   });
 
+  it('accepts OpenRouter GPT-5.5 and Grok 4.3', () => {
+    for (const model of ['openai/gpt-5.5', 'x-ai/grok-4.3'] as const) {
+      const result = validatePrefs({
+        ...validPrefs,
+        model,
+      });
+
+      expect(result.valid).toBe(true);
+      if (!result.valid) {
+        throw new Error(result.error);
+      }
+
+      expect(result.normalized.model).toBe(model);
+    }
+  });
+
   it('accepts Claude Sonnet 4.6', () => {
     const result = validatePrefs({
       ...validPrefs,
