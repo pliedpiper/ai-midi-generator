@@ -137,6 +137,7 @@ describe('validatePrefs', () => {
       'deepseek/deepseek-v4-pro',
       'deepseek/deepseek-v4-flash',
       'moonshotai/kimi-k2.6',
+      'qwen/qwen3.7-max',
       'xiaomi/mimo-v2.5-pro',
     ] as const;
 

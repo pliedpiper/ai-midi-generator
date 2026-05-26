@@ -97,6 +97,7 @@ export const AVAILABLE_MODELS = [
   { id: "openrouter/auto", name: "OpenRouter Auto" },
   { id: "openrouter/free", name: "OpenRouter Free" },
   { id: "openrouter/hunter-alpha", name: "Hunter Alpha" },
+  { id: "qwen/qwen3.7-max", name: "Qwen3.7 Max" },
   { id: "qwen/qwen3-coder", name: "Qwen3 Coder" },
   { id: "qwen/qwen3-coder-next", name: "Qwen3 Coder Next" },
   { id: "stepfun/step-3.5-flash:free", name: "Step 3.5 Flash (free)" }
