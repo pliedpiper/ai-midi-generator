@@ -14,14 +14,37 @@ import {
 export const GENERATE_REQUEST_TIMEOUT_MS = 180_000;
 const MAX_TOKENS = 16_384;
 
+const formatAutoSetting = (label: string): string =>
+  `${label}: Auto - choose the best value for this prompt.`;
+
 const buildPrompt = (attemptIndex: number, prefs: UserPreferences) => {
+  const tempoLine =
+    prefs.tempo === null
+      ? formatAutoSetting('Tempo')
+      : `Tempo: ${prefs.tempo} BPM`;
+  const keyLine = prefs.key === null ? formatAutoSetting('Key') : `Key: ${prefs.key}`;
+  const timeSignatureLine =
+    prefs.timeSignature === null
+      ? formatAutoSetting('Time Signature')
+      : `Time Signature: ${prefs.timeSignature}`;
+  const lengthLine =
+    prefs.durationBars === null
+      ? formatAutoSetting('Length')
+      : `Length: ${prefs.durationBars} bars`;
+  const constraintsLine =
+    prefs.constraints === null
+      ? formatAutoSetting('Constraints')
+      : prefs.constraints.trim()
+        ? `Constraints: ${prefs.constraints}`
+        : 'Constraints: None';
+
   return `
 User Prompt: "${prefs.prompt}"
-Tempo: ${prefs.tempo} BPM
-Key: ${prefs.key}
-Time Signature: ${prefs.timeSignature}
-Length: ${prefs.durationBars} bars
-Constraints: ${prefs.constraints}
+${tempoLine}
+${keyLine}
+${timeSignatureLine}
+${lengthLine}
+${constraintsLine}
 
 Attempt Number: ${attemptIndex}
 

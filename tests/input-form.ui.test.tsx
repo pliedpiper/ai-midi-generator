@@ -62,6 +62,41 @@ describe("InputForm UI", () => {
     expect(submitted.tempo).toBe(142);
   });
 
+  it("submits null values and disables fields when advanced settings are auto", () => {
+    const onSubmit = vi.fn();
+    render(<InputForm onSubmit={onSubmit} isGenerating={false} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Advanced/i }));
+
+    fireEvent.click(screen.getByRole("switch", { name: /Tempo auto/i }));
+    fireEvent.click(screen.getByRole("switch", { name: /Key auto/i }));
+    fireEvent.click(screen.getByRole("switch", { name: /Time signature auto/i }));
+    fireEvent.click(screen.getByRole("switch", { name: /Bars auto/i }));
+    fireEvent.click(screen.getByRole("switch", { name: /Constraints auto/i }));
+
+    const autoFields = screen.getAllByPlaceholderText("Auto");
+    expect(autoFields).toHaveLength(5);
+    autoFields.forEach((field) =>
+      expect((field as HTMLInputElement).disabled).toBe(true)
+    );
+
+    fireEvent.change(
+      screen.getByPlaceholderText(/An upbeat 8-bit video game loop/i),
+      { target: { value: "A cinematic tension cue." } }
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Generate/ }));
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    const submitted = onSubmit.mock.calls[0]?.[0];
+    expect(submitted).toMatchObject({
+      tempo: null,
+      key: null,
+      timeSignature: null,
+      durationBars: null,
+      constraints: null,
+    });
+  });
+
   it("submits the selected style option", () => {
     const onSubmit = vi.fn();
     render(<InputForm onSubmit={onSubmit} isGenerating={false} />);

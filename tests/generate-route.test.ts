@@ -455,7 +455,7 @@ describe('POST /api/generate', () => {
     expect(await res.json()).toEqual({ error: 'Model returned invalid JSON.' });
   });
 
-  it('normalizes missing advanced settings to explicit defaults in the user prompt', async () => {
+  it('keeps auto advanced settings open in the user prompt', async () => {
     const { POST } = await import('../app/api/generate/route');
     createCompletionMock.mockResolvedValue({
       choices: [{ message: { content: validModelJson } }],
@@ -470,7 +470,7 @@ describe('POST /api/generate', () => {
         key: null,
         timeSignature: null,
         durationBars: null,
-        constraints: '',
+        constraints: null,
       },
     });
 
@@ -482,11 +482,11 @@ describe('POST /api/generate', () => {
     const userPrompt = (call.messages as Array<{ role: string; content: string }>)
       .find(message => message.role === 'user')?.content ?? '';
 
-    expect(userPrompt).toContain('Tempo: 120 BPM');
-    expect(userPrompt).toContain('Key: C Major');
-    expect(userPrompt).toContain('Time Signature: 4/4');
-    expect(userPrompt).toContain('Length: 8 bars');
-    expect(userPrompt).toContain('Constraints:');
+    expect(userPrompt).toContain('Tempo: Auto - choose the best value for this prompt.');
+    expect(userPrompt).toContain('Key: Auto - choose the best value for this prompt.');
+    expect(userPrompt).toContain('Time Signature: Auto - choose the best value for this prompt.');
+    expect(userPrompt).toContain('Length: Auto - choose the best value for this prompt.');
+    expect(userPrompt).toContain('Constraints: Auto - choose the best value for this prompt.');
     expect(userPrompt).not.toContain('Advanced settings: (none provided)');
     expect(userPrompt).not.toContain('If an advanced setting is omitted');
   });

@@ -28,6 +28,7 @@ type ModelGroup = {
   providerName: string;
   models: ModelOption[];
 };
+type AutoField = "tempo" | "key" | "timeSignature" | "durationBars" | "constraints";
 
 const PROVIDER_NAME_OVERRIDES: Record<string, string> = {
   "arcee-ai": "Arcee AI",
@@ -210,21 +211,59 @@ const InputForm: React.FC<Props> = ({
   const buildSubmissionPrefs = React.useCallback(
     (): UserPreferences => ({
       ...prefs,
-      tempo: Number.isFinite(prefs.tempo) ? prefs.tempo : DEFAULT_PREFERENCES.tempo,
+      tempo:
+        prefs.tempo === null
+          ? null
+          : Number.isFinite(prefs.tempo)
+            ? prefs.tempo
+            : DEFAULT_PREFERENCES.tempo,
       key:
-        typeof prefs.key === "string" && prefs.key.trim()
+        prefs.key === null
+          ? null
+          : typeof prefs.key === "string" && prefs.key.trim()
           ? prefs.key.trim()
           : DEFAULT_PREFERENCES.key,
       timeSignature:
-        typeof prefs.timeSignature === "string" && prefs.timeSignature.trim()
+        prefs.timeSignature === null
+          ? null
+          : typeof prefs.timeSignature === "string" && prefs.timeSignature.trim()
           ? prefs.timeSignature.trim()
           : DEFAULT_PREFERENCES.timeSignature,
-      durationBars: Number.isFinite(prefs.durationBars)
-        ? prefs.durationBars
-        : DEFAULT_PREFERENCES.durationBars,
+      durationBars:
+        prefs.durationBars === null
+          ? null
+          : Number.isFinite(prefs.durationBars)
+            ? prefs.durationBars
+            : DEFAULT_PREFERENCES.durationBars,
+      constraints: prefs.constraints === null ? null : prefs.constraints,
     }),
     [prefs]
   );
+
+  const setAutoField = React.useCallback((field: AutoField, enabled: boolean) => {
+    setPrefs((currentPrefs) => {
+      if (enabled) {
+        return {
+          ...currentPrefs,
+          [field]: null,
+        };
+      }
+
+      if (field === "key") {
+        return {
+          ...currentPrefs,
+          key: DEFAULT_PREFERENCES.key,
+          scaleRoot: DEFAULT_PREFERENCES.scaleRoot,
+          scaleType: DEFAULT_PREFERENCES.scaleType,
+        };
+      }
+
+      return {
+        ...currentPrefs,
+        [field]: DEFAULT_PREFERENCES[field],
+      };
+    });
+  }, []);
 
   React.useEffect(() => {
     if (!promptSuggestion || promptSuggestion.trim().length === 0) {
@@ -400,6 +439,47 @@ const InputForm: React.FC<Props> = ({
   const inputClass = isHero || isComposer
     ? "w-full rounded-xl border border-surface-600/70 bg-surface-900/70 px-3 py-2 text-sm text-text-primary outline-none transition-colors focus:border-accent font-light"
     : "w-full bg-surface-800 border border-surface-600 rounded px-3 py-2 text-sm text-text-primary focus:border-accent outline-none transition-colors font-light";
+
+  const getSettingInputClass = (isAuto: boolean) =>
+    `${inputClass} ${
+      isAuto
+        ? "cursor-not-allowed border-surface-700/80 bg-surface-900/35 text-text-muted/80 placeholder:text-text-muted/60"
+        : ""
+    }`;
+
+  const renderAutoToggle = (
+    label: string,
+    isAuto: boolean,
+    onChange: (enabled: boolean) => void
+  ) => (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={isAuto}
+      aria-label={`${label} auto`}
+      onClick={() => onChange(!isAuto)}
+      disabled={isGenerating}
+      className={`inline-flex h-7 shrink-0 items-center gap-2 rounded-full border px-2 transition-colors ${
+        isAuto
+          ? "border-accent/70 bg-accent/10 text-accent"
+          : "border-surface-600/80 bg-surface-900/60 text-text-muted hover:border-surface-500 hover:text-text-secondary"
+      } ${isGenerating ? "cursor-not-allowed opacity-60" : ""}`}
+    >
+      <span className="font-mono text-[9px] uppercase tracking-[0.12em]">Auto</span>
+      <span
+        aria-hidden
+        className={`relative h-3.5 w-6 rounded-full transition-colors ${
+          isAuto ? "bg-accent/80" : "bg-surface-600"
+        }`}
+      >
+        <span
+          className={`absolute top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full bg-text-primary shadow-sm transition-transform ${
+            isAuto ? "translate-x-3" : "translate-x-0.5"
+          }`}
+        />
+      </span>
+    </button>
+  );
 
   const renderModelPicker = () => (
     <div className="relative" ref={modelPickerRef}>
@@ -666,16 +746,22 @@ const InputForm: React.FC<Props> = ({
   const renderAdvancedInputs = () => (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <div>
-        <label className="mb-2 block font-mono text-[10px] uppercase tracking-wider text-text-muted">
-          Tempo
-        </label>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <label className="block font-mono text-[10px] uppercase tracking-wider text-text-muted">
+            Tempo
+          </label>
+          {renderAutoToggle("Tempo", prefs.tempo === null, (enabled) =>
+            setAutoField("tempo", enabled)
+          )}
+        </div>
         <input
           type="number"
           step="1"
           min="20"
           max="300"
-          className={inputClass}
+          className={getSettingInputClass(prefs.tempo === null)}
           value={typeof prefs.tempo === "number" && Number.isFinite(prefs.tempo) ? prefs.tempo : ""}
+          placeholder={prefs.tempo === null ? "Auto" : undefined}
           onChange={(e) => {
             const value = e.target.value;
             setPrefs({
@@ -683,17 +769,23 @@ const InputForm: React.FC<Props> = ({
               tempo: value === "" ? NaN : parseInt(value, 10),
             });
           }}
-          disabled={isGenerating}
+          disabled={isGenerating || prefs.tempo === null}
         />
       </div>
       <div>
-        <label className="mb-2 block font-mono text-[10px] uppercase tracking-wider text-text-muted">
-          Key
-        </label>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <label className="block font-mono text-[10px] uppercase tracking-wider text-text-muted">
+            Key
+          </label>
+          {renderAutoToggle("Key", prefs.key === null, (enabled) =>
+            setAutoField("key", enabled)
+          )}
+        </div>
         <input
           type="text"
-          className={inputClass}
+          className={getSettingInputClass(prefs.key === null)}
           value={prefs.key ?? ""}
+          placeholder={prefs.key === null ? "Auto" : undefined}
           onChange={(e) => {
             const newKey = e.target.value;
             const parsed = parseKeyString(newKey);
@@ -708,36 +800,48 @@ const InputForm: React.FC<Props> = ({
               setPrefs({ ...prefs, key: newKey });
             }
           }}
-          disabled={isGenerating}
+          disabled={isGenerating || prefs.key === null}
         />
       </div>
       <div>
-        <label className="mb-2 block font-mono text-[10px] uppercase tracking-wider text-text-muted">
-          Time Sig
-        </label>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <label className="block font-mono text-[10px] uppercase tracking-wider text-text-muted">
+            Time Sig
+          </label>
+          {renderAutoToggle("Time signature", prefs.timeSignature === null, (enabled) =>
+            setAutoField("timeSignature", enabled)
+          )}
+        </div>
         <input
           type="text"
-          className={inputClass}
+          className={getSettingInputClass(prefs.timeSignature === null)}
           value={prefs.timeSignature ?? ""}
+          placeholder={prefs.timeSignature === null ? "Auto" : undefined}
           onChange={(e) => setPrefs({ ...prefs, timeSignature: e.target.value })}
-          disabled={isGenerating}
+          disabled={isGenerating || prefs.timeSignature === null}
         />
       </div>
       <div>
-        <label className="mb-2 block font-mono text-[10px] uppercase tracking-wider text-text-muted">
-          Bars
-        </label>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <label className="block font-mono text-[10px] uppercase tracking-wider text-text-muted">
+            Bars
+          </label>
+          {renderAutoToggle("Bars", prefs.durationBars === null, (enabled) =>
+            setAutoField("durationBars", enabled)
+          )}
+        </div>
         <input
           type="number"
           step="1"
           min="1"
           max="64"
-          className={inputClass}
+          className={getSettingInputClass(prefs.durationBars === null)}
           value={
             typeof prefs.durationBars === "number" && Number.isFinite(prefs.durationBars)
               ? prefs.durationBars
               : ""
           }
+          placeholder={prefs.durationBars === null ? "Auto" : undefined}
           onChange={(e) => {
             const value = e.target.value;
             setPrefs({
@@ -745,20 +849,25 @@ const InputForm: React.FC<Props> = ({
               durationBars: value === "" ? NaN : parseInt(value, 10),
             });
           }}
-          disabled={isGenerating}
+          disabled={isGenerating || prefs.durationBars === null}
         />
       </div>
       <div className="sm:col-span-2">
-        <label className="mb-2 block font-mono text-[10px] uppercase tracking-wider text-text-muted">
-          Constraints
-        </label>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <label className="block font-mono text-[10px] uppercase tracking-wider text-text-muted">
+            Constraints
+          </label>
+          {renderAutoToggle("Constraints", prefs.constraints === null, (enabled) =>
+            setAutoField("constraints", enabled)
+          )}
+        </div>
         <input
           type="text"
-          className={inputClass}
-          value={prefs.constraints}
+          className={getSettingInputClass(prefs.constraints === null)}
+          value={prefs.constraints ?? ""}
           onChange={(e) => setPrefs({ ...prefs, constraints: e.target.value })}
-          placeholder="No drums, focus on melody..."
-          disabled={isGenerating}
+          placeholder={prefs.constraints === null ? "Auto" : "No drums, focus on melody..."}
+          disabled={isGenerating || prefs.constraints === null}
         />
       </div>
     </div>

@@ -203,22 +203,24 @@ describe('validatePrefs', () => {
     }
   });
 
-  it('normalizes null advanced settings to defaults', () => {
+  it('preserves null advanced settings so the model can choose them', () => {
     const result = validatePrefs({
       ...validPrefs,
       tempo: null,
       key: null,
       timeSignature: null,
-      durationBars: null
+      durationBars: null,
+      constraints: null
     });
 
     expect(result.valid).toBe(true);
     if (result.valid) {
       expect(result.normalized).toMatchObject({
-        tempo: 120,
-        key: 'C Major',
-        timeSignature: '4/4',
-        durationBars: 8
+        tempo: null,
+        key: null,
+        timeSignature: null,
+        durationBars: null,
+        constraints: null
       });
     }
   });

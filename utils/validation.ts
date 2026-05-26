@@ -157,28 +157,40 @@ export const validatePrefs = (prefs: unknown): PrefsValidationResult => {
     };
   }
 
-  const tempo = clampNumber(candidate.tempo, MIN_TEMPO, MAX_TEMPO, DEFAULT_TEMPO);
+  const tempo =
+    candidate.tempo === null
+      ? null
+      : clampNumber(candidate.tempo, MIN_TEMPO, MAX_TEMPO, DEFAULT_TEMPO);
   const styleId =
     typeof candidate.styleId === 'string' && ALLOWED_STYLE_IDS.has(candidate.styleId)
       ? candidate.styleId
       : DEFAULT_GENERATION_STYLE_ID;
   const key =
-    typeof candidate.key === 'string' && candidate.key.trim()
+    candidate.key === null
+      ? null
+      : typeof candidate.key === 'string' && candidate.key.trim()
       ? candidate.key.trim()
       : 'C Major';
 
-  let timeSignature = '4/4';
-  if (
+  let timeSignature: string | null = '4/4';
+  if (candidate.timeSignature === null) {
+    timeSignature = null;
+  } else if (
     typeof candidate.timeSignature === 'string' &&
     /^\d+\/\d+$/.test(candidate.timeSignature.trim())
   ) {
     timeSignature = candidate.timeSignature.trim();
   }
 
-  const durationBars = clampNumber(candidate.durationBars, MIN_BARS, MAX_BARS, DEFAULT_BARS);
+  const durationBars =
+    candidate.durationBars === null
+      ? null
+      : clampNumber(candidate.durationBars, MIN_BARS, MAX_BARS, DEFAULT_BARS);
 
-  let constraints = '';
-  if (typeof candidate.constraints === 'string') {
+  let constraints: string | null = '';
+  if (candidate.constraints === null) {
+    constraints = null;
+  } else if (typeof candidate.constraints === 'string') {
     if (candidate.constraints.length > MAX_CONSTRAINTS_LENGTH) {
       return {
         valid: false,

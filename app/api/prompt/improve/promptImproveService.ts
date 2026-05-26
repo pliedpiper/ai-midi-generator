@@ -45,7 +45,7 @@ export type ImprovePromptRequest = {
   key: string | null;
   timeSignature: string | null;
   durationBars: number | null;
-  constraints: string;
+  constraints: string | null;
 };
 
 type RequestValidationSuccess = {
@@ -141,7 +141,11 @@ export const normalizePromptImproveRequest = (
       durationBars: typeof payload.durationBars === 'number' && Number.isFinite(payload.durationBars)
         ? payload.durationBars
         : null,
-      constraints: typeof payload.constraints === 'string' ? payload.constraints.trim() : ''
+      constraints: payload.constraints === null
+        ? null
+        : typeof payload.constraints === 'string'
+          ? payload.constraints.trim()
+          : ''
     }
   };
 };
@@ -152,7 +156,11 @@ const buildImproverInput = (payload: ImprovePromptRequest, tips: string): string
     payload.key ? `Key: ${payload.key}` : null,
     payload.timeSignature ? `Time Signature: ${payload.timeSignature}` : null,
     payload.durationBars !== null ? `Length: ${payload.durationBars} bars` : null,
-    payload.constraints ? `Constraints: ${payload.constraints}` : 'Constraints: (none)'
+    payload.constraints === null
+      ? 'Constraints: Auto - model should choose any useful constraints.'
+      : payload.constraints
+        ? `Constraints: ${payload.constraints}`
+        : 'Constraints: (none)'
   ].filter(Boolean).join('\n');
 
   return `

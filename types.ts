@@ -42,7 +42,7 @@ export interface UserPreferences {
   key: string | null;
   timeSignature: string | null;
   durationBars: number | null;
-  constraints: string;
+  constraints: string | null;
   attemptCount: number;
   scaleRoot: number;      // 0-11 pitch class
   scaleType: string;      // key from SCALE_TYPES
