@@ -99,24 +99,46 @@ The API route implements comprehensive validation:
 
 3. **Model Allowlist**
    Only models defined in `AVAILABLE_MODELS` (from `constants.ts`) are accepted:
-   - `openai/gpt-5.5`
-   - `openai/gpt-5.4`
-   - `openai/gpt-5.2-chat`
+   - `bytedance-seed/seed-1.6-flash`
+   - `anthropic/claude-haiku-4.5`
+   - `anthropic/claude-opus-4.5`
+   - `anthropic/claude-opus-4.6`
+   - `anthropic/claude-opus-4.7`
    - `anthropic/claude-sonnet-4.5`
    - `anthropic/claude-sonnet-4.6`
-   - `xiaomi/mimo-v2-flash:free`
-   - `x-ai/grok-code-fast-1`
-   - `google/gemini-3-flash-preview`
-   - `google/gemini-3-pro-preview`
-   - `anthropic/claude-opus-4.5`
-   - `google/gemini-2.5-pro`
-   - `google/gemini-2.5-flash`
+   - `deepseek/deepseek-v3.2`
    - `deepseek/deepseek-v4-pro`
    - `deepseek/deepseek-v4-flash`
-   - `deepseek/deepseek-v3.2`
-   - `x-ai/grok-4.3`
-   - `x-ai/grok-4.1-fast`
+   - `google/gemini-2.5-flash`
    - `google/gemini-2.5-flash-lite`
+   - `google/gemini-2.5-pro`
+   - `google/gemini-3-flash-preview`
+   - `google/gemini-3.1-pro-preview`
+   - `google/gemini-3.5-flash`
+   - `z-ai/glm-5`
+   - `z-ai/glm-4.7-flash`
+   - `openai/gpt-5.5`
+   - `openai/gpt-5.4`
+   - `openai/gpt-5.4-mini`
+   - `openai/gpt-5.4-nano`
+   - `openai/gpt-5.2`
+   - `openai/gpt-5.2-chat`
+   - `openai/gpt-5.2-codex`
+   - `openai/gpt-oss-120b:free`
+   - `x-ai/grok-4.3`
+   - `moonshotai/kimi-k2.5`
+   - `moonshotai/kimi-k2.6`
+   - `mistralai/devstral-2512`
+   - `mistralai/mistral-large-2512`
+   - `minimax/minimax-m2.5`
+   - `xiaomi/mimo-v2-flash`
+   - `xiaomi/mimo-v2.5-pro`
+   - `nvidia/nemotron-3-nano-30b-a3b:free`
+   - `openrouter/auto`
+   - `openrouter/free`
+   - `qwen/qwen3.7-max`
+   - `qwen/qwen3-coder`
+   - `qwen/qwen3-coder-next`
 
 4. **Model Output Validation**
    - JSON extraction from potential markdown fences

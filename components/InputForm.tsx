@@ -29,6 +29,13 @@ type ModelGroup = {
   models: ModelOption[];
 };
 type AutoField = "tempo" | "key" | "timeSignature" | "durationBars" | "constraints";
+const MANUAL_ADVANCED_DEFAULTS: Pick<UserPreferences, AutoField> = {
+  tempo: 120,
+  key: "C Major",
+  timeSignature: "4/4",
+  durationBars: 8,
+  constraints: "No Drums",
+};
 
 const PROVIDER_NAME_OVERRIDES: Record<string, string> = {
   "arcee-ai": "Arcee AI",
@@ -216,25 +223,25 @@ const InputForm: React.FC<Props> = ({
           ? null
           : Number.isFinite(prefs.tempo)
             ? prefs.tempo
-            : DEFAULT_PREFERENCES.tempo,
+            : MANUAL_ADVANCED_DEFAULTS.tempo,
       key:
         prefs.key === null
           ? null
           : typeof prefs.key === "string" && prefs.key.trim()
           ? prefs.key.trim()
-          : DEFAULT_PREFERENCES.key,
+          : MANUAL_ADVANCED_DEFAULTS.key,
       timeSignature:
         prefs.timeSignature === null
           ? null
           : typeof prefs.timeSignature === "string" && prefs.timeSignature.trim()
           ? prefs.timeSignature.trim()
-          : DEFAULT_PREFERENCES.timeSignature,
+          : MANUAL_ADVANCED_DEFAULTS.timeSignature,
       durationBars:
         prefs.durationBars === null
           ? null
           : Number.isFinite(prefs.durationBars)
             ? prefs.durationBars
-            : DEFAULT_PREFERENCES.durationBars,
+            : MANUAL_ADVANCED_DEFAULTS.durationBars,
       constraints: prefs.constraints === null ? null : prefs.constraints,
     }),
     [prefs]
@@ -252,7 +259,7 @@ const InputForm: React.FC<Props> = ({
       if (field === "key") {
         return {
           ...currentPrefs,
-          key: DEFAULT_PREFERENCES.key,
+          key: MANUAL_ADVANCED_DEFAULTS.key,
           scaleRoot: DEFAULT_PREFERENCES.scaleRoot,
           scaleType: DEFAULT_PREFERENCES.scaleType,
         };
@@ -260,7 +267,7 @@ const InputForm: React.FC<Props> = ({
 
       return {
         ...currentPrefs,
-        [field]: DEFAULT_PREFERENCES[field],
+        [field]: MANUAL_ADVANCED_DEFAULTS[field],
       };
     });
   }, []);
@@ -473,8 +480,8 @@ const InputForm: React.FC<Props> = ({
         }`}
       >
         <span
-          className={`absolute top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full bg-text-primary shadow-sm transition-transform ${
-            isAuto ? "translate-x-3" : "translate-x-0.5"
+          className={`absolute left-0.5 top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full bg-text-primary shadow-sm transition-transform ${
+            isAuto ? "translate-x-2.5" : "translate-x-0"
           }`}
         />
       </span>

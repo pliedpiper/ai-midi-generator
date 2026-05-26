@@ -43,18 +43,17 @@ export const DEFAULT_PREFERENCES = {
   prompt: "",
   model: "moonshotai/kimi-k2.5",
   styleId: DEFAULT_GENERATION_STYLE_ID,
-  tempo: 120,
-  key: "C Major",
-  timeSignature: "4/4",
-  durationBars: 8,
-  constraints: "No Drums",
+  tempo: null,
+  key: null,
+  timeSignature: null,
+  durationBars: null,
+  constraints: null,
   attemptCount: 5,
   scaleRoot: 0,          // C
   scaleType: 'major' as ScaleTypeKey
 };
 
 export const AVAILABLE_MODELS = [
-  { id: "arcee-ai/trinity-large-preview:free", name: "Arcee Trinity Large Preview (free)" },
   { id: "bytedance-seed/seed-1.6-flash", name: "ByteDance Seed 1.6 Flash" },
   { id: "anthropic/claude-haiku-4.5", name: "Claude Haiku 4.5" },
   { id: "anthropic/claude-opus-4.5", name: "Claude Opus 4.5" },
@@ -69,7 +68,6 @@ export const AVAILABLE_MODELS = [
   { id: "google/gemini-2.5-flash-lite", name: "Gemini 2.5 Flash Lite" },
   { id: "google/gemini-2.5-pro", name: "Gemini 2.5 Pro" },
   { id: "google/gemini-3-flash-preview", name: "Gemini 3 Flash Preview" },
-  { id: "google/gemini-3-pro-preview", name: "Gemini 3 Pro Preview" },
   { id: "google/gemini-3.1-pro-preview", name: "Gemini 3.1 Pro Preview" },
   { id: "google/gemini-3.5-flash", name: "Gemini 3.5 Flash" },
   { id: "z-ai/glm-5", name: "GLM 5" },
@@ -83,22 +81,17 @@ export const AVAILABLE_MODELS = [
   { id: "openai/gpt-5.2-codex", name: "GPT-5.2 Codex" },
   { id: "openai/gpt-oss-120b:free", name: "GPT OSS 120B (free)" },
   { id: "x-ai/grok-4.3", name: "Grok 4.3" },
-  { id: "x-ai/grok-4.1-fast", name: "Grok 4.1 Fast" },
-  { id: "x-ai/grok-code-fast-1", name: "Grok Code Fast 1" },
   { id: "moonshotai/kimi-k2.5", name: "Kimi K2.5" },
   { id: "moonshotai/kimi-k2.6", name: "Kimi K2.6" },
   { id: "mistralai/devstral-2512", name: "Mistral Devstral 2512" },
   { id: "mistralai/mistral-large-2512", name: "Mistral Large 2512" },
-  { id: "mistralai/mistral-small-creative", name: "Mistral Small Creative" },
   { id: "minimax/minimax-m2.5", name: "MiniMax M2.5" },
   { id: "xiaomi/mimo-v2-flash", name: "MiMo V2 Flash" },
   { id: "xiaomi/mimo-v2.5-pro", name: "MiMo V2.5 Pro" },
   { id: "nvidia/nemotron-3-nano-30b-a3b:free", name: "Nemotron 3 Nano 30B A3B (free)" },
   { id: "openrouter/auto", name: "OpenRouter Auto" },
   { id: "openrouter/free", name: "OpenRouter Free" },
-  { id: "openrouter/hunter-alpha", name: "Hunter Alpha" },
   { id: "qwen/qwen3.7-max", name: "Qwen3.7 Max" },
   { id: "qwen/qwen3-coder", name: "Qwen3 Coder" },
-  { id: "qwen/qwen3-coder-next", name: "Qwen3 Coder Next" },
-  { id: "stepfun/step-3.5-flash:free", name: "Step 3.5 Flash (free)" }
+  { id: "qwen/qwen3-coder-next", name: "Qwen3 Coder Next" }
 ];

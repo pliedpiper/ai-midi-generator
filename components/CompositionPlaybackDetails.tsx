@@ -3,6 +3,7 @@
 import React from 'react';
 import { Play, Square } from 'lucide-react';
 import type { MidiComposition } from '@/types';
+import { formatCompositionDuration } from '@/utils/midiUtils';
 import PianoRoll from './PianoRoll';
 
 interface CompositionStat {
@@ -41,6 +42,7 @@ const CompositionPlaybackDetails: React.FC<CompositionPlaybackDetailsProps> = ({
     { label: 'Key', value: composition.key },
     { label: 'Tempo', value: `${composition.tempo} BPM` },
     { label: 'Time', value: composition.timeSignature.join('/') },
+    { label: 'Length', value: formatCompositionDuration(composition) },
     { label: 'Tracks', value: composition.tracks.length },
     { label: 'Notes', value: noteCount }
   ];

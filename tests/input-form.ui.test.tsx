@@ -4,7 +4,7 @@ import React from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import InputForm from "@/components/InputForm";
-import { DEFAULT_PREFERENCES } from "@/constants";
+import { AVAILABLE_MODELS, DEFAULT_PREFERENCES } from "@/constants";
 import { GENERATION_STYLES } from "@/lib/generationStyles";
 
 const improvePromptMock = vi.hoisted(() => vi.fn());
@@ -18,7 +18,7 @@ describe("InputForm UI", () => {
     improvePromptMock.mockReset();
   });
 
-  it("submits explicit advanced fields by default", () => {
+  it("submits auto advanced fields by default", () => {
     const onSubmit = vi.fn();
     render(<InputForm onSubmit={onSubmit} isGenerating={false} />);
 
@@ -34,10 +34,11 @@ describe("InputForm UI", () => {
       prompt: "A soft ambient piano loop.",
       model: DEFAULT_PREFERENCES.model,
       styleId: DEFAULT_PREFERENCES.styleId,
-      tempo: DEFAULT_PREFERENCES.tempo,
-      key: DEFAULT_PREFERENCES.key,
-      timeSignature: DEFAULT_PREFERENCES.timeSignature,
-      durationBars: DEFAULT_PREFERENCES.durationBars,
+      tempo: null,
+      key: null,
+      timeSignature: null,
+      durationBars: null,
+      constraints: null,
       attemptCount: DEFAULT_PREFERENCES.attemptCount,
     });
   });
@@ -48,6 +49,7 @@ describe("InputForm UI", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Advanced/i }));
 
+    fireEvent.click(screen.getByRole("switch", { name: /Tempo auto/i }));
     const tempoInput = screen.getAllByRole("spinbutton")[0];
     fireEvent.change(tempoInput, { target: { value: "142" } });
 
@@ -62,17 +64,11 @@ describe("InputForm UI", () => {
     expect(submitted.tempo).toBe(142);
   });
 
-  it("submits null values and disables fields when advanced settings are auto", () => {
+  it("disables advanced fields while default auto settings are on", () => {
     const onSubmit = vi.fn();
     render(<InputForm onSubmit={onSubmit} isGenerating={false} />);
 
     fireEvent.click(screen.getByRole("button", { name: /Advanced/i }));
-
-    fireEvent.click(screen.getByRole("switch", { name: /Tempo auto/i }));
-    fireEvent.click(screen.getByRole("switch", { name: /Key auto/i }));
-    fireEvent.click(screen.getByRole("switch", { name: /Time signature auto/i }));
-    fireEvent.click(screen.getByRole("switch", { name: /Bars auto/i }));
-    fireEvent.click(screen.getByRole("switch", { name: /Constraints auto/i }));
 
     const autoFields = screen.getAllByPlaceholderText("Auto");
     expect(autoFields).toHaveLength(5);
@@ -176,9 +172,12 @@ describe("InputForm UI", () => {
     const modelSearch = screen.getByRole("combobox", { name: /Search models/i });
     fireEvent.change(modelSearch, { target: { value: "openrouter" } });
     const listbox = screen.getByRole("listbox", { name: /Model options/i });
+    const openRouterModels = AVAILABLE_MODELS
+      .filter((model) => model.id.startsWith("openrouter/"))
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
 
     await waitFor(() => {
-      expect(within(listbox).getAllByRole("option")).toHaveLength(3);
+      expect(within(listbox).getAllByRole("option")).toHaveLength(openRouterModels.length);
     });
 
     fireEvent.keyDown(modelSearch, { key: "ArrowDown" });
@@ -188,8 +187,9 @@ describe("InputForm UI", () => {
       expect(screen.queryByRole("listbox", { name: /Model options/i })).toBeNull();
     });
 
+    const expectedSelectedModel = openRouterModels[1] ?? openRouterModels[0];
     expect(screen.getByRole("button", { name: /Model selector/i }).textContent).toContain(
-      "OpenRouter Auto"
+      expectedSelectedModel?.name
     );
   });
 

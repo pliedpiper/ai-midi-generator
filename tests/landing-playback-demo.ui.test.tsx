@@ -24,6 +24,7 @@ vi.mock("@/utils/midiUtils", () => ({
   playComposition: playCompositionMock,
   getTransportBeatPosition: getTransportBeatPositionMock,
   calculateCompositionMaxBeat: calculateCompositionMaxBeatMock,
+  formatCompositionDuration: () => "0:02",
   PlaybackError: class PlaybackError extends Error {},
 }));
 

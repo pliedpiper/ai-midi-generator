@@ -6,6 +6,8 @@ export {
   calculateCompositionMaxBeat,
   clampMidiNote,
   clampNumber,
+  formatCompositionDuration,
+  formatDurationSeconds,
   normalizeNoteDuration,
   normalizeNoteTime,
   normalizeTempo,

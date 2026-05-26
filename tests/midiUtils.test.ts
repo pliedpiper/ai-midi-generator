@@ -7,7 +7,9 @@ import {
   normalizeTempo,
   normalizeTimeSignature,
   normalizeNote,
-  normalizeAndSortNotes
+  normalizeAndSortNotes,
+  formatCompositionDuration,
+  formatDurationSeconds
 } from '../utils/midiUtils';
 
 describe('normalizeVelocity', () => {
@@ -161,6 +163,35 @@ describe('normalizeTimeSignature', () => {
   it('passes through valid time signatures', () => {
     expect(normalizeTimeSignature([3, 4])).toEqual([3, 4]);
     expect(normalizeTimeSignature([6, 8])).toEqual([6, 8]);
+  });
+});
+
+describe('duration formatting', () => {
+  it('formats seconds as minutes and padded seconds', () => {
+    expect(formatDurationSeconds(0)).toBe('0:00');
+    expect(formatDurationSeconds(8.4)).toBe('0:08');
+    expect(formatDurationSeconds(65.6)).toBe('1:06');
+  });
+
+  it('formats composition duration from the latest note end and tempo', () => {
+    const composition = {
+      title: 'Duration test',
+      tempo: 60,
+      timeSignature: [4, 4],
+      key: 'C Major',
+      tracks: [
+        {
+          name: 'Piano',
+          programNumber: 0,
+          notes: [
+            { midi: 60, time: 0, duration: 1, velocity: 0.8 },
+            { midi: 64, time: 6, duration: 2, velocity: 0.8 }
+          ]
+        }
+      ]
+    };
+
+    expect(formatCompositionDuration(composition)).toBe('0:08');
   });
 });
 

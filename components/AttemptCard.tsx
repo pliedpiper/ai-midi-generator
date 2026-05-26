@@ -3,6 +3,7 @@
 import React from 'react';
 import { AttemptResult } from '../types';
 import { Play, Square, Download, AlertCircle, Check, Loader2, Expand } from 'lucide-react';
+import { formatCompositionDuration } from '@/utils/midiUtils';
 
 interface Props {
   attempt: AttemptResult;
@@ -94,6 +95,10 @@ const AttemptCard: React.FC<Props> = ({
               <div className="flex justify-between font-mono text-[10px]">
                 <span className="text-text-muted uppercase tracking-wider">Time</span>
                 <span className="text-text-secondary">{attempt.data.timeSignature.join('/')}</span>
+              </div>
+              <div className="flex justify-between font-mono text-[10px]">
+                <span className="text-text-muted uppercase tracking-wider">Length</span>
+                <span className="text-text-secondary">{formatCompositionDuration(attempt.data)}</span>
               </div>
             </div>
 

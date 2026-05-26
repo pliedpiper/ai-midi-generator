@@ -66,6 +66,22 @@ export const normalizeTempo = (tempo: number): number => {
   return Math.max(MIN_TEMPO, Math.min(MAX_TEMPO, tempo));
 };
 
+export const formatDurationSeconds = (seconds: number): string => {
+  const safeSeconds = Number.isFinite(seconds) && seconds > 0 ? seconds : 0;
+  const roundedSeconds = Math.round(safeSeconds);
+  const minutes = Math.floor(roundedSeconds / 60);
+  const remainingSeconds = roundedSeconds % 60;
+
+  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+};
+
+export const formatCompositionDuration = (
+  composition: Pick<MidiComposition, "tempo" | "tracks">
+): string => {
+  const beatLength = calculateCompositionMaxBeat(composition);
+  return formatDurationSeconds(beatsToSeconds(beatLength, normalizeTempo(composition.tempo)));
+};
+
 export const normalizeTimeSignature = (timeSig: number[]): [number, number] => {
   if (!Array.isArray(timeSig) || timeSig.length < 2) return [4, 4];
   const [num, den] = timeSig;
