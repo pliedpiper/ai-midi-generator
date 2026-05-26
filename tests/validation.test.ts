@@ -120,6 +120,18 @@ describe('validatePrefs', () => {
     }
   });
 
+  it('accepts Gemini 3.5 Flash', () => {
+    const result = validatePrefs({
+      ...validPrefs,
+      model: 'google/gemini-3.5-flash',
+    });
+
+    expect(result.valid).toBe(true);
+    if (result.valid) {
+      expect(result.normalized.model).toBe('google/gemini-3.5-flash');
+    }
+  });
+
   it('accepts recent Chinese model releases', () => {
     const recentChineseModels = [
       'deepseek/deepseek-v4-pro',
