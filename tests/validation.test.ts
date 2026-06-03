@@ -96,15 +96,15 @@ describe('validatePrefs', () => {
     }
   });
 
-  it('accepts Claude Opus 4.7', () => {
+  it('accepts Claude Opus 4.8', () => {
     const result = validatePrefs({
       ...validPrefs,
-      model: 'anthropic/claude-opus-4.7',
+      model: 'anthropic/claude-opus-4.8',
     });
 
     expect(result.valid).toBe(true);
     if (result.valid) {
-      expect(result.normalized.model).toBe('anthropic/claude-opus-4.7');
+      expect(result.normalized.model).toBe('anthropic/claude-opus-4.8');
     }
   });
 
