@@ -13,7 +13,7 @@ AI MIDI Generator is a web application that leverages OpenRouter via the OpenAI 
 
 ### AI Integration
 - **SDK**: `openai` (OpenAI SDK configured for OpenRouter)
-- **Models**: User-selectable (e.g. `openai/gpt-5.5`, `x-ai/grok-4.3`, `deepseek/deepseek-v4-pro`, `anthropic/claude-sonnet-4.6`, `google/gemini-3-flash-preview`)
+- **Models**: User-selectable (e.g. `openai/gpt-5.6-sol`, `x-ai/grok-4.3`, `deepseek/deepseek-v4-pro`, `anthropic/claude-sonnet-4.6`, `google/gemini-3-flash-preview`)
 - **Pattern**:
   1. **Generation Phase**: User selects 1-5 attempts. The system executes parallel requests with unique variation seeds to ensure diversity.
 
@@ -118,6 +118,9 @@ The API route implements comprehensive validation:
    - `google/gemini-3.5-flash`
    - `z-ai/glm-5`
    - `z-ai/glm-4.7-flash`
+   - `openai/gpt-5.6-sol`
+   - `openai/gpt-5.6-terra`
+   - `openai/gpt-5.6-luna`
    - `openai/gpt-5.5`
    - `openai/gpt-5.4`
    - `openai/gpt-5.4-mini`
@@ -132,7 +135,6 @@ The API route implements comprehensive validation:
    - `mistralai/devstral-2512`
    - `mistralai/mistral-large-2512`
    - `minimax/minimax-m2.5`
-   - `xiaomi/mimo-v2-flash`
    - `xiaomi/mimo-v2.5-pro`
    - `nvidia/nemotron-3-nano-30b-a3b:free`
    - `openrouter/auto`

@@ -84,6 +84,40 @@ describe('validatePrefs', () => {
     }
   });
 
+  it('accepts the OpenRouter GPT-5.6 family', () => {
+    const gpt56Models = [
+      'openai/gpt-5.6-sol',
+      'openai/gpt-5.6-terra',
+      'openai/gpt-5.6-luna',
+    ] as const;
+
+    for (const model of gpt56Models) {
+      const result = validatePrefs({
+        ...validPrefs,
+        model,
+      });
+
+      expect(result.valid).toBe(true);
+      if (!result.valid) {
+        throw new Error(result.error);
+      }
+
+      expect(result.normalized.model).toBe(model);
+    }
+  });
+
+  it('rejects removed OpenRouter models', () => {
+    const result = validatePrefs({
+      ...validPrefs,
+      model: 'xiaomi/mimo-v2-flash',
+    });
+
+    expect(result.valid).toBe(false);
+    if (result.valid === false) {
+      expect(result.error).toContain('model must be one of');
+    }
+  });
+
   it('accepts Claude Sonnet 4.6', () => {
     const result = validatePrefs({
       ...validPrefs,
