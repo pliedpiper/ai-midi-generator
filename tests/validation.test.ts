@@ -130,6 +130,18 @@ describe('validatePrefs', () => {
     }
   });
 
+  it('accepts Claude Sonnet 5', () => {
+    const result = validatePrefs({
+      ...validPrefs,
+      model: 'anthropic/claude-sonnet-5',
+    });
+
+    expect(result.valid).toBe(true);
+    if (result.valid) {
+      expect(result.normalized.model).toBe('anthropic/claude-sonnet-5');
+    }
+  });
+
   it('accepts Claude Opus 4.8', () => {
     const result = validatePrefs({
       ...validPrefs,
@@ -171,6 +183,7 @@ describe('validatePrefs', () => {
       'deepseek/deepseek-v4-pro',
       'deepseek/deepseek-v4-flash',
       'moonshotai/kimi-k2.6',
+      'moonshotai/kimi-k3',
       'qwen/qwen3.7-max',
       'xiaomi/mimo-v2.5-pro',
     ] as const;
