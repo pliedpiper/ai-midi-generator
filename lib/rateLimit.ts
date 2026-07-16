@@ -8,6 +8,34 @@ export interface RateLimitResult {
 
 const KEY_PREFIX = 'rate-limit:generate';
 
+type LocalRateLimitEntry = {
+  count: number;
+  expiresAt: number;
+};
+
+const localRateLimits = new Map<string, LocalRateLimitEntry>();
+
+const checkLocalRateLimit = (
+  key: string,
+  maxRequests: number,
+  windowMs: number,
+  now = Date.now()
+): RateLimitResult => {
+  const existing = localRateLimits.get(key);
+  const entry = !existing || existing.expiresAt <= now
+    ? { count: 0, expiresAt: now + windowMs }
+    : existing;
+
+  entry.count += 1;
+  localRateLimits.set(key, entry);
+
+  return {
+    allowed: entry.count <= maxRequests,
+    remaining: Math.max(0, maxRequests - entry.count),
+    resetIn: Math.max(0, entry.expiresAt - now),
+  };
+};
+
 // Atomic fixed-window limiter:
 // 1) INCR key
 // 2) set window TTL on first hit
@@ -46,21 +74,29 @@ export const checkRateLimit = async (
   maxRequests: number,
   windowMs: number
 ): Promise<RateLimitResult> => {
-  const redis = getRedisClient();
   const key = `${KEY_PREFIX}:${identifier}`;
+  // Mirror every request locally so a Redis outage can fail over without
+  // resetting the current instance's window.
+  const localResult = checkLocalRateLimit(key, maxRequests, windowMs);
 
-  const raw = await redis.eval(RATE_LIMIT_LUA, [key], [
-    String(windowMs),
-    String(maxRequests)
-  ]);
+  try {
+    const redis = getRedisClient();
+    const raw = await redis.eval(RATE_LIMIT_LUA, [key], [
+      String(windowMs),
+      String(maxRequests)
+    ]);
 
-  if (!Array.isArray(raw) || raw.length < 3) {
-    throw new Error('Redis rate limiter returned an unexpected response.');
+    if (!Array.isArray(raw) || raw.length < 3) {
+      throw new Error('Redis rate limiter returned an unexpected response.');
+    }
+
+    const allowed = Number(raw[0]) === 1;
+    const remaining = Math.max(0, Number(raw[1]) || 0);
+    const resetIn = Math.max(0, Number(raw[2]) || 0);
+
+    return { allowed, remaining, resetIn };
+  } catch (error) {
+    console.warn('Redis rate limiter unavailable; using in-memory fallback.', error);
+    return localResult;
   }
-
-  const allowed = Number(raw[0]) === 1;
-  const remaining = Math.max(0, Number(raw[1]) || 0);
-  const resetIn = Math.max(0, Number(raw[2]) || 0);
-
-  return { allowed, remaining, resetIn };
 };

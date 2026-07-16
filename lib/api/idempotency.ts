@@ -5,6 +5,43 @@ import { getRedisClient } from '@/lib/redis';
 const RESULT_TTL_SECONDS = 60 * 60 * 24;
 const DEFAULT_LOCK_TTL_MS = 4 * 60 * 1000;
 
+type LocalResultEntry = CachedGeneratePayload & { expiresAt: number };
+type LocalLockEntry = { fingerprint: string; expiresAt: number };
+
+const localResults = new Map<string, LocalResultEntry>();
+const localLocks = new Map<string, LocalLockEntry>();
+
+const readLocalResult = (
+  resultKey: string,
+  fingerprint: string,
+  now = Date.now()
+): IdempotencyReadResult => {
+  const entry = localResults.get(resultKey);
+  if (!entry) return { status: 'miss' };
+  if (entry.expiresAt <= now) {
+    localResults.delete(resultKey);
+    return { status: 'miss' };
+  }
+  if (entry.fingerprint && entry.fingerprint !== fingerprint) {
+    return { status: 'mismatch' };
+  }
+  return { status: 'hit', composition: entry.composition };
+};
+
+const acquireLocalLock = (
+  lockKey: string,
+  fingerprint: string,
+  ttlMs: number,
+  now = Date.now()
+): IdempotencyLockResult => {
+  const existing = localLocks.get(lockKey);
+  if (!existing || existing.expiresAt <= now) {
+    localLocks.set(lockKey, { fingerprint, expiresAt: now + ttlMs });
+    return 'acquired';
+  }
+  return existing.fingerprint === fingerprint ? 'duplicate' : 'mismatch';
+};
+
 export const buildGenerateIdempotencyKeys = (
   userId: string,
   idempotencyKey: string,
@@ -82,21 +119,22 @@ export const readIdempotencyResult = async (
   resultKey: string,
   fingerprint: string
 ): Promise<IdempotencyReadResult> => {
-  const redis = getRedisClient();
-  const raw = await redis.get(resultKey);
-  const parsed = parseCachedPayload(raw);
-  if (!parsed) {
-    return { status: 'miss' };
-  }
+  const localResult = readLocalResult(resultKey, fingerprint);
+  try {
+    const redis = getRedisClient();
+    const raw = await redis.get(resultKey);
+    const parsed = parseCachedPayload(raw);
+    if (!parsed) return localResult;
 
-  if (parsed.fingerprint && parsed.fingerprint !== fingerprint) {
-    return { status: 'mismatch' };
-  }
+    if (parsed.fingerprint && parsed.fingerprint !== fingerprint) {
+      return { status: 'mismatch' };
+    }
 
-  return {
-    status: 'hit',
-    composition: parsed.composition,
-  };
+    return { status: 'hit', composition: parsed.composition };
+  } catch (error) {
+    console.warn('Redis idempotency read unavailable; using in-memory fallback.', error);
+    return localResult;
+  }
 };
 
 export const writeIdempotencyComposition = async (
@@ -105,8 +143,17 @@ export const writeIdempotencyComposition = async (
   fingerprint: string,
   ttlSeconds = RESULT_TTL_SECONDS
 ) => {
-  const redis = getRedisClient();
-  await redis.set(resultKey, JSON.stringify({ composition, fingerprint }), { ex: ttlSeconds });
+  localResults.set(resultKey, {
+    composition,
+    fingerprint,
+    expiresAt: Date.now() + ttlSeconds * 1000,
+  });
+  try {
+    const redis = getRedisClient();
+    await redis.set(resultKey, JSON.stringify({ composition, fingerprint }), { ex: ttlSeconds });
+  } catch (error) {
+    console.warn('Redis idempotency write unavailable; result kept in memory.', error);
+  }
 };
 
 export const acquireIdempotencyLock = async (
@@ -114,23 +161,32 @@ export const acquireIdempotencyLock = async (
   fingerprint: string,
   ttlMs = DEFAULT_LOCK_TTL_MS
 ): Promise<IdempotencyLockResult> => {
-  const redis = getRedisClient();
-  const result = await redis.set(lockKey, fingerprint, { nx: true, px: ttlMs });
-  if (result === 'OK') {
-    return 'acquired';
-  }
+  const localResult = acquireLocalLock(lockKey, fingerprint, ttlMs);
+  try {
+    const redis = getRedisClient();
+    const result = await redis.set(lockKey, fingerprint, { nx: true, px: ttlMs });
+    if (result === 'OK') return 'acquired';
 
-  const existingFingerprint = await redis.get(lockKey);
-  if (typeof existingFingerprint === 'string' && existingFingerprint !== fingerprint) {
-    return 'mismatch';
-  }
+    const existingFingerprint = await redis.get(lockKey);
+    if (typeof existingFingerprint === 'string' && existingFingerprint !== fingerprint) {
+      return 'mismatch';
+    }
 
-  return 'duplicate';
+    return 'duplicate';
+  } catch (error) {
+    console.warn('Redis idempotency lock unavailable; using in-memory fallback.', error);
+    return localResult;
+  }
 };
 
 export const releaseIdempotencyLock = async (lockKey: string) => {
-  const redis = getRedisClient();
-  await redis.del(lockKey);
+  localLocks.delete(lockKey);
+  try {
+    const redis = getRedisClient();
+    await redis.del(lockKey);
+  } catch (error) {
+    console.warn('Redis idempotency unlock unavailable; local lock released.', error);
+  }
 };
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

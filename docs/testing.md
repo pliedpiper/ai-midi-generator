@@ -51,6 +51,7 @@ Reference: `vitest.config.ts`.
 | File | Focus |
 |------|-------|
 | `tests/generate-route.test.ts` | `POST /api/generate`: auth guard, user key requirement, idempotency-key requirement/replay/conflict behavior, body-size limits, rate-limit headers, provider error mapping, malformed model output handling, title sanitization/fallback |
+| `tests/redis-fallback.test.ts` | Redis-backed rate limiting and generation idempotency transparently retain TTL-based local protection when Redis is missing or unavailable |
 | `tests/prompt-improve-route.test.ts` | `POST /api/prompt/improve`: auth/key requirements, payload validation, rate limiting, Gemini rewriting behavior, key/BPM sanitization, provider error mapping |
 | `tests/openrouter-key-route.test.ts` | `/api/user/openrouter-key` GET/DELETE flow and configured-status response shape |
 | `tests/account-delete-route.test.ts` | `POST /api/account/delete`: auth guard, JSON/confirmation validation, RPC success/failure paths |

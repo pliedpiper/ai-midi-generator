@@ -26,7 +26,7 @@ Authenticated Next.js app for generating MIDI compositions from text prompts wit
 - Tone.js and `@tonejs/midi`
 - Supabase Auth + Postgres
 - OpenRouter via the `openai` SDK
-- Upstash Redis / Vercel KV-compatible REST API for rate limiting and idempotency
+- Optional Upstash Redis / Vercel KV-compatible REST API for distributed rate limiting and idempotency
 - Vitest + Testing Library
 
 ## Quick Start
@@ -62,15 +62,17 @@ Copy [`.env.example`](.env.example) to `.env.local` and fill in:
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Yes* | Preferred Supabase browser key |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes* | Legacy fallback supported by the code |
 | `OPENROUTER_KEY_ENCRYPTION_SECRET` | Yes | Used to encrypt user OpenRouter keys before database storage |
-| `KV_REST_API_URL` | Yes* | Preferred Redis endpoint |
-| `KV_REST_API_TOKEN` | Yes* | Preferred Redis token |
-| `UPSTASH_REDIS_REST_URL` | Yes* | Fallback Redis endpoint |
-| `UPSTASH_REDIS_REST_TOKEN` | Yes* | Fallback Redis token |
+| `KV_REST_API_URL` | No | Preferred Redis endpoint for distributed abuse protection |
+| `KV_REST_API_TOKEN` | No | Preferred Redis token; required when `KV_REST_API_URL` is set |
+| `UPSTASH_REDIS_REST_URL` | No | Alternate Redis endpoint |
+| `UPSTASH_REDIS_REST_TOKEN` | No | Alternate Redis token; required when its URL is set |
 | `CSP_REPORT_ONLY` | No | When `true`, serves CSP in report-only mode |
 | `CSP_REPORT_URI` | No | Optional report endpoint included in CSP |
 | `TRUSTED_PROXY_IP_HEADERS` | No | Comma-separated proxy IP headers to trust when self-hosting behind an edge layer |
 
-`*` For Supabase client auth, provide either `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` or `NEXT_PUBLIC_SUPABASE_ANON_KEY`. For Redis, provide either the `KV_*` pair or the `UPSTASH_*` pair.
+`*` For Supabase client auth, provide either `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` or `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+
+Redis is optional. When it is absent or unavailable, rate limiting and generation idempotency fall back to TTL-based in-memory state so generation remains available. That fallback is isolated to each running process; multi-instance deployments should configure a healthy Redis service for globally coordinated limits and duplicate-request protection.
 
 On Vercel, IP rate limiting uses `x-vercel-forwarded-for` automatically. For self-hosted deployments, set `TRUSTED_PROXY_IP_HEADERS` only to headers your proxy strips and replaces, such as `x-forwarded-for`.
 
@@ -118,7 +120,7 @@ utils/                     MIDI normalization, playback, export, validation, and
 
 - The authenticated app routes (`/`, `/generations`, `/account`) redirect unauthenticated users to `/login`.
 - User OpenRouter keys are validated, encrypted server-side, and stored in `user_settings`.
-- `POST /api/generate` uses Redis-backed rate limiting plus idempotency lock/result keys to avoid duplicate paid requests on retries.
+- `POST /api/generate` uses Redis-backed rate limiting and idempotency when available, with a process-local in-memory fallback when Redis is absent or unhealthy.
 - Saved history metadata is loaded separately from full composition payloads; full composition JSON is fetched on demand for playback, detail view, or download.
 - CSP headers are applied from both `next.config.ts` and `middleware.ts`, with optional report-only rollout.
 
