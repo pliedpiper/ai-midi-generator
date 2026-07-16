@@ -130,6 +130,18 @@ describe('validatePrefs', () => {
     }
   });
 
+  it('accepts Claude Fable 5', () => {
+    const result = validatePrefs({
+      ...validPrefs,
+      model: 'anthropic/claude-fable-5',
+    });
+
+    expect(result.valid).toBe(true);
+    if (result.valid) {
+      expect(result.normalized.model).toBe('anthropic/claude-fable-5');
+    }
+  });
+
   it('accepts Claude Sonnet 5', () => {
     const result = validatePrefs({
       ...validPrefs,

@@ -100,6 +100,7 @@ The API route implements comprehensive validation:
 3. **Model Allowlist**
    Only models defined in `AVAILABLE_MODELS` (from `constants.ts`) are accepted:
    - `bytedance-seed/seed-1.6-flash`
+   - `anthropic/claude-fable-5`
    - `anthropic/claude-haiku-4.5`
    - `anthropic/claude-opus-4.5`
    - `anthropic/claude-opus-4.6`

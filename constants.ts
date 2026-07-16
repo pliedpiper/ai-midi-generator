@@ -55,6 +55,7 @@ export const DEFAULT_PREFERENCES = {
 
 export const AVAILABLE_MODELS = [
   { id: "bytedance-seed/seed-1.6-flash", name: "ByteDance Seed 1.6 Flash" },
+  { id: "anthropic/claude-fable-5", name: "Claude Fable 5" },
   { id: "anthropic/claude-haiku-4.5", name: "Claude Haiku 4.5" },
   { id: "anthropic/claude-opus-4.5", name: "Claude Opus 4.5" },
   { id: "anthropic/claude-opus-4.6", name: "Claude Opus 4.6" },
